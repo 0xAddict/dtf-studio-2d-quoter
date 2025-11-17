@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Model Viewer - STL & FBX</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    #root {
+      width: 100vw;
+      height: 100vh;
+    }
+    .spinner {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "three": "https://aistudiocdn.com/three@^0.181.1",
+    "three/": "https://aistudiocdn.com/three@^0.181.1/"
+  }
+}
+</script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    function ModelViewer() {
+      const containerRef = useRef(null);
+      const sceneRef = useRef(null);
+      const cameraRef = useRef(null);
+      const rendererRef = useRef(null);
+      const controlsRef = useRef(null);
+      const currentModelRef = useRef(null);
+      const animationIdRef = useRef(null);
+      
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+      const [modelInfo, setModelInfo] = useState('');
+
+      useEffect(() => {
+        if (!containerRef.current) return;
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        sceneRef.current = scene;
+
+        // Camera setup
+        const camera = new THREE.PerspectiveCamera(
+          75,
+          containerRef.current.clientWidth / containerRef.current.clientHeight,
+          0.1,
+          1000
+        );
+        camera.position.set(0, 0, 5);
+        cameraRef.current = camera;
+
+        // Renderer setup
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        containerRef.current.appendChild(renderer.domElement);
+        rendererRef.current = renderer;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight1.position.set(5, 5, 5);
+        directionalLight1.castShadow = true;
+        scene.add(directionalLight1);
+
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+        directionalLight2.position.set(-5, 5, -5);
+        scene.add(directionalLight2);
+
+        // Grid helper
+        const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+        scene.add(gridHelper);
+
+        // Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 1;
+        controls.maxDistance = 50;
+        controlsRef.current = controls;
+
+        // Animation loop
+        const animate = () => {
+          animationIdRef.current = requestAnimationFrame(animate);
+          controls.update();
+          renderer.render(scene, camera);
+        };
+        animate();
+
+        // Handle window resize
+        const handleResize = () => {
+          if (!containerRef.current) return;
+          camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+        };
+        window.addEventListener('resize', handleResize);
+
+        // Cleanup
+        return () => {
+          window.removeEventListener('resize', handleResize);
+          if (animationIdRef.current) {
+            cancelAnimationFrame(animationIdRef.current);
+          }
+          renderer.dispose();
+          controls.dispose();
+          if (containerRef.current && renderer.domElement && containerRef.current.contains(renderer.domElement)) {
+            containerRef.current.removeChild(renderer.domElement);
+          }
+        };
+      }, []);
+
+      const removeCurrentModel = () => {
+        if (currentModelRef.current && sceneRef.current) {
+          sceneRef.current.remove(currentModelRef.current);
+          
+          // Dispose of geometries and materials
+          currentModelRef.current.traverse((child) => {
+            if (child.geometry) {
+              child.geometry.dispose();
+            }
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(material => material.dispose());
+              } else {
+                child.material.dispose();
+              }
+            }
+          });
+          
+          currentModelRef.current = null;
+        }
+      };
+
+      const centerAndScaleModel = (object) => {
+        const box = new THREE.Box3().setFromObject(object);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        
+        // Center the model
+        object.position.sub(center);
+        
+        // Scale to fit
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 4 / maxDim;
+        object.scale.multiplyScalar(scale);
+        
+        return { center, size, scale };
+      };
+
+      const loadSTL = (file) => {
+        setLoading(true);
+        setError('');
+        
+        const loader = new THREE.STLLoader();
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          try {
+            const geometry = loader.parse(e.target.result);
+            
+            // Create material with better appearance
+            const material = new THREE.MeshPhongMaterial({
+              color: 0x00b4d8,
+              specular: 0x111111,
+              shininess: 200,
+              flatShading: false
+            });
+            
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            
+            // Remove previous model
+            removeCurrentModel();
+            
+            // Add new model
+            sceneRef.current.add(mesh);
+            currentModelRef.current = mesh;
+            
+            // Center and scale
+            const { size } = centerAndScaleModel(mesh);
+            
+            setModelInfo(`STL Model loaded: ${file.name} (${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)} units)`);
+            setLoading(false);
+          } catch (err) {
+            setError(`Error loading STL: ${err.message}`);
+            setLoading(false);
+          }
+        };
+        
+        reader.onerror = () => {
+          setError('Error reading file');
+          setLoading(false);
+        };
+        
+        reader.readAsArrayBuffer(file);
+      };
+
+      const loadFBX = (file) => {
+        setLoading(true);
+        setError('');
+        
+        const loader = new THREE.FBXLoader();
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          try {
+            const object = loader.parse(e.target.result, '');
+            
+            // Remove previous model
+            removeCurrentModel();
+            
+            // Add new model
+            sceneRef.current.add(object);
+            currentModelRef.current = object;
+            
+            // Center and scale
+            const { size } = centerAndScaleModel(object);
+            
+            setModelInfo(`FBX Model loaded: ${file.name} (${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)} units)`);
+            setLoading(false);
+          } catch (err) {
+            setError(`Error loading FBX: ${err.message}`);
+            setLoading(false);
+          }
+        };
+        
+        reader.onerror = () => {
+          setError('Error reading file');
+          setLoading(false);
+        };
+        
+        reader.readAsArrayBuffer(file);
+      };
+
+      const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const extension = file.name.split('.').pop().toLowerCase();
+        
+        if (extension === 'stl') {
+          loadSTL(file);
+        } else if (extension === 'fbx') {
+          loadFBX(file);
+        } else {
+          setError('Unsupported file format. Please upload STL or FBX files.');
+        }
+      };
+
+      const resetCamera = () => {
+        if (cameraRef.current && controlsRef.current) {
+          cameraRef.current.position.set(0, 0, 5);
+          controlsRef.current.reset();
+        }
+      };
+
+      return (
+        <div className="w-full h-screen flex flex-col bg-gray-900">
+          {/* Header */}
+          <div className="bg-gray-800 p-4 shadow-lg">
+            <h1 className="text-2xl font-bold text-white mb-3">3D Model Viewer</h1>
+            
+            <div className="flex items-center gap-4 flex-wrap">
+              <label className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded cursor-pointer transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Upload Model (STL/FBX)
+                <input
+                  type="file"
+                  accept=".stl,.fbx"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+              
+              <button
+                onClick={resetCamera}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors"
+              >
+                Reset Camera
+              </button>
+            </div>
+            
+            {loading && (
+              <div className="mt-3 text-blue-400 flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full spinner"></div>
+                Loading model...
+              </div>
+            )}
+            
+            {error && (
+              <div className="mt-3 text-red-400 bg-red-900/20 px-3 py-2 rounded">
+                {error}
+              </div>
+            )}
+            
+            {modelInfo && (
+              <div className="mt-3 text-green-400 bg-green-900/20 px-3 py-2 rounded">
+                {modelInfo}
+              </div>
+            )}
+          </div>
+          
+          {/* 3D Viewer */}
+          <div ref={containerRef} className="flex-1 relative">
+            {!currentModelRef.current && !loading && (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-500 pointer-events-none">
+                <div className="text-center">
+                  <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  <p className="text-xl">Upload a 3D model to get started</p>
+                  <p className="text-sm mt-2">Supported formats: STL, FBX</p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Controls Info */}
+          <div className="bg-gray-800 p-3 text-sm text-gray-400 border-t border-gray-700">
+            <strong className="text-white">Controls:</strong> Left click + drag to rotate • Right click + drag to pan • Scroll to zoom
+          </div>
+        </div>
+      );
+    }
+
+    // Render the app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ModelViewer />);
+  </script>
+</body>
+</html>

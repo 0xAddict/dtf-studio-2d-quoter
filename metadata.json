@@ -1,0 +1,5 @@
+{
+  "name": "Interactive 3D Model Viewer",
+  "description": "An interactive web application to upload and view 3D models in STL and FBX formats. Users can rotate, pan, and zoom the model with intuitive controls.",
+  "requestFramePermissions": []
+}
