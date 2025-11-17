@@ -32,8 +32,8 @@ export default function ModelViewer() {
 
   // New feature states
   const [isWireframe, setIsWireframe] = useState(false);
-  const [modelColor, setModelColor] = useState('#00b4d8');
-  const [backgroundColor, setBackgroundColor] = useState('#808080');
+  const [modelColor, setModelColor] = useState('#6366f1');
+  const [backgroundColor, setBackgroundColor] = useState('#f0f4f8');
   const [savedViews, setSavedViews] = useState<{ name: string; position: [number, number, number]; target: [number, number, number] }[]>([]);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [modelStats, setModelStats] = useState<{ vertices: number; triangles: number; dimensions: { x: string; y: string; z: string; } } | null>(null);
@@ -397,28 +397,34 @@ export default function ModelViewer() {
   const getFooterText = () => {
     switch(activeTool) {
         case 'measure':
-            return <span className="text-yellow-400"><strong>Measuring:</strong> {measurementInfo.distance ? `Distance: ${measurementInfo.distance.toFixed(3)} units` : 'Click first point on model...'}</span>;
+            return <span className="text-amber-600"><strong>Measuring:</strong> {measurementInfo.distance ? `Distance: ${measurementInfo.distance.toFixed(3)} units` : 'Click first point on model...'}</span>;
         case 'pivot':
-            return <span className="text-blue-400"><strong>Set Pivot:</strong> Click a point on the model to set the new orbit center.</span>;
+            return <span className="text-blue-600"><strong>Set Pivot:</strong> Click a point on the model to set the new orbit center.</span>;
         default:
-            return <span><strong className="text-white">Controls:</strong> Left click + drag to rotate • Right click + drag to pan • Scroll to zoom</span>;
+            return <span><strong className="text-gray-800">Controls:</strong> Left click + drag to rotate • Right click + drag to pan • Scroll to zoom</span>;
     }
   }
 
   return (
-    <div className="w-full h-screen flex bg-gray-900 text-white overflow-hidden">
+    <div className="w-full h-screen flex bg-gray-50 text-gray-800 overflow-hidden">
       <main className="flex-1 flex flex-col relative">
-        <header className="bg-gray-800/50 backdrop-blur-sm p-4 shadow-lg border-b border-gray-700 z-10">
+        <header className="bg-white/95 backdrop-blur-sm p-4 shadow-md border-b border-gray-200 z-10">
             <div className="flex justify-between items-center mb-3">
-                <h1 className="text-xl md:text-2xl font-bold text-cyan-400">3D Model Viewer</h1>
-                <button onClick={() => setIsPanelOpen(!isPanelOpen)} className="p-2 rounded-md hover:bg-gray-700 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isPanelOpen ? "M17 8l4 4m0 0l-4 4m4-4H3" : "M4 8h16M4 16h16"} /></svg>
-                </button>
+                <div className="flex-1"></div>
+                <div className="flex items-center gap-3">
+                    <img src="/hexea.png" alt="Hexea Logo" className="h-10 w-auto" />
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-800">3D Model Viewer</h1>
+                </div>
+                <div className="flex-1 flex justify-end">
+                    <button onClick={() => setIsPanelOpen(!isPanelOpen)} className="p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isPanelOpen ? "M17 8l4 4m0 0l-4 4m4-4H3" : "M4 8h16M4 16h16"} /></svg>
+                    </button>
+                </div>
             </div>
           
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
                 {/* File Upload */}
-                <label className="flex items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-md cursor-pointer transition-all duration-300 transform hover:scale-105">
+                <label className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md cursor-pointer transition-all duration-300 transform hover:scale-105 shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H5.5z" /><path d="M9 13.5V9m0 0l-2 2m2-2l2 2" /></svg>
                     Upload Model
                     <input type="file" accept=".stl,.fbx" onChange={handleFileUpload} className="hidden" />
@@ -426,9 +432,9 @@ export default function ModelViewer() {
                 
                 {/* View Controls */}
                 <div className="flex items-center gap-2">
-                    <button onClick={resetCamera} title="Reset Camera" className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm10 10a1 1 0 011 1v2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 111.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 010 2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101z" clipRule="evenodd" /></svg></button>
-                    <button onClick={saveCurrentView} title="Save View" className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm2 0v1h6V4H7zm6 2H7v1h6V6zm-1 3H8v1h4V9zm-1 3H9v1h2v-1z" /></svg></button>
-                    <select onChange={(e) => loadView(parseInt(e.target.value))} defaultValue="" className="flex-1 bg-gray-700 text-white px-2 py-2 rounded-md outline-none focus:ring-2 focus:ring-cyan-500">
+                    <button onClick={resetCamera} title="Reset Camera" className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md transition-colors shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm10 10a1 1 0 011 1v2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 111.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 010 2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101z" clipRule="evenodd" /></svg></button>
+                    <button onClick={saveCurrentView} title="Save View" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md transition-colors shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm2 0v1h6V4H7zm6 2H7v1h6V6zm-1 3H8v1h4V9zm-1 3H9v1h2v-1z" /></svg></button>
+                    <select onChange={(e) => loadView(parseInt(e.target.value))} defaultValue="" className="flex-1 bg-gray-100 text-gray-700 px-2 py-2 rounded-md outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
                         <option value="" disabled>Load View</option>
                         {savedViews.map((view, i) => <option key={i} value={i}>{view.name}</option>)}
                     </select>
@@ -436,73 +442,73 @@ export default function ModelViewer() {
 
                 {/* Display Controls */}
                 <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 bg-gray-700 rounded-md p-1 flex-1">
-                        <label htmlFor="bg-color-picker" className="text-xs px-1" title="Background Color">BG</label>
-                        <input id="bg-color-picker" type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="w-8 h-7 rounded border-none bg-gray-700 cursor-pointer" />
+                    <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1 flex-1 shadow-sm">
+                        <label htmlFor="bg-color-picker" className="text-xs px-1 text-gray-600" title="Background Color">BG</label>
+                        <input id="bg-color-picker" type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="w-8 h-7 rounded border-none bg-gray-100 cursor-pointer" />
                     </div>
-                    <div className="flex items-center gap-1 bg-gray-700 rounded-md p-1 flex-1">
-                        <label htmlFor="color-picker" className="text-xs px-1" title="Model Color">Model</label>
-                        <input id="color-picker" type="color" value={modelColor} onChange={(e) => setModelColor(e.target.value)} className="w-8 h-7 rounded border-none bg-gray-700 cursor-pointer" />
+                    <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1 flex-1 shadow-sm">
+                        <label htmlFor="color-picker" className="text-xs px-1 text-gray-600" title="Model Color">Model</label>
+                        <input id="color-picker" type="color" value={modelColor} onChange={(e) => setModelColor(e.target.value)} className="w-8 h-7 rounded border-none bg-gray-100 cursor-pointer" />
                     </div>
-                    <button onClick={() => setIsWireframe(!isWireframe)} title="Toggle Wireframe" className={`flex-1 py-2 rounded-md transition-colors text-sm ${isWireframe ? 'bg-cyan-600' : 'bg-gray-700 hover:bg-gray-600'}`}>Wireframe</button>
+                    <button onClick={() => setIsWireframe(!isWireframe)} title="Toggle Wireframe" className={`flex-1 py-2 rounded-md transition-colors text-sm shadow-sm ${isWireframe ? 'bg-indigo-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>Wireframe</button>
                 </div>
                 
                 {/* Tools */}
                 <div className="flex items-center gap-2">
-                    <button onClick={() => handleToolSelect('measure')} title="Measure Distance" className={`flex-1 flex items-center justify-center gap-2 text-white px-4 py-2 rounded-md transition-colors ${activeTool === 'measure' ? 'bg-yellow-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                    <button onClick={() => handleToolSelect('measure')} title="Measure Distance" className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md transition-colors shadow-sm ${activeTool === 'measure' ? 'bg-amber-500 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 2a1 1 0 011-1h8a1 1 0 011 1v1.586l-2.293-2.293a1 1 0 00-1.414 1.414L10 5.414l-2.293-2.293a1 1 0 00-1.414-1.414L4 3.586V2a1 1 0 011-1zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zm1 3a1 1 0 100 2h8a1 1 0 100-2H5zm1 3a1 1 0 100 2h6a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
                     </button>
-                    <button onClick={() => handleToolSelect('pivot')} title="Set Pivot Point" className={`flex-1 flex items-center justify-center gap-2 text-white px-4 py-2 rounded-md transition-colors ${activeTool === 'pivot' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                    <button onClick={() => handleToolSelect('pivot')} title="Set Pivot Point" className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md transition-colors shadow-sm ${activeTool === 'pivot' ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" /></svg>
                     </button>
                 </div>
             </div>
             
             <div className="mt-3 text-sm space-y-2">
-                {loading && <div className="text-cyan-400 flex items-center gap-2"><div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>Loading...</div>}
-                {error && <div className="text-red-400 bg-red-900/30 px-3 py-2 rounded-md"><strong>Error:</strong> {error}</div>}
-                {modelInfo && !error && <div className="text-green-400 bg-green-900/30 px-3 py-2 rounded-md">{modelInfo}</div>}
+                {loading && <div className="text-indigo-600 flex items-center gap-2"><div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>Loading...</div>}
+                {error && <div className="text-red-600 bg-red-50 px-3 py-2 rounded-md border border-red-200"><strong>Error:</strong> {error}</div>}
+                {modelInfo && !error && <div className="text-green-700 bg-green-50 px-3 py-2 rounded-md border border-green-200">{modelInfo}</div>}
             </div>
         </header>
         
         <div ref={containerRef} className="flex-1 relative">
             {!currentModelRef.current && !loading && (
-                <div className="absolute inset-0 flex items-center justify-center text-gray-500 pointer-events-none">
+                <div className="absolute inset-0 flex items-center justify-center text-gray-400 pointer-events-none">
                     <div className="text-center p-4">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 mx-auto mb-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12.792V6.208a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6.208v6.584L5.25 18h11.563M18 12.75l-3 3m0 0l-3-3m3 3V3.75" /><path strokeLinecap="round" strokeLinejoin="round" d="M12.75 3.75h5.513c.621 0 1.125.504 1.125 1.125v13.027c0 .621-.504 1.125-1.125 1.125H5.737a1.125 1.125 0 01-1.125-1.125V4.875c0-.621.504-1.125 1.125-1.125h5.513" /></svg>
-                        <p className="text-xl text-gray-400">Upload a 3D model to get started</p>
-                        <p className="text-sm mt-2 text-gray-500">Supported formats: STL, FBX</p>
+                        <p className="text-xl text-gray-500">Upload a 3D model to get started</p>
+                        <p className="text-sm mt-2 text-gray-400">Supported formats: STL, FBX</p>
                     </div>
                 </div>
             )}
-            <div className="absolute bottom-4 left-4 bg-gray-900/50 backdrop-blur-sm text-white p-3 rounded-lg text-xs leading-relaxed shadow-lg pointer-events-none">
-                <h3 className="font-bold text-sm mb-1 text-cyan-400">Controls</h3>
+            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm text-gray-800 p-3 rounded-lg text-xs leading-relaxed shadow-lg pointer-events-none border border-gray-200">
+                <h3 className="font-bold text-sm mb-1 text-indigo-600">Controls</h3>
                 <div><strong className="w-16 inline-block">Rotate:</strong> Left Mouse</div>
                 <div><strong className="w-16 inline-block">Pan:</strong> Right Mouse</div>
                 <div><strong className="w-16 inline-block">Zoom:</strong> Scroll Wheel</div>
             </div>
         </div>
         
-        <footer className="bg-gray-800/50 backdrop-blur-sm p-3 text-sm text-gray-400 border-t border-gray-700 text-center z-10">
+        <footer className="bg-white/95 backdrop-blur-sm p-3 text-sm text-gray-600 border-t border-gray-200 text-center z-10">
           {getFooterText()}
         </footer>
       </main>
 
-      <aside className={`transition-all duration-300 ease-in-out bg-gray-800/80 backdrop-blur-sm border-l border-gray-700 flex-shrink-0 ${isPanelOpen ? 'w-80 p-4' : 'w-0 p-0'} overflow-hidden`}>
-        <h2 className="text-lg font-bold text-cyan-400 mb-4 whitespace-nowrap">Model Properties</h2>
+      <aside className={`transition-all duration-300 ease-in-out bg-white/95 backdrop-blur-sm border-l border-gray-200 flex-shrink-0 ${isPanelOpen ? 'w-80 p-4' : 'w-0 p-0'} overflow-hidden`}>
+        <h2 className="text-lg font-bold text-indigo-600 mb-4 whitespace-nowrap">Model Properties</h2>
         {modelStats ? (
-            <div className="space-y-3 text-sm text-gray-300 whitespace-nowrap">
-                <div><strong className="w-24 inline-block text-gray-400">Vertices:</strong> {modelStats.vertices.toLocaleString()}</div>
-                <div><strong className="w-24 inline-block text-gray-400">Triangles:</strong> {modelStats.triangles.toLocaleString()}</div>
+            <div className="space-y-3 text-sm text-gray-700 whitespace-nowrap">
+                <div><strong className="w-24 inline-block text-gray-600">Vertices:</strong> {modelStats.vertices.toLocaleString()}</div>
+                <div><strong className="w-24 inline-block text-gray-600">Triangles:</strong> {modelStats.triangles.toLocaleString()}</div>
                  <div className="pt-2">
-                    <strong className="block text-gray-400 mb-1">Original Dimensions:</strong>
+                    <strong className="block text-gray-600 mb-1">Original Dimensions:</strong>
                     <div><span className="w-8 inline-block text-gray-500">X:</span> {modelStats.dimensions.x}</div>
                     <div><span className="w-8 inline-block text-gray-500">Y:</span> {modelStats.dimensions.y}</div>
                     <div><span className="w-8 inline-block text-gray-500">Z:</span> {modelStats.dimensions.z}</div>
                 </div>
             </div>
         ) : (
-            <div className="text-sm text-gray-500 italic whitespace-nowrap">
+            <div className="text-sm text-gray-400 italic whitespace-nowrap">
                 No model loaded.
             </div>
         )}
