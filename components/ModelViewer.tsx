@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
 type ActiveTool = 'none' | 'measure' | 'pivot';
 
