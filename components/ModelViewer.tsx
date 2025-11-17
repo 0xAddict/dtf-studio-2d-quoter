@@ -1,8 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { useTheme } from '../contexts/ThemeContext';
+import { ThemeToggle } from './ThemeToggle';
+import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Target, Box } from 'lucide-react';
 
 type ActiveTool = 'none' | 'measure' | 'pivot';
 
@@ -18,6 +21,7 @@ const createPivotHelper = () => {
 };
 
 export default function ModelViewer() {
+  const { isDark } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -33,7 +37,7 @@ export default function ModelViewer() {
   // Feature states
   const [isWireframe, setIsWireframe] = useState(false);
   const [modelColor, setModelColor] = useState('#6366f1');
-  const [backgroundColor, setBackgroundColor] = useState('#f0f4f8');
+  const [backgroundColor, setBackgroundColor] = useState(isDark ? '#0f172a' : '#f0f4f8');
   const [savedViews, setSavedViews] = useState<{ name: string; position: [number, number, number]; target: [number, number, number] }[]>([]);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [modelStats, setModelStats] = useState<{ vertices: number; triangles: number; dimensions: { x: string; y: string; z: string; } } | null>(null);
@@ -43,15 +47,6 @@ export default function ModelViewer() {
   const pivotHelperRef = useRef<THREE.Group>(createPivotHelper());
   const [activeTool, setActiveTool] = useState<ActiveTool>('none');
   const [measurementInfo, setMeasurementInfo] = useState<{ points: THREE.Vector3[], distance: number | null }>({ points: [], distance: null });
-
-  // Lighting and grid refs for theme updates
-  const lightsRef = useRef<{
-    ambient?: THREE.AmbientLight;
-    directional1?: THREE.DirectionalLight;
-    directional2?: THREE.DirectionalLight;
-    hemisphere?: THREE.HemisphereLight;
-  }>({});
-  const gridHelperRef = useRef<THREE.GridHelper | null>(null);
 
   // Update background color when theme changes
   useEffect(() => {
@@ -84,31 +79,35 @@ export default function ModelViewer() {
     currentContainer.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Lighting setup - will be adjusted based on theme
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    // Lighting setup - adjusted for dark mode
+    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.5 : 0.7);
     scene.add(ambientLight);
-    lightsRef.current.ambient = ambientLight;
 
-    const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
+    const directionalLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 0.7 : 0.9);
     directionalLight1.position.set(5, 10, 7.5);
     directionalLight1.castShadow = true;
     directionalLight1.shadow.mapSize.width = 2048;
     directionalLight1.shadow.mapSize.height = 2048;
     scene.add(directionalLight1);
-    lightsRef.current.directional1 = directionalLight1;
 
-    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+    const directionalLight2 = new THREE.DirectionalLight(0xffffff, isDark ? 0.3 : 0.5);
     directionalLight2.position.set(-5, 10, -7.5);
     scene.add(directionalLight2);
-    lightsRef.current.directional2 = directionalLight2;
 
-    const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 0.4);
+    const hemisphereLight = new THREE.HemisphereLight(
+      isDark ? 0x4a5568 : 0xffffbb,
+      isDark ? 0x1e293b : 0x080820,
+      isDark ? 0.3 : 0.4
+    );
     scene.add(hemisphereLight);
-    lightsRef.current.hemisphere = hemisphereLight;
 
-    const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+    const gridHelper = new THREE.GridHelper(
+      20,
+      20,
+      isDark ? 0x334155 : 0x444444,
+      isDark ? 0x1e293b : 0x222222
+    );
     scene.add(gridHelper);
-    gridHelperRef.current = gridHelper;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -143,37 +142,6 @@ export default function ModelViewer() {
         currentContainer.removeChild(rendererRef.current.domElement);
       }
     };
-  }, []);
-
-  // Update lights and grid when theme changes (without recreating scene)
-  useEffect(() => {
-    if (lightsRef.current.ambient) {
-      lightsRef.current.ambient.intensity = isDark ? 0.5 : 0.7;
-    }
-    if (lightsRef.current.directional1) {
-      lightsRef.current.directional1.intensity = isDark ? 0.7 : 0.9;
-    }
-    if (lightsRef.current.directional2) {
-      lightsRef.current.directional2.intensity = isDark ? 0.3 : 0.5;
-    }
-    if (lightsRef.current.hemisphere) {
-      lightsRef.current.hemisphere.skyColor.setHex(isDark ? 0x4a5568 : 0xffffbb);
-      lightsRef.current.hemisphere.groundColor.setHex(isDark ? 0x1e293b : 0x080820);
-      lightsRef.current.hemisphere.intensity = isDark ? 0.3 : 0.4;
-    }
-    if (gridHelperRef.current && sceneRef.current) {
-      // Remove old grid and create new one with updated colors
-      sceneRef.current.remove(gridHelperRef.current);
-      gridHelperRef.current.dispose();
-      const newGrid = new THREE.GridHelper(
-        20,
-        20,
-        isDark ? 0x334155 : 0x444444,
-        isDark ? 0x1e293b : 0x222222
-      );
-      sceneRef.current.add(newGrid);
-      gridHelperRef.current = newGrid;
-    }
   }, [isDark]);
 
   // Effect for pointer events
@@ -505,7 +473,7 @@ export default function ModelViewer() {
 
   return (
     <div className="w-full h-screen flex bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300">
-      <main className="flex-1 flex flex-col relative">
+      <main className="flex-1 flex flex-col relative overflow-hidden">
         {/* Clean Minimal Header */}
         <header className="glass border-b border-gray-200 dark:border-slate-700 z-20 animate-fade-in">
             <div className="flex justify-between items-center px-6 py-3">
@@ -731,8 +699,8 @@ export default function ModelViewer() {
 
       {/* Side Panel */}
       <aside
-        className={`transition-all duration-300 ease-in-out glass border-l border-gray-200 dark:border-slate-700 flex-shrink-0 overflow-hidden ${
-          isPanelOpen ? 'w-80 p-4 opacity-100' : 'w-0 p-0 opacity-0 pointer-events-none'
+        className={`transition-all duration-300 ease-in-out glass flex-shrink-0 overflow-hidden ${
+          isPanelOpen ? 'w-80 p-4 opacity-100 border-l border-gray-200 dark:border-slate-700' : 'w-0 p-0 opacity-0 pointer-events-none border-0'
         }`}
         aria-hidden={!isPanelOpen}
       >
