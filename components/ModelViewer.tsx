@@ -450,46 +450,48 @@ export default function ModelViewer() {
   return (
     <div className="w-full h-screen flex bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300">
       <main className="flex-1 flex flex-col relative">
-        {/* Header */}
-        <header
-          className="glass border-b border-gray-200 dark:border-slate-700 z-10 animate-fade-in"
-          style={{ padding: '1rem' }}
-        >
-            <div className="flex justify-between items-center mb-3">
-                <div className="flex-1"></div>
+        {/* Modern Toolbar Header */}
+        <header className="glass border-b border-gray-200 dark:border-slate-700 z-10 animate-fade-in">
+            {/* Title Bar */}
+            <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200/50 dark:border-slate-700/50">
                 <div className="flex items-center gap-3">
                     <img
                       src="/hexea.png"
                       alt="Hexea Logo"
-                      className="h-10 w-auto transition-transform duration-300 hover:scale-110"
+                      className="h-8 w-auto transition-transform duration-300 hover:scale-110"
                     />
-                    <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+                    <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
                       3D Model Viewer
                     </h1>
                 </div>
-                <div className="flex-1 flex justify-end items-center gap-3">
+                <div className="flex items-center gap-2">
                     <ThemeToggle />
                     <button
-                      onClick={() => setIsPanelOpen(!isPanelOpen)}
-                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
+                      onClick={() => setIsPanelOpen(prev => !prev)}
+                      className={`p-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 ${
+                        isPanelOpen
+                          ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                          : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300'
+                      }`}
+                      title={isPanelOpen ? 'Close properties panel' : 'Open properties panel'}
                       aria-label={isPanelOpen ? 'Close panel' : 'Open panel'}
                       aria-expanded={isPanelOpen}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isPanelOpen ? "M13 5l7 7-7 7M5 5l7 7-7 7" : "M4 6h16M4 12h16M4 18h16"} />
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v18m6-18v18M4 9h16M4 15h16" />
                         </svg>
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+            {/* Toolbar */}
+            <div className="flex items-center gap-2 px-4 py-2 flex-wrap">
                 {/* File Upload */}
-                <label className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-4 py-2.5 rounded-lg cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 dark:focus-within:ring-offset-slate-900">
+                <label className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-4 py-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-lg focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 dark:focus-within:ring-indigo-400">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H5.5z" />
-                      <path d="M9 13.5V9m0 0l-2 2m2-2l2 2" />
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
                     </svg>
-                    Upload Model
+                    Upload
                     <input
                       type="file"
                       accept=".stl,.fbx"
@@ -499,101 +501,68 @@ export default function ModelViewer() {
                     />
                 </label>
 
-                {/* View Controls */}
-                <div className="flex items-center gap-2" role="group" aria-label="View controls">
+                <div className="w-px h-8 bg-gray-300 dark:bg-slate-600 mx-1"></div>
+
+                {/* View Tools */}
+                <div className="flex items-center gap-1" role="group" aria-label="View controls">
                     <button
                       onClick={resetCamera}
                       title="Reset Camera (R)"
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-lg transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
+                      className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
                       aria-label="Reset camera view"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm10 10a1 1 0 011 1v2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 111.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 010-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101z" clipRule="evenodd" />
                       </svg>
                     </button>
                     <button
                       onClick={saveCurrentView}
                       title="Save Current View"
-                      className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-lg transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
+                      className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
                       aria-label="Save current camera view"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm2 0v1h6V4H7zm6 2H7v1h6V6zm-1 3H8v1h4V9zm-1 3H9v1h2v-1z" />
+                        <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
                       </svg>
                     </button>
-                    <select
-                      onChange={(e) => loadView(parseInt(e.target.value))}
-                      defaultValue=""
-                      className="flex-1 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-3 py-2.5 rounded-lg outline-none transition-all duration-200 hover:bg-gray-200 dark:hover:bg-slate-700 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
-                      aria-label="Load saved view"
-                    >
-                        <option value="" disabled>Load View</option>
-                        {savedViews.map((view, i) => <option key={i} value={i}>{view.name}</option>)}
-                    </select>
+                    {savedViews.length > 0 && (
+                      <select
+                        onChange={(e) => loadView(parseInt(e.target.value))}
+                        value=""
+                        className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg text-sm outline-none transition-all duration-200 hover:bg-gray-200 dark:hover:bg-slate-700 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
+                        aria-label="Load saved view"
+                      >
+                          <option value="" disabled>Saved Views ({savedViews.length})</option>
+                          {savedViews.map((view, i) => <option key={i} value={i}>{view.name}</option>)}
+                      </select>
+                    )}
                 </div>
 
-                {/* Display Controls */}
-                <div className="flex items-center gap-2" role="group" aria-label="Display controls">
-                    <div className="flex items-center gap-2 bg-gray-100 dark:bg-slate-800 rounded-lg p-2 flex-1 hover:shadow-md transition-all duration-200">
-                        <label htmlFor="bg-color-picker" className="text-xs px-1 text-gray-600 dark:text-gray-400 font-medium" title="Background Color">BG</label>
-                        <input
-                          id="bg-color-picker"
-                          type="color"
-                          value={backgroundColor}
-                          onChange={(e) => setBackgroundColor(e.target.value)}
-                          className="w-9 h-9 rounded-md border-2 border-gray-200 dark:border-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
-                          aria-label="Choose background color"
-                        />
-                    </div>
-                    <div className="flex items-center gap-2 bg-gray-100 dark:bg-slate-800 rounded-lg p-2 flex-1 hover:shadow-md transition-all duration-200">
-                        <label htmlFor="color-picker" className="text-xs px-1 text-gray-600 dark:text-gray-400 font-medium" title="Model Color">Model</label>
-                        <input
-                          id="color-picker"
-                          type="color"
-                          value={modelColor}
-                          onChange={(e) => setModelColor(e.target.value)}
-                          className="w-9 h-9 rounded-md border-2 border-gray-200 dark:border-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
-                          aria-label="Choose model color"
-                        />
-                    </div>
-                    <button
-                      onClick={() => setIsWireframe(!isWireframe)}
-                      title="Toggle Wireframe (W)"
-                      className={`flex-1 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium ${
-                        isWireframe
-                          ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-500 dark:to-indigo-600 text-white shadow-lg'
-                          : 'bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300'
-                      } focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400`}
-                      aria-label="Toggle wireframe mode"
-                      aria-pressed={isWireframe}
-                    >
-                      Wireframe
-                    </button>
-                </div>
+                <div className="w-px h-8 bg-gray-300 dark:bg-slate-600 mx-1"></div>
 
                 {/* Tools */}
-                <div className="flex items-center gap-2" role="group" aria-label="Measurement tools">
+                <div className="flex items-center gap-1" role="group" aria-label="Measurement tools">
                     <button
                       onClick={() => handleToolSelect('measure')}
                       title="Measure Distance (M)"
-                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 font-medium ${
+                      className={`p-2 rounded-lg transition-all duration-200 ${
                         activeTool === 'measure'
-                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-400 dark:to-amber-500 text-white shadow-lg scale-105'
+                          ? 'bg-amber-500 dark:bg-amber-600 text-white shadow-md'
                           : 'bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300'
                       } focus:outline-none focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400`}
                       aria-label="Activate measurement tool"
                       aria-pressed={activeTool === 'measure'}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fillRule="evenodd" d="M5 2a1 1 0 011-1h8a1 1 0 011 1v1.586l-2.293-2.293a1 1 0 00-1.414 1.414L10 5.414l-2.293-2.293a1 1 0 00-1.414-1.414L4 3.586V2a1 1 0 011-1zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zm1 3a1 1 0 100 2h8a1 1 0 100-2H5zm1 3a1 1 0 100 2h6a1 1 0 100-2H6z" clipRule="evenodd" />
+                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                         </svg>
                     </button>
                     <button
                       onClick={() => handleToolSelect('pivot')}
                       title="Set Pivot Point (P)"
-                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 font-medium ${
+                      className={`p-2 rounded-lg transition-all duration-200 ${
                         activeTool === 'pivot'
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 text-white shadow-lg scale-105'
+                          ? 'bg-blue-500 dark:bg-blue-600 text-white shadow-md'
                           : 'bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300'
                       } focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400`}
                       aria-label="Activate pivot point tool"
@@ -604,23 +573,39 @@ export default function ModelViewer() {
                           <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                         </svg>
                     </button>
+                    <button
+                      onClick={() => setIsWireframe(!isWireframe)}
+                      title="Toggle Wireframe (W)"
+                      className={`p-2 rounded-lg transition-all duration-200 ${
+                        isWireframe
+                          ? 'bg-indigo-500 dark:bg-indigo-600 text-white shadow-md'
+                          : 'bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300'
+                      } focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400`}
+                      aria-label="Toggle wireframe mode"
+                      aria-pressed={isWireframe}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
+                      </svg>
+                    </button>
                 </div>
             </div>
 
-            <div className="mt-3 text-sm space-y-2" role="status" aria-live="polite">
+            {/* Status Messages */}
+            <div className="px-4 pb-2" role="status" aria-live="polite">
                 {loading && (
-                  <div className="text-indigo-600 dark:text-indigo-400 flex items-center gap-2 animate-fade-in">
+                  <div className="text-indigo-600 dark:text-indigo-400 flex items-center gap-2 text-sm animate-fade-in">
                     <div className="w-4 h-4 border-2 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin" aria-hidden="true"></div>
                     Loading model...
                   </div>
                 )}
                 {error && (
-                  <div className="text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800 animate-slide-up" role="alert">
+                  <div className="text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-sm animate-slide-up" role="alert">
                     <strong>Error:</strong> {error}
                   </div>
                 )}
                 {modelInfo && !error && (
-                  <div className="text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg border border-green-200 dark:border-green-800 animate-slide-up">
+                  <div className="text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-lg border border-green-200 dark:border-green-800 text-sm animate-slide-up">
                     {modelInfo}
                   </div>
                 )}
@@ -665,45 +650,104 @@ export default function ModelViewer() {
 
       {/* Side Panel */}
       <aside
-        className={`transition-all duration-300 ease-in-out glass border-l border-gray-200 dark:border-slate-700 flex-shrink-0 ${
-          isPanelOpen ? 'w-80 p-4' : 'w-0 p-0'
-        } overflow-hidden`}
+        className={`transition-all duration-300 ease-in-out glass border-l border-gray-200 dark:border-slate-700 flex-shrink-0 overflow-hidden ${
+          isPanelOpen ? 'w-80' : 'w-0'
+        }`}
         aria-hidden={!isPanelOpen}
       >
-        <h2 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mb-4 whitespace-nowrap">Model Properties</h2>
-        {modelStats ? (
-            <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap animate-fade-in">
-                <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
-                  <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-1">Vertices</strong>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">{modelStats.vertices.toLocaleString()}</span>
+        <div className={`p-4 h-full overflow-y-auto ${isPanelOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
+          {/* Appearance Section */}
+          <div className="mb-6">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Appearance</h2>
+            <div className="space-y-3">
+              {/* Background Color */}
+              <div>
+                <label htmlFor="bg-color-panel" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                  Background Color
+                </label>
+                <div className="flex items-center gap-2 bg-gray-100 dark:bg-slate-800 rounded-lg p-2 hover:bg-gray-150 dark:hover:bg-slate-750 transition-colors">
+                  <input
+                    id="bg-color-panel"
+                    type="color"
+                    value={backgroundColor}
+                    onChange={(e) => setBackgroundColor(e.target.value)}
+                    className="w-10 h-10 rounded-md border-2 border-gray-200 dark:border-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
+                    aria-label="Choose background color"
+                  />
+                  <input
+                    type="text"
+                    value={backgroundColor}
+                    onChange={(e) => setBackgroundColor(e.target.value)}
+                    className="flex-1 bg-transparent text-sm font-mono text-gray-700 dark:text-gray-300 outline-none"
+                    placeholder="#000000"
+                  />
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
-                  <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-1">Triangles</strong>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">{modelStats.triangles.toLocaleString()}</span>
+              </div>
+
+              {/* Model Color */}
+              <div>
+                <label htmlFor="model-color-panel" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                  Model Color
+                </label>
+                <div className="flex items-center gap-2 bg-gray-100 dark:bg-slate-800 rounded-lg p-2 hover:bg-gray-150 dark:hover:bg-slate-750 transition-colors">
+                  <input
+                    id="model-color-panel"
+                    type="color"
+                    value={modelColor}
+                    onChange={(e) => setModelColor(e.target.value)}
+                    className="w-10 h-10 rounded-md border-2 border-gray-200 dark:border-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
+                    aria-label="Choose model color"
+                  />
+                  <input
+                    type="text"
+                    value={modelColor}
+                    onChange={(e) => setModelColor(e.target.value)}
+                    className="flex-1 bg-transparent text-sm font-mono text-gray-700 dark:text-gray-300 outline-none"
+                    placeholder="#000000"
+                  />
                 </div>
-                <div className="pt-2">
-                    <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-2">Original Dimensions</strong>
-                    <div className="space-y-2 pl-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">X:</span>
-                        <span className="font-mono text-gray-900 dark:text-white">{modelStats.dimensions.x}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Y:</span>
-                        <span className="font-mono text-gray-900 dark:text-white">{modelStats.dimensions.y}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Z:</span>
-                        <span className="font-mono text-gray-900 dark:text-white">{modelStats.dimensions.z}</span>
-                      </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Model Properties Section */}
+          <div>
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">Model Properties</h2>
+            {modelStats ? (
+                <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300 animate-fade-in">
+                    <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700">
+                      <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-1">Vertices</strong>
+                      <span className="text-lg font-semibold text-gray-900 dark:text-white">{modelStats.vertices.toLocaleString()}</span>
+                    </div>
+                    <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700">
+                      <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-1">Triangles</strong>
+                      <span className="text-lg font-semibold text-gray-900 dark:text-white">{modelStats.triangles.toLocaleString()}</span>
+                    </div>
+                    <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700">
+                        <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-2">Dimensions</strong>
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">X:</span>
+                            <span className="font-mono text-sm text-gray-900 dark:text-white">{modelStats.dimensions.x}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Y:</span>
+                            <span className="font-mono text-sm text-gray-900 dark:text-white">{modelStats.dimensions.y}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Z:</span>
+                            <span className="font-mono text-sm text-gray-900 dark:text-white">{modelStats.dimensions.z}</span>
+                          </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        ) : (
-            <div className="text-sm text-gray-400 dark:text-gray-500 italic whitespace-nowrap">
-                No model loaded.
-            </div>
-        )}
+            ) : (
+                <div className="text-sm text-gray-400 dark:text-gray-500 italic p-4 text-center bg-gray-50 dark:bg-slate-800/30 rounded-lg border border-dashed border-gray-300 dark:border-slate-700">
+                    No model loaded.
+                </div>
+            )}
+          </div>
+        </div>
       </aside>
     </div>
   );
