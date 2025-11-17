@@ -4,6 +4,19 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
 
+type ActiveTool = 'none' | 'measure' | 'pivot';
+
+const createPivotHelper = () => {
+    const group = new THREE.Group();
+    const axes = new THREE.AxesHelper(0.5); // Larger axes
+    const sphereGeo = new THREE.SphereGeometry(0.04, 16, 16);
+    const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true, opacity: 0.9 });
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    group.add(axes);
+    group.add(sphere);
+    return group;
+};
+
 export default function ModelViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -20,32 +33,38 @@ export default function ModelViewer() {
   // New feature states
   const [isWireframe, setIsWireframe] = useState(false);
   const [modelColor, setModelColor] = useState('#00b4d8');
+  const [backgroundColor, setBackgroundColor] = useState('#808080');
   const [savedViews, setSavedViews] = useState<{ name: string; position: [number, number, number]; target: [number, number, number] }[]>([]);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [modelStats, setModelStats] = useState<{ vertices: number; triangles: number; dimensions: { x: string; y: string; z: string; } } | null>(null);
 
-  // Measurement tool state
+  // Tool state
   const measurementHelpersRef = useRef<THREE.Group>(new THREE.Group());
-  const [isMeasuring, setIsMeasuring] = useState(false);
+  const pivotHelperRef = useRef<THREE.Group>(createPivotHelper());
+  const [activeTool, setActiveTool] = useState<ActiveTool>('none');
   const [measurementInfo, setMeasurementInfo] = useState<{ points: THREE.Vector3[], distance: number | null }>({ points: [], distance: null });
 
+  // Scene setup
   useEffect(() => {
     if (!containerRef.current) return;
+    const currentContainer = containerRef.current;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a2e);
+    scene.background = new THREE.Color(backgroundColor);
     sceneRef.current = scene;
     scene.add(measurementHelpersRef.current);
+    pivotHelperRef.current.visible = false;
+    scene.add(pivotHelperRef.current);
 
-    const camera = new THREE.PerspectiveCamera(75, containerRef.current.clientWidth / containerRef.current.clientHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(75, currentContainer.clientWidth / currentContainer.clientHeight, 0.1, 1000);
     camera.position.set(0, 2, 5);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+    renderer.setSize(currentContainer.clientWidth, currentContainer.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
-    containerRef.current.appendChild(renderer.domElement);
+    currentContainer.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
@@ -77,18 +96,40 @@ export default function ModelViewer() {
     };
     animate();
 
-    const handleResize = () => {
-        if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
-        cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
-        cameraRef.current.updateProjectionMatrix();
-        rendererRef.current.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+    const observer = new ResizeObserver(() => {
+        // Wrapping the resize logic in requestAnimationFrame is a common way to avoid
+        // the "ResizeObserver loop completed with undelivered notifications" error.
+        // It ensures that the resizing logic runs in sync with the browser's rendering cycle,
+        // preventing timing conflicts with React's DOM updates.
+        requestAnimationFrame(() => {
+            if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
+            cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
+            cameraRef.current.updateProjectionMatrix();
+            rendererRef.current.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+        });
+    });
+    observer.observe(currentContainer);
+    
+    return () => {
+      observer.disconnect();
+      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+      if (rendererRef.current) rendererRef.current.dispose();
+      if (controlsRef.current) controlsRef.current.dispose();
+      if (currentContainer && rendererRef.current?.domElement) {
+        currentContainer.removeChild(rendererRef.current.domElement);
+      }
     };
-    window.addEventListener('resize', handleResize);
+  }, []);
+
+  // Effect for pointer events to handle tools - separated to get fresh 'activeTool' state
+  useEffect(() => {
+    const rendererEl = rendererRef.current?.domElement;
+    if (!rendererEl) return;
 
     const handlePointerDown = (event: PointerEvent) => {
-        if (!isMeasuring || !currentModelRef.current || !rendererRef.current || !cameraRef.current) return;
+        if (activeTool === 'none' || !currentModelRef.current || !rendererRef.current || !cameraRef.current) return;
 
-        const canvas = rendererRef.current.domElement;
+        const canvas = rendererEl;
         const rect = canvas.getBoundingClientRect();
         const mouse = new THREE.Vector2();
         mouse.x = ((event.clientX - rect.left) / canvas.clientWidth) * 2 - 1;
@@ -96,56 +137,64 @@ export default function ModelViewer() {
 
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, cameraRef.current);
-
         const intersects = raycaster.intersectObject(currentModelRef.current, true);
 
         if (intersects.length > 0) {
             const intersectionPoint = intersects[0].point;
-            setMeasurementInfo(prev => {
-                let newPoints = [...prev.points, intersectionPoint];
-                let newDistance: number | null = null;
-    
-                if (newPoints.length > 2) {
-                    newPoints = [intersectionPoint];
-                }
-    
-                while(measurementHelpersRef.current.children.length > 0){ 
-                    measurementHelpersRef.current.remove(measurementHelpersRef.current.children[0]); 
-                }
-    
-                newPoints.forEach(p => {
-                    const geometry = new THREE.SphereGeometry(0.05, 16, 16);
-                    const material = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.8 });
-                    const sphere = new THREE.Mesh(geometry, material);
-                    sphere.position.copy(p);
-                    measurementHelpersRef.current.add(sphere);
+
+            if (activeTool === 'measure') {
+                setMeasurementInfo(prev => {
+                    let newPoints = [...prev.points, intersectionPoint];
+                    let newDistance: number | null = null;
+        
+                    if (newPoints.length > 2) {
+                        newPoints = [intersectionPoint];
+                    }
+        
+                    while(measurementHelpersRef.current.children.length > 0){ 
+                        measurementHelpersRef.current.remove(measurementHelpersRef.current.children[0]); 
+                    }
+        
+                    newPoints.forEach(p => {
+                        const geometry = new THREE.SphereGeometry(0.05, 16, 16);
+                        const material = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.8 });
+                        const sphere = new THREE.Mesh(geometry, material);
+                        sphere.position.copy(p);
+                        measurementHelpersRef.current.add(sphere);
+                    });
+        
+                    if (newPoints.length === 2) {
+                        newDistance = newPoints[0].distanceTo(newPoints[1]);
+                        const material = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 2, transparent: true, opacity: 0.8 });
+                        const geometry = new THREE.BufferGeometry().setFromPoints(newPoints);
+                        const line = new THREE.Line(geometry, material);
+                        measurementHelpersRef.current.add(line);
+                    }
+                    
+                    return { points: newPoints, distance: newDistance };
                 });
-    
-                if (newPoints.length === 2) {
-                    newDistance = newPoints[0].distanceTo(newPoints[1]);
-                    const material = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 2, transparent: true, opacity: 0.8 });
-                    const geometry = new THREE.BufferGeometry().setFromPoints(newPoints);
-                    const line = new THREE.Line(geometry, material);
-                    measurementHelpersRef.current.add(line);
+            } else if (activeTool === 'pivot') {
+                if (controlsRef.current) {
+                    controlsRef.current.target.copy(intersectionPoint);
+                    pivotHelperRef.current.position.copy(intersectionPoint);
+                    pivotHelperRef.current.visible = true;
+                    setActiveTool('none');
                 }
-                
-                return { points: newPoints, distance: newDistance };
-            });
+            }
         }
     };
-    renderer.domElement.addEventListener('pointerdown', handlePointerDown);
     
+    rendererEl.addEventListener('pointerdown', handlePointerDown);
     return () => {
-      window.removeEventListener('resize', handleResize);
-      renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
-      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-      if (rendererRef.current) rendererRef.current.dispose();
-      if (controlsRef.current) controlsRef.current.dispose();
-      if (containerRef.current && rendererRef.current?.domElement) {
-        containerRef.current.removeChild(rendererRef.current.domElement);
-      }
+        rendererEl.removeEventListener('pointerdown', handlePointerDown);
     };
-  }, []);
+  }, [activeTool]);
+
+  useEffect(() => {
+    if (sceneRef.current) {
+      sceneRef.current.background = new THREE.Color(backgroundColor);
+    }
+  }, [backgroundColor]);
 
   const updateMaterialProperties = (object: THREE.Object3D) => {
     const newColor = new THREE.Color(modelColor);
@@ -190,18 +239,34 @@ export default function ModelViewer() {
             measurementHelpersRef.current.remove(measurementHelpersRef.current.children[0]); 
         }
         setMeasurementInfo({ points: [], distance: null });
+        pivotHelperRef.current.visible = false;
+        if(controlsRef.current) controlsRef.current.target.set(0,0,0);
     }
   };
 
   const centerAndScaleModel = (object: THREE.Object3D) => {
     const box = new THREE.Box3().setFromObject(object);
-    const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+
+    // 1. Center the geometry at the world origin
     object.position.sub(center);
+
+    // 2. Scale the model uniformly to a visible size
     const maxDim = Math.max(size.x, size.y, size.z);
     const scale = 4 / maxDim;
     object.scale.multiplyScalar(scale);
-    return { center, size, scale };
+
+    // 3. IMPORTANT: Update the model's world matrix so the new bounding box is accurate.
+    object.updateMatrixWorld(true);
+
+    // 4. Recalculate the bounding box after transformations
+    const newBox = new THREE.Box3().setFromObject(object);
+
+    // 5. Translate the model so its lowest point is on the grid floor (y=0)
+    object.position.y -= newBox.min.y;
+    
+    return { size, scale };
   };
 
   const calculateModelStats = (object: THREE.Object3D, originalSize: THREE.Vector3) => {
@@ -302,6 +367,7 @@ export default function ModelViewer() {
       cameraRef.current.position.set(0, 2, 5);
       controlsRef.current.target.set(0, 0, 0);
       controlsRef.current.update();
+      pivotHelperRef.current.visible = false;
     }
   };
 
@@ -320,7 +386,24 @@ export default function ModelViewer() {
     const view = savedViews[index];
     cameraRef.current.position.fromArray(view.position);
     controlsRef.current.target.fromArray(view.target);
+    pivotHelperRef.current.position.fromArray(view.target);
+    pivotHelperRef.current.visible = !(new THREE.Vector3().fromArray(view.target).equals(new THREE.Vector3(0,0,0)));
   };
+  
+  const handleToolSelect = (tool: ActiveTool) => {
+    setActiveTool(prev => prev === tool ? 'none' : tool);
+  }
+
+  const getFooterText = () => {
+    switch(activeTool) {
+        case 'measure':
+            return <span className="text-yellow-400"><strong>Measuring:</strong> {measurementInfo.distance ? `Distance: ${measurementInfo.distance.toFixed(3)} units` : 'Click first point on model...'}</span>;
+        case 'pivot':
+            return <span className="text-blue-400"><strong>Set Pivot:</strong> Click a point on the model to set the new orbit center.</span>;
+        default:
+            return <span><strong className="text-white">Controls:</strong> Left click + drag to rotate • Right click + drag to pan • Scroll to zoom</span>;
+    }
+  }
 
   return (
     <div className="w-full h-screen flex bg-gray-900 text-white overflow-hidden">
@@ -343,7 +426,7 @@ export default function ModelViewer() {
                 
                 {/* View Controls */}
                 <div className="flex items-center gap-2">
-                    <button onClick={resetCamera} title="Reset Camera" className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm10 10a1 1 0 011 1v2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 111.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 010-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101z" clipRule="evenodd" /></svg></button>
+                    <button onClick={resetCamera} title="Reset Camera" className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm10 10a1 1 0 011 1v2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 111.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 010 2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101z" clipRule="evenodd" /></svg></button>
                     <button onClick={saveCurrentView} title="Save View" className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm2 0v1h6V4H7zm6 2H7v1h6V6zm-1 3H8v1h4V9zm-1 3H9v1h2v-1z" /></svg></button>
                     <select onChange={(e) => loadView(parseInt(e.target.value))} defaultValue="" className="flex-1 bg-gray-700 text-white px-2 py-2 rounded-md outline-none focus:ring-2 focus:ring-cyan-500">
                         <option value="" disabled>Load View</option>
@@ -353,16 +436,26 @@ export default function ModelViewer() {
 
                 {/* Display Controls */}
                 <div className="flex items-center gap-2">
-                    <label htmlFor="color-picker" className="bg-gray-700 p-2 rounded-md">Color:</label>
-                    <input id="color-picker" type="color" value={modelColor} onChange={(e) => setModelColor(e.target.value)} className="w-full h-9 rounded-md border-none bg-gray-700 cursor-pointer" />
-                    <button onClick={() => setIsWireframe(!isWireframe)} title="Toggle Wireframe" className={`flex-shrink-0 w-12 py-2 rounded-md transition-colors ${isWireframe ? 'bg-cyan-600' : 'bg-gray-700 hover:bg-gray-600'}`}>WF</button>
+                    <div className="flex items-center gap-1 bg-gray-700 rounded-md p-1 flex-1">
+                        <label htmlFor="bg-color-picker" className="text-xs px-1" title="Background Color">BG</label>
+                        <input id="bg-color-picker" type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="w-8 h-7 rounded border-none bg-gray-700 cursor-pointer" />
+                    </div>
+                    <div className="flex items-center gap-1 bg-gray-700 rounded-md p-1 flex-1">
+                        <label htmlFor="color-picker" className="text-xs px-1" title="Model Color">Model</label>
+                        <input id="color-picker" type="color" value={modelColor} onChange={(e) => setModelColor(e.target.value)} className="w-8 h-7 rounded border-none bg-gray-700 cursor-pointer" />
+                    </div>
+                    <button onClick={() => setIsWireframe(!isWireframe)} title="Toggle Wireframe" className={`flex-1 py-2 rounded-md transition-colors text-sm ${isWireframe ? 'bg-cyan-600' : 'bg-gray-700 hover:bg-gray-600'}`}>Wireframe</button>
                 </div>
                 
                 {/* Tools */}
-                <button onClick={() => setIsMeasuring(!isMeasuring)} className={`flex items-center justify-center gap-2 text-white px-4 py-2 rounded-md transition-colors ${isMeasuring ? 'bg-yellow-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 2a1 1 0 011-1h8a1 1 0 011 1v1.586l-2.293-2.293a1 1 0 00-1.414 1.414L10 5.414l-2.293-2.293a1 1 0 00-1.414-1.414L4 3.586V2a1 1 0 011-1zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zm1 3a1 1 0 100 2h8a1 1 0 100-2H5zm1 3a1 1 0 100 2h6a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
-                    Measure
-                </button>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => handleToolSelect('measure')} title="Measure Distance" className={`flex-1 flex items-center justify-center gap-2 text-white px-4 py-2 rounded-md transition-colors ${activeTool === 'measure' ? 'bg-yellow-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 2a1 1 0 011-1h8a1 1 0 011 1v1.586l-2.293-2.293a1 1 0 00-1.414 1.414L10 5.414l-2.293-2.293a1 1 0 00-1.414-1.414L4 3.586V2a1 1 0 011-1zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zm1 3a1 1 0 100 2h8a1 1 0 100-2H5zm1 3a1 1 0 100 2h6a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
+                    </button>
+                    <button onClick={() => handleToolSelect('pivot')} title="Set Pivot Point" className={`flex-1 flex items-center justify-center gap-2 text-white px-4 py-2 rounded-md transition-colors ${activeTool === 'pivot' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" /></svg>
+                    </button>
+                </div>
             </div>
             
             <div className="mt-3 text-sm space-y-2">
@@ -382,13 +475,16 @@ export default function ModelViewer() {
                     </div>
                 </div>
             )}
+            <div className="absolute bottom-4 left-4 bg-gray-900/50 backdrop-blur-sm text-white p-3 rounded-lg text-xs leading-relaxed shadow-lg pointer-events-none">
+                <h3 className="font-bold text-sm mb-1 text-cyan-400">Controls</h3>
+                <div><strong className="w-16 inline-block">Rotate:</strong> Left Mouse</div>
+                <div><strong className="w-16 inline-block">Pan:</strong> Right Mouse</div>
+                <div><strong className="w-16 inline-block">Zoom:</strong> Scroll Wheel</div>
+            </div>
         </div>
         
         <footer className="bg-gray-800/50 backdrop-blur-sm p-3 text-sm text-gray-400 border-t border-gray-700 text-center z-10">
-          {isMeasuring ? 
-            <span className="text-yellow-400"><strong>Measuring:</strong> {measurementInfo.distance ? `Distance: ${measurementInfo.distance.toFixed(3)} units` : 'Click first point on model...'}</span> :
-            <span><strong className="text-white">Controls:</strong> Left click + drag to rotate • Right click + drag to pan • Scroll to zoom</span>
-          }
+          {getFooterText()}
         </footer>
       </main>
 
@@ -398,16 +494,17 @@ export default function ModelViewer() {
             <div className="space-y-3 text-sm text-gray-300 whitespace-nowrap">
                 <div><strong className="w-24 inline-block text-gray-400">Vertices:</strong> {modelStats.vertices.toLocaleString()}</div>
                 <div><strong className="w-24 inline-block text-gray-400">Triangles:</strong> {modelStats.triangles.toLocaleString()}</div>
-                <div className="pt-2"><strong className="w-full inline-block text-gray-400 mb-1">Dimensions (units):</strong>
-                    <div className="pl-4">
-                        <div><strong className="w-8 inline-block">X:</strong> {modelStats.dimensions.x}</div>
-                        <div><strong className="w-8 inline-block">Y:</strong> {modelStats.dimensions.y}</div>
-                        <div><strong className="w-8 inline-block">Z:</strong> {modelStats.dimensions.z}</div>
-                    </div>
+                 <div className="pt-2">
+                    <strong className="block text-gray-400 mb-1">Original Dimensions:</strong>
+                    <div><span className="w-8 inline-block text-gray-500">X:</span> {modelStats.dimensions.x}</div>
+                    <div><span className="w-8 inline-block text-gray-500">Y:</span> {modelStats.dimensions.y}</div>
+                    <div><span className="w-8 inline-block text-gray-500">Z:</span> {modelStats.dimensions.z}</div>
                 </div>
             </div>
         ) : (
-            <div className="text-gray-500 text-sm">Load a model to see its properties.</div>
+            <div className="text-sm text-gray-500 italic whitespace-nowrap">
+                No model loaded.
+            </div>
         )}
       </aside>
     </div>
