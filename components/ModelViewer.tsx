@@ -5,7 +5,7 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggle } from './ThemeToggle';
-import { Upload, Axis3D, Bookmark, RulerDimensionLine, Target, Box } from 'lucide-react';
+import { Upload, Axis3D, Bookmark, RulerDimensionLine, Target, Box } from './Icons';
 
 type ActiveTool = 'none' | 'measure' | 'pivot';
 
