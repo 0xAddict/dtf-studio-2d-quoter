@@ -5,6 +5,7 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggle } from './ThemeToggle';
+import { Upload, Axis3D, Bookmark, Ruler, Target, Box } from 'lucide-react';
 
 type ActiveTool = 'none' | 'measure' | 'pivot';
 
@@ -467,10 +468,7 @@ export default function ModelViewer() {
 
                 {/* Center: Primary Action */}
                 <label className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-5 py-2 rounded-lg cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 dark:focus-within:ring-offset-slate-900 text-sm font-medium">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H5.5z" />
-                      <path d="M9 13.5V9m0 0l-2 2m2-2l2 2" />
-                    </svg>
+                    <Upload className="w-4 h-4" aria-hidden="true" />
                     Upload Model
                     <input
                       type="file"
@@ -551,9 +549,7 @@ export default function ModelViewer() {
                           aria-label="Activate measurement tool"
                           aria-pressed={activeTool === 'measure'}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                              <path fillRule="evenodd" d="M5 2a1 1 0 011-1h8a1 1 0 011 1v1.586l-2.293-2.293a1 1 0 00-1.414 1.414L10 5.414l-2.293-2.293a1 1 0 00-1.414-1.414L4 3.586V2a1 1 0 011-1zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zm1 3a1 1 0 100 2h8a1 1 0 100-2H5zm1 3a1 1 0 100 2h6a1 1 0 100-2H6z" clipRule="evenodd" />
-                            </svg>
+                            <Ruler className="h-5 w-5" aria-hidden="true" />
                         </button>
                         <button
                           onClick={() => handleToolSelect('pivot')}
@@ -566,10 +562,7 @@ export default function ModelViewer() {
                           aria-label="Activate pivot point tool"
                           aria-pressed={activeTool === 'pivot'}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                            </svg>
+                            <Target className="h-5 w-5" aria-hidden="true" />
                         </button>
                         <button
                           onClick={() => setIsWireframe(!isWireframe)}
@@ -582,9 +575,7 @@ export default function ModelViewer() {
                           aria-label="Toggle wireframe mode"
                           aria-pressed={isWireframe}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7H4V5zM4 17a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2zM13 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM13 12a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1v-7z" />
-                            </svg>
+                            <Box className="h-5 w-5" aria-hidden="true" />
                         </button>
                     </div>
 
@@ -596,9 +587,7 @@ export default function ModelViewer() {
                           className="w-full p-2.5 rounded-lg transition-all duration-200 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300"
                           aria-label="Reset camera view"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                              <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm10 10a1 1 0 011 1v2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 111.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 010-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101z" clipRule="evenodd" />
-                            </svg>
+                            <Axis3D className="h-5 w-5" aria-hidden="true" />
                         </button>
                         <button
                           onClick={saveCurrentView}
@@ -606,9 +595,7 @@ export default function ModelViewer() {
                           className="w-full p-2.5 rounded-lg transition-all duration-200 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300"
                           aria-label="Save current camera view"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                              <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm2 0v1h6V4H7zm6 2H7v1h6V6zm-1 3H8v1h4V9zm-1 3H9v1h2v-1z" />
-                            </svg>
+                            <Bookmark className="h-5 w-5" aria-hidden="true" />
                         </button>
                     </div>
 
