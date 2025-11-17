@@ -286,13 +286,21 @@ export default function ModelViewer() {
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
 
+    // Center the model at origin (0, 0, 0)
     object.position.sub(center);
     const maxDim = Math.max(size.x, size.y, size.z);
     const scale = 4 / maxDim;
     object.scale.multiplyScalar(scale);
     object.updateMatrixWorld(true);
 
+    // After scaling, recalculate and ensure model sits on the grid floor (y = 0)
     const newBox = new THREE.Box3().setFromObject(object);
+    const newCenter = newBox.getCenter(new THREE.Vector3());
+
+    // Ensure X and Z are centered at 0
+    object.position.x -= newCenter.x;
+    object.position.z -= newCenter.z;
+    // Place the bottom of the model on the grid (y = 0)
     object.position.y -= newBox.min.y;
 
     return { size, scale };
@@ -577,7 +585,7 @@ export default function ModelViewer() {
                           aria-label="Activate pivot point tool"
                           aria-pressed={activeTool === 'pivot'}
                         >
-                            <Target className="h-5 w-5" aria-hidden="true" />
+                            <Axis3D className="h-5 w-5" aria-hidden="true" />
                         </button>
                         <button
                           onClick={() => setIsWireframe(!isWireframe)}
