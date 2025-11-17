@@ -25,7 +25,7 @@ export const Upload: React.FC<IconProps> = ({ className = "w-4 h-4", ...props })
   </svg>
 );
 
-export const Axis3D: React.FC<IconProps> = ({ className = "h-5 w-5", ...props }) => (
+export const Rotate3d: React.FC<IconProps> = ({ className = "h-5 w-5", ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -39,13 +39,9 @@ export const Axis3D: React.FC<IconProps> = ({ className = "h-5 w-5", ...props })
     className={className}
     {...props}
   >
-    <path d="M12 12v9" />
-    <path d="m9.13 5.13 2.87-2.87 2.87 2.87" />
-    <path d="M12 3v6" />
-    <path d="m5.13 9.13-2.87 2.87 2.87 2.87" />
-    <path d="M3 12h6" />
-    <path d="m18.87 9.13 2.87 2.87-2.87 2.87" />
-    <path d="M15 12h6" />
+    <path d="M16.466 7.5C15.643 4.237 13.952 2 12 2 9.239 2 7 6.477 7 12s2.239 10 5 10c.342 0 .677-.069 1-.2" />
+    <path d="m15.194 13.707 3.814 1.86-1.86 3.814" />
+    <path d="M19 15.57c-1.804.885-4.274 1.43-7 1.43-5.523 0-10-2.239-10-5s4.477-5 10-5c4.838 0 8.873 1.718 9.8 4" />
   </svg>
 );
 
@@ -81,16 +77,14 @@ export const RulerDimensionLine: React.FC<IconProps> = ({ className = "h-5 w-5",
     className={className}
     {...props}
   >
-    <path d="M4 8h16" />
-    <path d="M4 16h16" />
-    <path d="M8 4v2" />
-    <path d="M12 4v4" />
-    <path d="M16 4v2" />
-    <path d="M8 18v2" />
-    <path d="M12 16v4" />
-    <path d="M16 18v2" />
-    <line x1="4" x2="4" y1="4" y2="20" />
-    <line x1="20" x2="20" y1="4" y2="20" />
+    <path d="M10 15v-3" />
+    <path d="M14 15v-3" />
+    <path d="M18 15v-3" />
+    <path d="M2 8V4" />
+    <path d="M22 6H2" />
+    <path d="M22 8V4" />
+    <path d="M6 15v-3" />
+    <rect x="2" y="12" width="20" height="8" rx="2" />
   </svg>
 );
 

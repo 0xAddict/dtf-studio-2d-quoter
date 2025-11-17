@@ -5,7 +5,7 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggle } from './ThemeToggle';
-import { Upload, Axis3D, Bookmark, RulerDimensionLine, Target, Box } from './Icons';
+import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Target, Box } from './Icons';
 
 type ActiveTool = 'none' | 'measure' | 'pivot';
 
@@ -218,6 +218,21 @@ export default function ModelViewer() {
       sceneRef.current.background = new THREE.Color(backgroundColor);
     }
   }, [backgroundColor]);
+
+  // Trigger resize when panel opens/closes
+  useEffect(() => {
+    // Wait for CSS transition to complete (300ms)
+    const timer = setTimeout(() => {
+      if (containerRef.current && cameraRef.current && rendererRef.current) {
+        const width = containerRef.current.clientWidth;
+        const height = containerRef.current.clientHeight;
+        cameraRef.current.aspect = width / height;
+        cameraRef.current.updateProjectionMatrix();
+        rendererRef.current.setSize(width, height);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [isPanelOpen]);
 
   const updateMaterialProperties = useCallback((object: THREE.Object3D) => {
     const newColor = new THREE.Color(modelColor);
@@ -587,7 +602,7 @@ export default function ModelViewer() {
                           className="w-full p-2.5 rounded-lg transition-all duration-200 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300"
                           aria-label="Reset camera view"
                         >
-                            <Axis3D className="h-5 w-5" aria-hidden="true" />
+                            <Rotate3d className="h-5 w-5" aria-hidden="true" />
                         </button>
                         <button
                           onClick={saveCurrentView}
@@ -676,44 +691,48 @@ export default function ModelViewer() {
 
       {/* Side Panel */}
       <aside
-        className={`transition-all duration-300 ease-in-out glass border-l border-gray-200 dark:border-slate-700 flex-shrink-0 ${
-          isPanelOpen ? 'w-80 p-4' : 'w-0 p-0'
-        } overflow-hidden`}
+        className={`transition-all duration-300 ease-in-out glass border-l border-gray-200 dark:border-slate-700 flex-shrink-0 overflow-hidden ${
+          isPanelOpen ? 'w-80 p-4 opacity-100' : 'w-0 p-0 opacity-0 pointer-events-none'
+        }`}
         aria-hidden={!isPanelOpen}
       >
-        <h2 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mb-4 whitespace-nowrap">Model Properties</h2>
-        {modelStats ? (
-            <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap animate-fade-in">
-                <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
-                  <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-1">Vertices</strong>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">{modelStats.vertices.toLocaleString()}</span>
-                </div>
-                <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
-                  <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-1">Triangles</strong>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">{modelStats.triangles.toLocaleString()}</span>
-                </div>
-                <div className="pt-2">
-                    <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-2">Original Dimensions</strong>
-                    <div className="space-y-2 pl-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">X:</span>
-                        <span className="font-mono text-gray-900 dark:text-white">{modelStats.dimensions.x}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Y:</span>
-                        <span className="font-mono text-gray-900 dark:text-white">{modelStats.dimensions.y}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Z:</span>
-                        <span className="font-mono text-gray-900 dark:text-white">{modelStats.dimensions.z}</span>
-                      </div>
+        {isPanelOpen && (
+          <>
+            <h2 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mb-4 whitespace-nowrap">Model Properties</h2>
+            {modelStats ? (
+                <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap animate-fade-in">
+                    <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                      <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-1">Vertices</strong>
+                      <span className="text-lg font-semibold text-gray-900 dark:text-white">{modelStats.vertices.toLocaleString()}</span>
+                    </div>
+                    <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                      <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-1">Triangles</strong>
+                      <span className="text-lg font-semibold text-gray-900 dark:text-white">{modelStats.triangles.toLocaleString()}</span>
+                    </div>
+                    <div className="pt-2">
+                        <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-2">Original Dimensions</strong>
+                        <div className="space-y-2 pl-2">
+                          <div className="flex justify-between">
+                            <span className="text-gray-500 dark:text-gray-400">X:</span>
+                            <span className="font-mono text-gray-900 dark:text-white">{modelStats.dimensions.x}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500 dark:text-gray-400">Y:</span>
+                            <span className="font-mono text-gray-900 dark:text-white">{modelStats.dimensions.y}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500 dark:text-gray-400">Z:</span>
+                            <span className="font-mono text-gray-900 dark:text-white">{modelStats.dimensions.z}</span>
+                          </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        ) : (
-            <div className="text-sm text-gray-400 dark:text-gray-500 italic whitespace-nowrap">
-                No model loaded.
-            </div>
+            ) : (
+                <div className="text-sm text-gray-400 dark:text-gray-500 italic whitespace-nowrap">
+                    No model loaded.
+                </div>
+            )}
+          </>
         )}
       </aside>
     </div>
