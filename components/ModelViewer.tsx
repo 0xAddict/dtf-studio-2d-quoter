@@ -48,6 +48,15 @@ export default function ModelViewer() {
   const [activeTool, setActiveTool] = useState<ActiveTool>('none');
   const [measurementInfo, setMeasurementInfo] = useState<{ points: THREE.Vector3[], distance: number | null }>({ points: [], distance: null });
 
+  // Refs for lights and grid to update on theme change
+  const lightsRef = useRef<{
+    ambient?: THREE.AmbientLight;
+    directional1?: THREE.DirectionalLight;
+    directional2?: THREE.DirectionalLight;
+    hemisphere?: THREE.HemisphereLight;
+  }>({});
+  const gridHelperRef = useRef<THREE.GridHelper | null>(null);
+
   // Update background color when theme changes
   useEffect(() => {
     setBackgroundColor(isDark ? '#0f172a' : '#f0f4f8');
@@ -82,6 +91,7 @@ export default function ModelViewer() {
     // Lighting setup - adjusted for dark mode
     const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.5 : 0.7);
     scene.add(ambientLight);
+    lightsRef.current.ambient = ambientLight;
 
     const directionalLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 0.7 : 0.9);
     directionalLight1.position.set(5, 10, 7.5);
@@ -89,10 +99,12 @@ export default function ModelViewer() {
     directionalLight1.shadow.mapSize.width = 2048;
     directionalLight1.shadow.mapSize.height = 2048;
     scene.add(directionalLight1);
+    lightsRef.current.directional1 = directionalLight1;
 
     const directionalLight2 = new THREE.DirectionalLight(0xffffff, isDark ? 0.3 : 0.5);
     directionalLight2.position.set(-5, 10, -7.5);
     scene.add(directionalLight2);
+    lightsRef.current.directional2 = directionalLight2;
 
     const hemisphereLight = new THREE.HemisphereLight(
       isDark ? 0x4a5568 : 0xffffbb,
@@ -100,6 +112,7 @@ export default function ModelViewer() {
       isDark ? 0.3 : 0.4
     );
     scene.add(hemisphereLight);
+    lightsRef.current.hemisphere = hemisphereLight;
 
     const gridHelper = new THREE.GridHelper(
       20,
@@ -108,6 +121,7 @@ export default function ModelViewer() {
       isDark ? 0x1e293b : 0x222222
     );
     scene.add(gridHelper);
+    gridHelperRef.current = gridHelper;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -142,6 +156,37 @@ export default function ModelViewer() {
         currentContainer.removeChild(rendererRef.current.domElement);
       }
     };
+  }, []);
+
+  // Update lights and grid when theme changes (without recreating scene)
+  useEffect(() => {
+    if (lightsRef.current.ambient) {
+      lightsRef.current.ambient.intensity = isDark ? 0.5 : 0.7;
+    }
+    if (lightsRef.current.directional1) {
+      lightsRef.current.directional1.intensity = isDark ? 0.7 : 0.9;
+    }
+    if (lightsRef.current.directional2) {
+      lightsRef.current.directional2.intensity = isDark ? 0.3 : 0.5;
+    }
+    if (lightsRef.current.hemisphere) {
+      lightsRef.current.hemisphere.skyColor.setHex(isDark ? 0x4a5568 : 0xffffbb);
+      lightsRef.current.hemisphere.groundColor.setHex(isDark ? 0x1e293b : 0x080820);
+      lightsRef.current.hemisphere.intensity = isDark ? 0.3 : 0.4;
+    }
+    if (gridHelperRef.current && sceneRef.current) {
+      // Remove old grid and create new one with updated colors
+      sceneRef.current.remove(gridHelperRef.current);
+      gridHelperRef.current.dispose();
+      const newGrid = new THREE.GridHelper(
+        20,
+        20,
+        isDark ? 0x334155 : 0x444444,
+        isDark ? 0x1e293b : 0x222222
+      );
+      sceneRef.current.add(newGrid);
+      gridHelperRef.current = newGrid;
+    }
   }, [isDark]);
 
   // Effect for pointer events
