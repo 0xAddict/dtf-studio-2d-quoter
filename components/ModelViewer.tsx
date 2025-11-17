@@ -5,7 +5,7 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggle } from './ThemeToggle';
-import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Target, Box } from './Icons';
+import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Target, Box } from 'lucide-react';
 
 type ActiveTool = 'none' | 'measure' | 'pivot';
 
@@ -465,7 +465,7 @@ export default function ModelViewer() {
 
   return (
     <div className="w-full h-screen flex bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300">
-      <main className="flex-1 flex flex-col relative">
+      <main className="flex-1 flex flex-col relative overflow-hidden">
         {/* Clean Minimal Header */}
         <header className="glass border-b border-gray-200 dark:border-slate-700 z-20 animate-fade-in">
             <div className="flex justify-between items-center px-6 py-3">
@@ -691,8 +691,8 @@ export default function ModelViewer() {
 
       {/* Side Panel */}
       <aside
-        className={`transition-all duration-300 ease-in-out glass border-l border-gray-200 dark:border-slate-700 flex-shrink-0 overflow-hidden ${
-          isPanelOpen ? 'w-80 p-4 opacity-100' : 'w-0 p-0 opacity-0 pointer-events-none'
+        className={`transition-all duration-300 ease-in-out glass flex-shrink-0 overflow-hidden ${
+          isPanelOpen ? 'w-80 p-4 opacity-100 border-l border-gray-200 dark:border-slate-700' : 'w-0 p-0 opacity-0 pointer-events-none border-0'
         }`}
         aria-hidden={!isPanelOpen}
       >
