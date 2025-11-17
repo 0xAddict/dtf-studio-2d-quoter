@@ -1,11 +1,8 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
-import { useTheme } from '../contexts/ThemeContext';
-import { ThemeToggle } from './ThemeToggle';
-import { Upload, Axis3D, Bookmark, RulerDimensionLine, Rotate3d, Box } from './Icons';
 
 type ActiveTool = 'none' | 'measure' | 'pivot';
 
@@ -21,7 +18,6 @@ const createPivotHelper = () => {
 };
 
 export default function ModelViewer() {
-  const { isDark } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -37,7 +33,7 @@ export default function ModelViewer() {
   // Feature states
   const [isWireframe, setIsWireframe] = useState(false);
   const [modelColor, setModelColor] = useState('#6366f1');
-  const [backgroundColor, setBackgroundColor] = useState(isDark ? '#0f172a' : '#f0f4f8');
+  const [backgroundColor, setBackgroundColor] = useState('#f0f4f8');
   const [savedViews, setSavedViews] = useState<{ name: string; position: [number, number, number]; target: [number, number, number] }[]>([]);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [modelStats, setModelStats] = useState<{ vertices: number; triangles: number; dimensions: { x: string; y: string; z: string; } } | null>(null);
