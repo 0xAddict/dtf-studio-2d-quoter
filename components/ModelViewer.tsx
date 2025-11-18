@@ -171,7 +171,7 @@ export default function ModelViewer() {
     lightsRef.current.directional1.intensity = isDark ? 0.7 : 0.9;
     lightsRef.current.directional2.intensity = isDark ? 0.3 : 0.5;
 
-    lightsRef.current.hemisphere.skyColor.setHex(isDark ? 0x4a5568 : 0xffffbb);
+    lightsRef.current.hemisphere.color.setHex(isDark ? 0x4a5568 : 0xffffbb);
     lightsRef.current.hemisphere.groundColor.setHex(isDark ? 0x1e293b : 0x080820);
     lightsRef.current.hemisphere.intensity = isDark ? 0.3 : 0.4;
     if (gridHelperRef.current && sceneRef.current) {
@@ -288,7 +288,7 @@ export default function ModelViewer() {
         materials.forEach(material => {
           if (material instanceof THREE.MeshStandardMaterial || material instanceof THREE.MeshPhongMaterial) {
             material.wireframe = isWireframe;
-            material.color = newColor;
+            material.color.copy(newColor);
           }
         });
       }
