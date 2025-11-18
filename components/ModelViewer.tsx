@@ -156,10 +156,12 @@ export default function ModelViewer() {
         currentContainer.removeChild(rendererRef.current.domElement);
       }
     };
-  }, [isDark]);
+  }, []);
 
   // Update lights and grid when theme changes (without recreating scene)
   useEffect(() => {
+    if (!lightsRef.current.ambient) return;
+
     if (lightsRef.current.ambient) {
       lightsRef.current.ambient.intensity = isDark ? 0.5 : 0.7;
     }
