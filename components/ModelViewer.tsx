@@ -5,7 +5,8 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggle } from './ThemeToggle';
-import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Axis3d, Box } from 'lucide-react';
+import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Axis3d, Box, Send } from 'lucide-react';
+import QuoteRequestModal from './QuoteRequestModal';
 
 type ActiveTool = 'none' | 'measure' | 'pivot';
 
@@ -44,6 +45,8 @@ export default function ModelViewer() {
   const [selectedMaterial, setSelectedMaterial] = useState<string>('');
   const [modelScale, setModelScale] = useState<number>(100);
   const baseScaleRef = useRef<number>(1);
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [currentFileName, setCurrentFileName] = useState<string>('');
 
   // Tool state
   const measurementHelpersRef = useRef<THREE.Group>(new THREE.Group());
@@ -333,6 +336,7 @@ export default function ModelViewer() {
         setModelInfo('');
         setModelScale(100);
         baseScaleRef.current = 1;
+        setCurrentFileName('');
         while(measurementHelpersRef.current.children.length > 0){
             measurementHelpersRef.current.remove(measurementHelpersRef.current.children[0]);
         }
@@ -451,6 +455,7 @@ export default function ModelViewer() {
 
     removeCurrentModel();
     setError('');
+    setCurrentFileName(file.name);
 
     const extension = file.name.split('.').pop()?.toLowerCase();
     if (extension === 'stl') {
@@ -459,6 +464,7 @@ export default function ModelViewer() {
       loadModel(file, new FBXLoader(), (data) => new FBXLoader().parse(data as ArrayBuffer, ''));
     } else {
       setError('Unsupported file format. Please upload STL or FBX files.');
+      setCurrentFileName('');
     }
     event.target.value = '';
   };
@@ -904,6 +910,20 @@ export default function ModelViewer() {
                           </div>
                         </div>
                     </div>
+
+                    {/* Quote Request Button */}
+                    <div className="pt-4 mt-4 border-t border-gray-200 dark:border-slate-700">
+                      <button
+                        onClick={() => setIsQuoteModalOpen(true)}
+                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 dark:from-indigo-500 dark:to-purple-500 dark:hover:from-indigo-600 dark:hover:to-purple-600 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                      >
+                        <Send className="w-4 h-4" />
+                        Pyydä tarjous
+                      </button>
+                      <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+                        Saat tarjouksen sähköpostiisi
+                      </p>
+                    </div>
                 </div>
             ) : (
                 <div className="text-sm text-gray-400 dark:text-gray-500 italic md:whitespace-nowrap">
@@ -913,6 +933,20 @@ export default function ModelViewer() {
           </>
         )}
       </aside>
+
+      {/* Quote Request Modal */}
+      <QuoteRequestModal
+        isOpen={isQuoteModalOpen}
+        onClose={() => setIsQuoteModalOpen(false)}
+        modelData={modelStats ? {
+          fileName: currentFileName,
+          vertices: modelStats.vertices,
+          triangles: modelStats.triangles,
+          dimensions: modelStats.dimensions,
+          material: selectedMaterial,
+          scale: modelScale,
+        } : null}
+      />
     </div>
   );
 }
