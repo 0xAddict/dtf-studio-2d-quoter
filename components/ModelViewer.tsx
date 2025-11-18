@@ -48,6 +48,15 @@ export default function ModelViewer() {
   const [activeTool, setActiveTool] = useState<ActiveTool>('none');
   const [measurementInfo, setMeasurementInfo] = useState<{ points: THREE.Vector3[], distance: number | null }>({ points: [], distance: null });
 
+  // Refs for lights and grid to update on theme change
+  const lightsRef = useRef<{
+    ambient?: THREE.AmbientLight;
+    directional1?: THREE.DirectionalLight;
+    directional2?: THREE.DirectionalLight;
+    hemisphere?: THREE.HemisphereLight;
+  }>({});
+  const gridHelperRef = useRef<THREE.GridHelper | null>(null);
+
   // Update background color when theme changes
   useEffect(() => {
     setBackgroundColor(isDark ? '#0f172a' : '#f0f4f8');
@@ -82,6 +91,7 @@ export default function ModelViewer() {
     // Lighting setup - adjusted for dark mode
     const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.5 : 0.7);
     scene.add(ambientLight);
+    lightsRef.current.ambient = ambientLight;
 
     const directionalLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 0.7 : 0.9);
     directionalLight1.position.set(5, 10, 7.5);
@@ -89,10 +99,12 @@ export default function ModelViewer() {
     directionalLight1.shadow.mapSize.width = 2048;
     directionalLight1.shadow.mapSize.height = 2048;
     scene.add(directionalLight1);
+    lightsRef.current.directional1 = directionalLight1;
 
     const directionalLight2 = new THREE.DirectionalLight(0xffffff, isDark ? 0.3 : 0.5);
     directionalLight2.position.set(-5, 10, -7.5);
     scene.add(directionalLight2);
+    lightsRef.current.directional2 = directionalLight2;
 
     const hemisphereLight = new THREE.HemisphereLight(
       isDark ? 0x4a5568 : 0xffffbb,
@@ -100,6 +112,7 @@ export default function ModelViewer() {
       isDark ? 0.3 : 0.4
     );
     scene.add(hemisphereLight);
+    lightsRef.current.hemisphere = hemisphereLight;
 
     const gridHelper = new THREE.GridHelper(
       20,
@@ -108,6 +121,7 @@ export default function ModelViewer() {
       isDark ? 0x1e293b : 0x222222
     );
     scene.add(gridHelper);
+    gridHelperRef.current = gridHelper;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -142,6 +156,37 @@ export default function ModelViewer() {
         currentContainer.removeChild(rendererRef.current.domElement);
       }
     };
+  }, []);
+
+  // Update lights and grid when theme changes (without recreating scene)
+  useEffect(() => {
+    if (lightsRef.current.ambient) {
+      lightsRef.current.ambient.intensity = isDark ? 0.5 : 0.7;
+    }
+    if (lightsRef.current.directional1) {
+      lightsRef.current.directional1.intensity = isDark ? 0.7 : 0.9;
+    }
+    if (lightsRef.current.directional2) {
+      lightsRef.current.directional2.intensity = isDark ? 0.3 : 0.5;
+    }
+    if (lightsRef.current.hemisphere) {
+      lightsRef.current.hemisphere.skyColor.setHex(isDark ? 0x4a5568 : 0xffffbb);
+      lightsRef.current.hemisphere.groundColor.setHex(isDark ? 0x1e293b : 0x080820);
+      lightsRef.current.hemisphere.intensity = isDark ? 0.3 : 0.4;
+    }
+    if (gridHelperRef.current && sceneRef.current) {
+      // Remove old grid and create new one with updated colors
+      sceneRef.current.remove(gridHelperRef.current);
+      gridHelperRef.current.dispose();
+      const newGrid = new THREE.GridHelper(
+        20,
+        20,
+        isDark ? 0x334155 : 0x444444,
+        isDark ? 0x1e293b : 0x222222
+      );
+      sceneRef.current.add(newGrid);
+      gridHelperRef.current = newGrid;
+    }
   }, [isDark]);
 
   // Effect for pointer events
@@ -476,21 +521,21 @@ export default function ModelViewer() {
       <main className="flex-1 flex flex-col relative overflow-hidden">
         {/* Clean Minimal Header */}
         <header className="glass border-b border-gray-200 dark:border-slate-700 z-20 animate-fade-in">
-            <div className="flex justify-between items-center px-6 py-3">
+            <div className="flex justify-between items-center px-4 md:px-6 py-3">
                 {/* Left: Logo & Title */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 md:gap-3">
                     <img
                       src="/hexea.png"
                       alt="Hexea Logo"
-                      className="h-8 w-auto transition-transform duration-300 hover:scale-110"
+                      className="h-7 md:h-8 w-auto transition-transform duration-300 hover:scale-110"
                     />
-                    <h1 className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+                    <h1 className="text-base md:text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
                       Hexea
                     </h1>
                 </div>
 
-                {/* Center: Primary Action */}
-                <label className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-5 py-2 rounded-lg cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 dark:focus-within:ring-offset-slate-900 text-sm font-medium">
+                {/* Center: Primary Action - Hidden on mobile */}
+                <label className="hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-5 py-2 rounded-lg cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 dark:focus-within:ring-offset-slate-900 text-sm font-medium">
                     <Upload className="w-4 h-4" aria-hidden="true" />
                     Upload Model
                     <input
@@ -557,7 +602,7 @@ export default function ModelViewer() {
             )}
 
             {/* Left Toolbar - Floating */}
-            <div className="absolute top-4 left-4 glass rounded-xl border border-gray-200/50 dark:border-slate-700/50 shadow-xl overflow-hidden animate-fade-in z-10">
+            <div className="absolute top-4 left-2 md:left-4 glass rounded-xl border border-gray-200/50 dark:border-slate-700/50 shadow-xl overflow-hidden animate-fade-in z-10">
                 <div className="flex flex-col divide-y divide-gray-200 dark:divide-slate-700">
                     {/* Tools Section */}
                     <div className="p-2 space-y-1">
@@ -650,9 +695,9 @@ export default function ModelViewer() {
                 </div>
             </div>
 
-            {/* Right Toolbar - Saved Views (only show if views exist) */}
+            {/* Right Toolbar - Saved Views (only show if views exist) - Hidden on small mobile */}
             {savedViews.length > 0 && (
-              <div className="absolute top-4 right-4 glass rounded-xl border border-gray-200/50 dark:border-slate-700/50 shadow-xl p-3 animate-fade-in z-10 max-w-xs">
+              <div className="hidden sm:block absolute top-4 right-4 glass rounded-xl border border-gray-200/50 dark:border-slate-700/50 shadow-xl p-3 animate-fade-in z-10 max-w-xs">
                   <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Saved Views</h3>
                   <div className="space-y-1">
                       {savedViews.map((view, i) => (
@@ -668,8 +713,8 @@ export default function ModelViewer() {
               </div>
             )}
 
-            {/* Keyboard Shortcuts Help - Bottom Left */}
-            <div className="absolute bottom-4 left-4 glass text-gray-800 dark:text-gray-200 p-3 rounded-xl text-xs shadow-xl pointer-events-none border border-gray-200/50 dark:border-slate-700/50 max-w-[200px] animate-slide-up">
+            {/* Keyboard Shortcuts Help - Bottom Left - Hidden on mobile */}
+            <div className="hidden md:block absolute bottom-4 left-4 glass text-gray-800 dark:text-gray-200 p-3 rounded-xl text-xs shadow-xl pointer-events-none border border-gray-200/50 dark:border-slate-700/50 max-w-[200px] animate-slide-up">
                 <div className="space-y-1 opacity-60 hover:opacity-100 transition-opacity">
                   <div className="flex items-center gap-2">
                     <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-slate-700 rounded text-[10px] font-mono min-w-[20px] text-center">R</kbd>
@@ -689,26 +734,52 @@ export default function ModelViewer() {
                   </div>
                 </div>
             </div>
+
+            {/* Mobile Upload FAB - Bottom Right - Only visible on mobile */}
+            <label className="md:hidden absolute bottom-4 right-4 z-20 flex items-center justify-center w-14 h-14 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white rounded-full cursor-pointer transition-all duration-200 transform hover:scale-110 active:scale-95 shadow-lg hover:shadow-xl focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 dark:focus-within:ring-offset-slate-900 animate-fade-in">
+                <Upload className="w-6 h-6" aria-hidden="true" />
+                <input
+                  type="file"
+                  accept=".stl,.fbx"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  aria-label="Upload 3D model file"
+                />
+            </label>
         </div>
 
-        {/* Footer */}
-        <footer className="glass p-3 text-sm text-gray-700 dark:text-gray-300 border-t border-gray-200 dark:border-slate-700 text-center z-10" role="contentinfo">
+        {/* Footer - Hidden on mobile */}
+        <footer className="hidden md:block glass p-3 text-sm text-gray-700 dark:text-gray-300 border-t border-gray-200 dark:border-slate-700 text-center z-10" role="contentinfo">
           {getFooterText()}
         </footer>
       </main>
 
-      {/* Side Panel */}
+      {/* Side Panel - Desktop: Sidebar, Mobile: Full-screen overlay */}
       <aside
-        className={`transition-all duration-300 ease-in-out glass flex-shrink-0 overflow-hidden ${
-          isPanelOpen ? 'w-80 p-4 opacity-100 border-l border-gray-200 dark:border-slate-700' : 'w-0 p-0 opacity-0 pointer-events-none border-0'
-        }`}
+        className={`transition-all duration-300 ease-in-out glass flex-shrink-0 overflow-y-auto
+          ${isPanelOpen
+            ? 'md:w-80 md:p-4 md:opacity-100 md:border-l md:border-gray-200 md:dark:border-slate-700 fixed md:relative inset-0 md:inset-auto w-full p-6 opacity-100 z-30 md:z-auto'
+            : 'w-0 p-0 opacity-0 pointer-events-none border-0'
+          }`}
         aria-hidden={!isPanelOpen}
       >
         {isPanelOpen && (
           <>
-            <h2 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mb-4 whitespace-nowrap">Model Properties</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-indigo-600 dark:text-indigo-400">Model Properties</h2>
+              {/* Close button - Only visible on mobile */}
+              <button
+                onClick={() => setIsPanelOpen(false)}
+                className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-300"
+                aria-label="Close properties panel"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
             {modelStats ? (
-                <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap animate-fade-in">
+                <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 md:whitespace-nowrap animate-fade-in">
                     <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
                       <strong className="block text-gray-600 dark:text-gray-400 text-xs mb-1">Vertices</strong>
                       <span className="text-lg font-semibold text-gray-900 dark:text-white">{modelStats.vertices.toLocaleString()}</span>
@@ -736,7 +807,7 @@ export default function ModelViewer() {
                     </div>
                 </div>
             ) : (
-                <div className="text-sm text-gray-400 dark:text-gray-500 italic whitespace-nowrap">
+                <div className="text-sm text-gray-400 dark:text-gray-500 italic md:whitespace-nowrap">
                     No model loaded.
                 </div>
             )}
