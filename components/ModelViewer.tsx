@@ -544,7 +544,7 @@ export default function ModelViewer() {
                 {/* Left: Logo & Title */}
                 <div className="flex items-center gap-2 md:gap-3">
                     <img
-                      src={isDark ? "/hexea.webp" : "/hexea_white.webp"}
+                      src={isDark ? "/hexea_white.webp" : "/hexea.webp"}
                       alt="Hexea Logo"
                       className="h-7 md:h-8 w-auto transition-transform duration-300 hover:scale-110"
                     />
