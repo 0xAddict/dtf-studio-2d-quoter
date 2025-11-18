@@ -42,6 +42,8 @@ export default function ModelViewer() {
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [modelStats, setModelStats] = useState<{ vertices: number; triangles: number; dimensions: { x: string; y: string; z: string; } } | null>(null);
   const [selectedMaterial, setSelectedMaterial] = useState<string>('');
+  const [modelScale, setModelScale] = useState<number>(100);
+  const baseScaleRef = useRef<number>(1);
 
   // Tool state
   const measurementHelpersRef = useRef<THREE.Group>(new THREE.Group());
@@ -304,6 +306,18 @@ export default function ModelViewer() {
     }
   }, [isWireframe, modelColor, updateMaterialProperties]);
 
+  // Apply scale changes to the model
+  useEffect(() => {
+    if (currentModelRef.current && baseScaleRef.current) {
+      const newScale = baseScaleRef.current * (modelScale / 100);
+      currentModelRef.current.scale.setScalar(newScale);
+
+      // Recalculate position to keep model on the grid
+      const box = new THREE.Box3().setFromObject(currentModelRef.current);
+      currentModelRef.current.position.y -= box.min.y;
+    }
+  }, [modelScale]);
+
   const removeCurrentModel = useCallback(() => {
     if (currentModelRef.current && sceneRef.current) {
         sceneRef.current.remove(currentModelRef.current);
@@ -320,6 +334,8 @@ export default function ModelViewer() {
         currentModelRef.current = null;
         setModelStats(null);
         setModelInfo('');
+        setModelScale(100);
+        baseScaleRef.current = 1;
         while(measurementHelpersRef.current.children.length > 0){
             measurementHelpersRef.current.remove(measurementHelpersRef.current.children[0]);
         }
@@ -340,6 +356,9 @@ export default function ModelViewer() {
     const scale = 4 / maxDim;
     object.scale.multiplyScalar(scale);
     object.updateMatrixWorld(true);
+
+    // Store the base scale for later adjustments
+    baseScaleRef.current = scale;
 
     // After scaling, recalculate and ensure model sits on the grid floor (y = 0)
     const newBox = new THREE.Box3().setFromObject(object);
@@ -816,6 +835,50 @@ export default function ModelViewer() {
                 </div>
               )}
             </div>
+
+            {/* Model Scale Control */}
+            {modelStats && (
+              <div className="mb-6 animate-fade-in">
+                <label htmlFor="model-scale" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Mallin koko
+                </label>
+                <div className="space-y-2">
+                  <input
+                    id="model-scale"
+                    type="range"
+                    min="10"
+                    max="300"
+                    value={modelScale}
+                    onChange={(e) => setModelScale(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600 dark:accent-indigo-400"
+                  />
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">10%</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="10"
+                        max="300"
+                        value={modelScale}
+                        onChange={(e) => {
+                          const value = Math.min(300, Math.max(10, Number(e.target.value)));
+                          setModelScale(value);
+                        }}
+                        className="w-16 px-2 py-1 text-center text-sm bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                      <span className="text-xs text-gray-500 dark:text-gray-400">%</span>
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">300%</span>
+                  </div>
+                  <button
+                    onClick={() => setModelScale(100)}
+                    className="w-full mt-1 px-3 py-1.5 text-xs bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+                  >
+                    Palauta oletuskoko
+                  </button>
+                </div>
+              </div>
+            )}
 
             {modelStats ? (
                 <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 md:whitespace-nowrap animate-fade-in">
