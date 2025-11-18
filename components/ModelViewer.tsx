@@ -41,6 +41,7 @@ export default function ModelViewer() {
   const [savedViews, setSavedViews] = useState<{ name: string; position: [number, number, number]; target: [number, number, number] }[]>([]);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [modelStats, setModelStats] = useState<{ vertices: number; triangles: number; dimensions: { x: string; y: string; z: string; } } | null>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('');
 
   // Tool state
   const measurementHelpersRef = useRef<THREE.Group>(new THREE.Group());
@@ -780,6 +781,42 @@ export default function ModelViewer() {
                 </svg>
               </button>
             </div>
+
+            {/* Material Selection */}
+            <div className="mb-6 animate-fade-in">
+              <label htmlFor="material-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Tulostusmateriaalit
+              </label>
+              <select
+                id="material-select"
+                value={selectedMaterial}
+                onChange={(e) => setSelectedMaterial(e.target.value)}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors"
+              >
+                <option value="">Valitse materiaali...</option>
+                <option value="asa">ASA - Kestävä ja säänkestävä (ulkokäyttö)</option>
+                <option value="tpu">TPU - Joustava kumimainen materiaali</option>
+                <option value="pla">PLA - Edullinen (prototyypit)</option>
+                <option value="petg">PETG - Kestävä ja sitkeä (funktionaaliset osat)</option>
+                <option value="nylon-carbon">Nylon + hiilikuitu - Erittäin luja ja kevyt</option>
+                <option value="resin-standard">Hartsi - ABS-tyyppinen (yksityiskohdat)</option>
+                <option value="resin-clear">Hartsi - Kirkas vaihtoehto</option>
+              </select>
+              {selectedMaterial && (
+                <div className="mt-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                  <p className="text-xs text-indigo-700 dark:text-indigo-300">
+                    {selectedMaterial === 'asa' && 'Kestävä ja säänkestävä materiaali, joka soveltuu hyvin ulkokäyttöön.'}
+                    {selectedMaterial === 'tpu' && 'Joustava kumimainen materiaali joustaviin ja pehmeisiin osiin.'}
+                    {selectedMaterial === 'pla' && 'Edullinen ja helppo materiaali prototyyppeihin ja visuaalisiin malleihin.'}
+                    {selectedMaterial === 'petg' && 'Kestävä ja sitkeä materiaali, joka soveltuu hyvin funktionaalisiin osiin.'}
+                    {selectedMaterial === 'nylon-carbon' && 'Erittäin luja ja kevyt komposiitti teknisiin ja vaativiin osiin.'}
+                    {selectedMaterial === 'resin-standard' && 'Soveltuu parhaiten pikkutarkkoihin tulosteisiin. Kestävämpi ABS-tyyppinen hartsi.'}
+                    {selectedMaterial === 'resin-clear' && 'Kirkas hartsivaihtoehto pikkutarkkoihin tulosteisiin.'}
+                  </p>
+                </div>
+              )}
+            </div>
+
             {modelStats ? (
                 <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 md:whitespace-nowrap animate-fade-in">
                     <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
