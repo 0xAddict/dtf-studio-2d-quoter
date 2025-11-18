@@ -161,22 +161,19 @@ export default function ModelViewer() {
 
   // Update lights and grid when theme changes (without recreating scene)
   useEffect(() => {
-    if (!lightsRef.current.ambient) return;
+    // Only run if all lights are initialized
+    if (!lightsRef.current.ambient || !lightsRef.current.directional1 ||
+        !lightsRef.current.directional2 || !lightsRef.current.hemisphere) {
+      return;
+    }
 
-    if (lightsRef.current.ambient) {
-      lightsRef.current.ambient.intensity = isDark ? 0.5 : 0.7;
-    }
-    if (lightsRef.current.directional1) {
-      lightsRef.current.directional1.intensity = isDark ? 0.7 : 0.9;
-    }
-    if (lightsRef.current.directional2) {
-      lightsRef.current.directional2.intensity = isDark ? 0.3 : 0.5;
-    }
-    if (lightsRef.current.hemisphere) {
-      lightsRef.current.hemisphere.skyColor.setHex(isDark ? 0x4a5568 : 0xffffbb);
-      lightsRef.current.hemisphere.groundColor.setHex(isDark ? 0x1e293b : 0x080820);
-      lightsRef.current.hemisphere.intensity = isDark ? 0.3 : 0.4;
-    }
+    lightsRef.current.ambient.intensity = isDark ? 0.5 : 0.7;
+    lightsRef.current.directional1.intensity = isDark ? 0.7 : 0.9;
+    lightsRef.current.directional2.intensity = isDark ? 0.3 : 0.5;
+
+    lightsRef.current.hemisphere.skyColor.setHex(isDark ? 0x4a5568 : 0xffffbb);
+    lightsRef.current.hemisphere.groundColor.setHex(isDark ? 0x1e293b : 0x080820);
+    lightsRef.current.hemisphere.intensity = isDark ? 0.3 : 0.4;
     if (gridHelperRef.current && sceneRef.current) {
       // Remove old grid and create new one with updated colors
       sceneRef.current.remove(gridHelperRef.current);
