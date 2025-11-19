@@ -47,6 +47,7 @@ export default function ModelViewer() {
   const baseScaleRef = useRef<number>(1);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [currentFileName, setCurrentFileName] = useState<string>('');
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Tool state
   const measurementHelpersRef = useRef<THREE.Group>(new THREE.Group());
@@ -469,6 +470,49 @@ export default function ModelViewer() {
     event.target.value = '';
   };
 
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set to false if we're leaving the main container
+    if (e.currentTarget === e.target) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length === 0) return;
+
+    const file = files[0];
+    const extension = file.name.split('.').pop()?.toLowerCase();
+
+    if (extension !== 'stl' && extension !== 'fbx') {
+      setError('Unsupported file format. Please upload STL or FBX files.');
+      return;
+    }
+
+    removeCurrentModel();
+    setError('');
+    setCurrentFileName(file.name);
+
+    if (extension === 'stl') {
+      loadModel(file, new STLLoader(), (data) => new STLLoader().parse(data as ArrayBuffer));
+    } else if (extension === 'fbx') {
+      loadModel(file, new FBXLoader(), (data) => new FBXLoader().parse(data as ArrayBuffer, ''));
+    }
+  }, [loadModel, removeCurrentModel]);
+
   const resetCamera = useCallback(() => {
     if (cameraRef.current && controlsRef.current) {
       cameraRef.current.position.set(0, 2, 5);
@@ -542,7 +586,24 @@ export default function ModelViewer() {
   }, [resetCamera]);
 
   return (
-    <div className="w-full h-screen flex bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300">
+    <div
+      className="w-full h-screen flex bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag and Drop Overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 z-50 bg-indigo-600/20 dark:bg-indigo-500/20 backdrop-blur-sm flex items-center justify-center pointer-events-none animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-2xl border-2 border-dashed border-indigo-500 dark:border-indigo-400">
+            <div className="text-center">
+              <Upload className="w-16 h-16 mx-auto mb-4 text-indigo-600 dark:text-indigo-400" />
+              <p className="text-xl font-semibold text-gray-900 dark:text-white">Drop your 3D model here</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">STL or FBX files</p>
+            </div>
+          </div>
+        </div>
+      )}
       <main className="flex-1 flex flex-col relative overflow-hidden">
         {/* Clean Minimal Header */}
         <header className="glass border-b border-gray-200 dark:border-slate-700 z-20 animate-fade-in">
@@ -620,8 +681,8 @@ export default function ModelViewer() {
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-20 h-20 mx-auto mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1} aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
-                        <p className="text-xl text-gray-500 dark:text-gray-400 font-medium">Upload a 3D model to get started</p>
-                        <p className="text-sm mt-2 text-gray-400 dark:text-gray-500">Supported formats: STL, FBX</p>
+                        <p className="text-xl text-gray-500 dark:text-gray-400 font-medium">Drag & drop a 3D model here</p>
+                        <p className="text-sm mt-2 text-gray-400 dark:text-gray-500">or click Upload • Supported formats: STL, FBX</p>
                     </div>
                 </div>
             )}
