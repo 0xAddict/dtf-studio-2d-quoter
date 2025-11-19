@@ -40,7 +40,13 @@ export default function ModelViewer() {
   const [modelColor, setModelColor] = useState('#6366f1');
   const [backgroundColor, setBackgroundColor] = useState(isDark ? '#0f172a' : '#f0f4f8');
   const [savedViews, setSavedViews] = useState<{ name: string; position: [number, number, number]; target: [number, number, number] }[]>([]);
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isPanelOpen, setIsPanelOpen] = useState(() => {
+    // Start with panel closed on mobile (< 768px)
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return true;
+  });
   const [modelStats, setModelStats] = useState<{ vertices: number; triangles: number; dimensions: { x: string; y: string; z: string; } } | null>(null);
   const [selectedMaterial, setSelectedMaterial] = useState<string>('');
   const [modelScale, setModelScale] = useState<number>(100);
