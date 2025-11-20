@@ -34,23 +34,40 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 
     setIsSubmitting(true);
 
-    // TODO: Replace with actual Resend + Supabase integration
-    // For now, mock the verification process in development
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Submit email to Web3Forms for capture
+      const formData = new FormData();
+      formData.append('access_key', 'a82cd435-98b5-4787-a9e9-1476be34ece4');
+      formData.append('email', email);
+      formData.append('subject', 'New Quote Request - Hexea Forge');
+      formData.append('from_name', 'Hexea Forge');
+      formData.append('message', `New user signed up for quotes: ${email}`);
 
-      // Mock: Auto-approve in development
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to submit email');
+      }
+
+      console.log('[EMAIL] Successfully submitted to Web3Forms:', result);
+
+      // Show verification success
       setIsSubmitting(false);
       setIsVerifying(true);
 
-      // Show verification success message briefly
+      // Show success message briefly
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Call onVerified callback
       onVerified(email);
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
+    } catch (err: any) {
+      console.error('[EMAIL] Error submitting to Web3Forms:', err);
+      setError(err.message || 'Something went wrong. Please try again.');
       setIsSubmitting(false);
     }
   };
