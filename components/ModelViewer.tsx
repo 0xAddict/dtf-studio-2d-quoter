@@ -62,6 +62,7 @@ export default function ModelViewer() {
   const [currentModelName, setCurrentModelName] = useState<string>('');
 
   // Refs for lights and grid to update on theme change
+  const sceneInitializedRef = useRef(false);
   const lightsRef = useRef<{
     ambient?: THREE.AmbientLight;
     directional1?: THREE.DirectionalLight;
@@ -78,21 +79,34 @@ export default function ModelViewer() {
   // Scene setup
   useEffect(() => {
     if (!containerRef.current) return;
+    if (sceneInitializedRef.current) return; // Prevent re-initialization
     const currentContainer = containerRef.current;
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(backgroundColor);
-    sceneRef.current = scene;
-    scene.add(measurementHelpersRef.current);
-    pivotHelperRef.current.visible = false;
-    scene.add(pivotHelperRef.current);
+    // Ensure container has valid dimensions before initializing Three.js
+    const width = currentContainer.clientWidth || window.innerWidth;
+    const height = currentContainer.clientHeight || window.innerHeight;
 
-    const camera = new THREE.PerspectiveCamera(75, currentContainer.clientWidth / currentContainer.clientHeight, 0.1, 1000);
-    camera.position.set(0, 2, 5);
-    cameraRef.current = camera;
+    if (width === 0 || height === 0) {
+      console.warn('Container has invalid dimensions, skipping scene initialization');
+      return;
+    }
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(currentContainer.clientWidth, currentContainer.clientHeight);
+    console.log('Initializing Three.js scene with dimensions:', width, 'x', height);
+
+    try {
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(backgroundColor);
+      sceneRef.current = scene;
+      scene.add(measurementHelpersRef.current);
+      pivotHelperRef.current.visible = false;
+      scene.add(pivotHelperRef.current);
+
+      const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+      camera.position.set(0, 2, 5);
+      cameraRef.current = camera;
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -150,25 +164,42 @@ export default function ModelViewer() {
     };
     animate();
 
-    const observer = new ResizeObserver(() => {
-        requestAnimationFrame(() => {
-            if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
-            cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
-            cameraRef.current.updateProjectionMatrix();
-            rendererRef.current.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-        });
-    });
-    observer.observe(currentContainer);
+      const observer = new ResizeObserver(() => {
+          requestAnimationFrame(() => {
+              if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
+              cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
+              cameraRef.current.updateProjectionMatrix();
+              rendererRef.current.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+          });
+      });
+      observer.observe(currentContainer);
 
-    return () => {
-      observer.disconnect();
-      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-      if (rendererRef.current) rendererRef.current.dispose();
-      if (controlsRef.current) controlsRef.current.dispose();
-      if (currentContainer && rendererRef.current?.domElement) {
-        currentContainer.removeChild(rendererRef.current.domElement);
-      }
-    };
+      // Mark scene as successfully initialized
+      sceneInitializedRef.current = true;
+      console.log('Three.js scene initialized successfully');
+
+      return () => {
+        observer.disconnect();
+        if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+        if (rendererRef.current) {
+          rendererRef.current.dispose();
+        }
+        if (controlsRef.current) controlsRef.current.dispose();
+        if (currentContainer && rendererRef.current?.domElement) {
+          try {
+            currentContainer.removeChild(rendererRef.current.domElement);
+          } catch (e) {
+            // Element might already be removed
+          }
+        }
+      };
+    } catch (error) {
+      console.error('Error initializing Three.js scene:', error);
+      return () => {
+        // Cleanup in case of error
+        if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+      };
+    }
   }, []);
 
   // Update lights and grid when theme changes (without recreating scene)
