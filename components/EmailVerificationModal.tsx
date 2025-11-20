@@ -3,7 +3,7 @@ import { Mail, ArrowRight, CheckCircle, Loader } from 'lucide-react';
 
 interface EmailVerificationModalProps {
   isOpen: boolean;
-  onVerified: (email: string) => void;
+  onVerified: (name: string, email: string) => void;
   onClose: () => void;
 }
 
@@ -12,10 +12,11 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
   onVerified,
   onClose,
 }) => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Focus trap implementation
@@ -81,22 +82,34 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    const newErrors: { name?: string; email?: string } = {};
 
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email address');
+    if (!name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
+    setErrors({});
     setIsSubmitting(true);
 
     try {
       const formData = new FormData();
       formData.append('access_key', 'a82cd435-98b5-4787-a9e9-1476be34ece4');
+      formData.append('name', name);
       formData.append('email', email);
       formData.append('subject', 'New Quote Request - Hexea Forge');
       formData.append('from_name', 'Hexea Forge');
-      formData.append('message', `New user signed up for quotes: ${email}`);
+      formData.append('message', `New user signed up for quotes:\nName: ${name}\nEmail: ${email}`);
 
       const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
@@ -106,7 +119,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Failed to submit email');
+        throw new Error(result.message || 'Failed to submit information');
       }
 
       console.log('[EMAIL] Successfully submitted to Web3Forms:', result);
@@ -116,10 +129,10 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      onVerified(email);
+      onVerified(name, email);
     } catch (err: any) {
       console.error('[EMAIL] Error submitting to Web3Forms:', err);
-      setError(err.message || 'Something went wrong. Please try again.');
+      setErrors({ email: err.message || 'Something went wrong. Please try again.' });
       setIsSubmitting(false);
     }
   };
@@ -163,7 +176,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
               </div>
             </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Email Verified!
+              Verified!
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
               Redirecting you to the viewer...
@@ -178,41 +191,70 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
             </div>
 
             <h2 id="email-verification-title" className="text-2xl font-bold text-center mb-2 text-gray-900 dark:text-white">
-              Verify Your Email
+              Get Started
             </h2>
             <p className="text-gray-600 dark:text-gray-400 text-center mb-6 text-sm leading-relaxed">
-              Enter your email to get started with your quote
+              Enter your details to begin your quote
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (errors.name) setErrors({ ...errors, name: undefined });
+                  }}
+                  placeholder="John Smith"
+                  aria-describedby={errors.name ? "name-error" : undefined}
+                  aria-invalid={!!errors.name}
+                  aria-required="true"
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    errors.name ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
+                  } bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors`}
+                  required
+                  disabled={isSubmitting}
+                />
+                {errors.name && (
+                  <p id="name-error" role="alert" className="mt-1 text-xs text-red-500">
+                    {errors.name}
+                  </p>
+                )}
+              </div>
+
+              <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Email Address
+                  Email Address <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
                   id="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@company.com"
-                  aria-describedby={error ? "email-error" : undefined}
-                  aria-invalid={!!error}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) setErrors({ ...errors, email: undefined });
+                  }}
+                  placeholder="john@example.com"
+                  aria-describedby={errors.email ? "email-error" : undefined}
+                  aria-invalid={!!errors.email}
                   aria-required="true"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors"
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    errors.email ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
+                  } bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors`}
                   required
                   disabled={isSubmitting}
                 />
+                {errors.email && (
+                  <p id="email-error" role="alert" className="mt-1 text-xs text-red-500">
+                    {errors.email}
+                  </p>
+                )}
               </div>
-
-              {error && (
-                <div
-                  id="email-error"
-                  role="alert"
-                  className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800"
-                >
-                  {error}
-                </div>
-              )}
 
               <button
                 type="submit"

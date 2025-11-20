@@ -619,9 +619,7 @@ export default function ModelViewer() {
   };
 
   // Modal handlers
-  const handleGetQuote = (name: string, email: string) => {
-    setUserName(name);
-    setUserEmail(email);
+  const handleGetQuote = () => {
     setShowWelcomeModal(false);
     setShowEmailModal(true);
   };
@@ -632,7 +630,8 @@ export default function ModelViewer() {
     loadSampleModel();
   };
 
-  const handleEmailVerified = (email: string) => {
+  const handleEmailVerified = (name: string, email: string) => {
+    setUserName(name);
     setUserEmail(email);
     setShowEmailModal(false);
     // User is now verified and can use the full interface
