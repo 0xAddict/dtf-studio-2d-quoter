@@ -13,6 +13,7 @@
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-focus-lock": "^2.13.6",
     "three": "^0.181.1"
   },
   "devDependencies": {
