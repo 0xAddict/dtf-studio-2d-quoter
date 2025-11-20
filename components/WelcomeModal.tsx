@@ -23,7 +23,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
             <img
               src="/hexea.png"
               alt="Hexea Logo"
-              className="h-12 w-12 brightness-0 invert"
+              className="h-12 w-auto brightness-0 invert object-contain"
             />
           </div>
         </div>

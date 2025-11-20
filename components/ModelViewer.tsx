@@ -60,6 +60,7 @@ export default function ModelViewer() {
   const [userEmail, setUserEmail] = useState<string>('');
   const [currentQuote, setCurrentQuote] = useState<any>(null);
   const [currentModelName, setCurrentModelName] = useState<string>('');
+  const [isSampleMode, setIsSampleMode] = useState(false);
 
   // Refs for lights and grid to update on theme change
   const sceneInitializedRef = useRef(false);
@@ -557,6 +558,7 @@ export default function ModelViewer() {
 
   const handleTrySample = () => {
     setShowWelcomeModal(false);
+    setIsSampleMode(true);
     loadSampleModel();
   };
 
@@ -723,8 +725,8 @@ export default function ModelViewer() {
                     </h1>
                 </div>
 
-                {/* Center: Primary Action - Hidden on mobile */}
-                {!showWelcomeModal && (
+                {/* Center: Primary Action - Hidden on mobile and in sample mode */}
+                {!showWelcomeModal && !isSampleMode && (
                   <label className="hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-5 py-2 rounded-lg cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 dark:focus-within:ring-offset-slate-900 text-sm font-medium">
                       <Upload className="w-4 h-4" aria-hidden="true" />
                       Upload Model
@@ -926,8 +928,8 @@ export default function ModelViewer() {
                 </div>
             </div>
 
-            {/* Mobile Upload FAB - Bottom Right - Only visible on mobile */}
-            {!showWelcomeModal && (
+            {/* Mobile Upload FAB - Bottom Right - Only visible on mobile and not in sample mode */}
+            {!showWelcomeModal && !isSampleMode && (
               <label className="md:hidden absolute bottom-4 right-4 z-20 flex items-center justify-center w-14 h-14 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white rounded-full cursor-pointer transition-all duration-200 transform hover:scale-110 active:scale-95 shadow-lg hover:shadow-xl focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 dark:focus-within:ring-offset-slate-900 animate-fade-in">
                   <Upload className="w-6 h-6" aria-hidden="true" />
                   <input
