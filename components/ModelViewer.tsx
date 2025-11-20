@@ -5,8 +5,11 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggle } from './ThemeToggle';
-import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Axis3d, Box, Send } from 'lucide-react';
-import QuoteRequestModal from './QuoteRequestModal';
+import { WelcomeModal } from './WelcomeModal';
+import { EmailVerificationModal } from './EmailVerificationModal';
+import { QuoteForm, QuoteData } from './QuoteForm';
+import { QuoteDisplay } from './QuoteDisplay';
+import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Axis3d, Box } from 'lucide-react';
 
 type ActiveTool = 'none' | 'measure' | 'pivot';
 
@@ -61,7 +64,18 @@ export default function ModelViewer() {
   const [activeTool, setActiveTool] = useState<ActiveTool>('none');
   const [measurementInfo, setMeasurementInfo] = useState<{ points: THREE.Vector3[], distance: number | null }>({ points: [], distance: null });
 
+  // Modal and flow states
+  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [showQuoteDisplay, setShowQuoteDisplay] = useState(false);
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [currentQuote, setCurrentQuote] = useState<any>(null);
+  const [currentModelName, setCurrentModelName] = useState<string>('');
+  const [isSampleMode, setIsSampleMode] = useState(false);
+
   // Refs for lights and grid to update on theme change
+  const sceneInitializedRef = useRef(false);
   const lightsRef = useRef<{
     ambient?: THREE.AmbientLight;
     directional1?: THREE.DirectionalLight;
@@ -75,24 +89,62 @@ export default function ModelViewer() {
     setBackgroundColor(isDark ? '#0f172a' : '#f0f4f8');
   }, [isDark]);
 
-  // Scene setup
+  // Scene setup - only initialize after welcome modal is dismissed
   useEffect(() => {
-    if (!containerRef.current) return;
+    // Don't initialize while welcome modal is open
+    if (showWelcomeModal) {
+      console.log('[SCENE INIT] Welcome modal is open, waiting to initialize');
+      return;
+    }
+
+    console.log('[SCENE INIT] Effect triggered. sceneInitialized:', sceneInitializedRef.current);
+
+    if (!containerRef.current) {
+      console.warn('[SCENE INIT] No container ref, aborting');
+      return;
+    }
+
+    if (sceneInitializedRef.current) {
+      console.log('[SCENE INIT] Scene already initialized, skipping');
+      return; // Prevent re-initialization
+    }
+
     const currentContainer = containerRef.current;
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(backgroundColor);
-    sceneRef.current = scene;
-    scene.add(measurementHelpersRef.current);
-    pivotHelperRef.current.visible = false;
-    scene.add(pivotHelperRef.current);
+    // Wait for next frame to ensure DOM is laid out after modal closes
+    const rafId = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
 
-    const camera = new THREE.PerspectiveCamera(75, currentContainer.clientWidth / currentContainer.clientHeight, 0.1, 1000);
-    camera.position.set(0, 2, 5);
-    cameraRef.current = camera;
+      // Ensure container has valid dimensions before initializing Three.js
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(currentContainer.clientWidth, currentContainer.clientHeight);
+      console.log('[SCENE INIT] Container dimensions:', width, 'x', height);
+      console.log('[SCENE INIT] Container element:', containerRef.current);
+      console.log('[SCENE INIT] Container offsetParent:', containerRef.current.offsetParent);
+
+      if (width === 0 || height === 0) {
+        console.error('[SCENE INIT] ❌ Container STILL has invalid dimensions after modal closed!');
+        console.log('[SCENE INIT] Container computed style:', window.getComputedStyle(containerRef.current));
+        return;
+      }
+
+      console.log('[SCENE INIT] ✓ Valid dimensions detected, starting initialization...');
+
+    try {
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(backgroundColor);
+      sceneRef.current = scene;
+      scene.add(measurementHelpersRef.current);
+      pivotHelperRef.current.visible = false;
+      scene.add(pivotHelperRef.current);
+
+      const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+      camera.position.set(0, 2, 5);
+      cameraRef.current = camera;
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -150,26 +202,34 @@ export default function ModelViewer() {
     };
     animate();
 
-    const observer = new ResizeObserver(() => {
-        requestAnimationFrame(() => {
-            if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
-            cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
-            cameraRef.current.updateProjectionMatrix();
-            rendererRef.current.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-        });
-    });
-    observer.observe(currentContainer);
+      const observer = new ResizeObserver(() => {
+          requestAnimationFrame(() => {
+              if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
+              cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
+              cameraRef.current.updateProjectionMatrix();
+              rendererRef.current.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+          });
+      });
+      observer.observe(currentContainer);
 
-    return () => {
-      observer.disconnect();
-      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-      if (rendererRef.current) rendererRef.current.dispose();
-      if (controlsRef.current) controlsRef.current.dispose();
-      if (currentContainer && rendererRef.current?.domElement) {
-        currentContainer.removeChild(rendererRef.current.domElement);
+      // Mark scene as successfully initialized
+      sceneInitializedRef.current = true;
+      console.log('[SCENE INIT] ✅ Three.js scene initialized successfully!');
+      console.log('[SCENE INIT] Canvas element:', renderer.domElement);
+      console.log('[SCENE INIT] Canvas parent:', renderer.domElement.parentElement);
+      console.log('[SCENE INIT] Canvas dimensions:', renderer.domElement.width, 'x', renderer.domElement.height);
+      console.log('[SCENE INIT] Canvas style:', renderer.domElement.style.cssText);
+    } catch (error) {
+      console.error('[SCENE INIT] ❌ Error initializing Three.js scene:', error);
       }
+    });
+
+    // Cleanup function
+    return () => {
+      console.log('[SCENE INIT] Cleanup called');
+      cancelAnimationFrame(rafId);
     };
-  }, []);
+  }, [showWelcomeModal, backgroundColor]); // Re-run when modal closes or theme changes
 
   // Update lights and grid when theme changes (without recreating scene)
   useEffect(() => {
@@ -562,6 +622,134 @@ export default function ModelViewer() {
     }
   };
 
+  // Modal handlers
+  const handleGetQuote = () => {
+    setShowWelcomeModal(false);
+    setShowEmailModal(true);
+  };
+
+  const handleTrySample = () => {
+    setShowWelcomeModal(false);
+    setIsSampleMode(true);
+    loadSampleModel();
+  };
+
+  const handleEmailVerified = (email: string) => {
+    setUserEmail(email);
+    setShowEmailModal(false);
+    // User is now verified and can use the full interface
+  };
+
+  const loadSampleModel = () => {
+    // Create a simple sample STL cube programmatically
+    const geometry = new THREE.BoxGeometry(2, 2, 2);
+    const material = new THREE.MeshPhongMaterial({
+      color: modelColor,
+      specular: 0x111111,
+      shininess: 200,
+      wireframe: isWireframe,
+    });
+    const cube = new THREE.Mesh(geometry, material);
+    cube.castShadow = true;
+    cube.receiveShadow = true;
+
+    removeCurrentModel();
+
+    const box = new THREE.Box3().setFromObject(cube);
+    const size = box.getSize(new THREE.Vector3());
+
+    if (sceneRef.current) sceneRef.current.add(cube);
+    currentModelRef.current = cube;
+
+    setCurrentModelName('Sample Cube');
+    setModelInfo('Sample model loaded: Cube');
+    calculateModelStats(cube, size);
+  };
+
+  const handleQuoteSubmit = (quoteData: QuoteData) => {
+    // Generate mock quote
+    const materialPrices: { [key: string]: number } = {
+      pla: 0.05,
+      abs: 0.08,
+      petg: 0.10,
+      nylon: 0.15,
+      resin: 0.20,
+      metal: 0.50,
+    };
+
+    const finishPrices: { [key: string]: number } = {
+      standard: 0,
+      smooth: 15,
+      painted: 30,
+      premium: 50,
+    };
+
+    // Mock volume calculation (in cm³)
+    const mockVolume = 100 * (quoteData.scale / 100) ** 3;
+
+    const baseCost = 10;
+    const materialCost = mockVolume * (materialPrices[quoteData.material] || 0.05) * quoteData.quantity;
+    const finishCost = (finishPrices[quoteData.finishType] || 0) * quoteData.quantity;
+    const total = baseCost + materialCost + finishCost;
+
+    // Calculate delivery date (5-10 business days)
+    const deliveryDays = Math.floor(Math.random() * 6) + 5;
+    const deliveryDate = new Date();
+    deliveryDate.setDate(deliveryDate.getDate() + deliveryDays);
+
+    const quote = {
+      quoteId: `HF-${Date.now().toString(36).toUpperCase()}`,
+      modelName: currentModelName,
+      email: userEmail || 'demo@example.com',
+      quoteData,
+      pricing: {
+        baseCost,
+        materialCost,
+        finishCost,
+        total,
+      },
+      estimatedDelivery: `${deliveryDays} business days (${deliveryDate.toLocaleDateString()})`,
+      createdAt: new Date().toLocaleString(),
+    };
+
+    setCurrentQuote(quote);
+    setShowQuoteForm(false);
+    setShowQuoteDisplay(true);
+  };
+
+  const handleNewQuote = () => {
+    setShowQuoteDisplay(false);
+    setCurrentQuote(null);
+    removeCurrentModel();
+    setCurrentModelName('');
+  };
+
+  const handleModelUploadForQuote = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setCurrentModelName(file.name);
+
+    // Load the model first
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension === 'stl') {
+      loadModel(file, new STLLoader(), (data) => new STLLoader().parse(data as ArrayBuffer));
+    } else if (extension === 'fbx') {
+      loadModel(file, new FBXLoader(), (data) => new FBXLoader().parse(data as ArrayBuffer, ''));
+    } else {
+      setError('Unsupported file format. Please upload STL or FBX files.');
+      event.target.value = '';
+      return;
+    }
+
+    // Show quote form after upload
+    setTimeout(() => {
+      setShowQuoteForm(true);
+    }, 1000);
+
+    event.target.value = '';
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -626,18 +814,20 @@ export default function ModelViewer() {
                     </h1>
                 </div>
 
-                {/* Center: Primary Action - Hidden on mobile */}
-                <label className="hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-5 py-2 rounded-lg cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 dark:focus-within:ring-offset-slate-900 text-sm font-medium">
-                    <Upload className="w-4 h-4" aria-hidden="true" />
-                    Upload Model
-                    <input
-                      type="file"
-                      accept=".stl,.fbx"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      aria-label="Upload 3D model file"
-                    />
-                </label>
+                {/* Center: Primary Action - Hidden on mobile and in sample mode */}
+                {!showWelcomeModal && !isSampleMode && (
+                  <label className="hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-5 py-2 rounded-lg cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 dark:focus-within:ring-offset-slate-900 text-sm font-medium">
+                      <Upload className="w-4 h-4" aria-hidden="true" />
+                      Upload Model
+                      <input
+                        type="file"
+                        accept=".stl,.fbx"
+                        onChange={userEmail ? handleModelUploadForQuote : handleFileUpload}
+                        className="hidden"
+                        aria-label="Upload 3D model file"
+                      />
+                  </label>
+                )}
 
                 {/* Right: Theme & Panel Toggle */}
                 <div className="flex items-center gap-2">
@@ -827,17 +1017,19 @@ export default function ModelViewer() {
                 </div>
             </div>
 
-            {/* Mobile Upload FAB - Bottom Right - Only visible on mobile */}
-            <label className="md:hidden fixed bottom-6 right-4 z-20 flex items-center justify-center w-14 h-14 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white rounded-full cursor-pointer transition-all duration-200 transform hover:scale-110 active:scale-95 shadow-lg hover:shadow-xl focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 dark:focus-within:ring-offset-slate-900 animate-fade-in">
-                <Upload className="w-6 h-6" aria-hidden="true" />
-                <input
-                  type="file"
-                  accept=".stl,.fbx"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  aria-label="Upload 3D model file"
-                />
-            </label>
+            {/* Mobile Upload FAB - Bottom Right - Only visible on mobile and not in sample mode */}
+            {!showWelcomeModal && !isSampleMode && (
+              <label className="md:hidden absolute bottom-4 right-4 z-20 flex items-center justify-center w-14 h-14 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white rounded-full cursor-pointer transition-all duration-200 transform hover:scale-110 active:scale-95 shadow-lg hover:shadow-xl focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 dark:focus-within:ring-offset-slate-900 animate-fade-in">
+                  <Upload className="w-6 h-6" aria-hidden="true" />
+                  <input
+                    type="file"
+                    accept=".stl,.fbx"
+                    onChange={userEmail ? handleModelUploadForQuote : handleFileUpload}
+                    className="hidden"
+                    aria-label="Upload 3D model file"
+                  />
+              </label>
+            )}
         </div>
 
         {/* Footer - Hidden on mobile */}
@@ -1001,6 +1193,36 @@ export default function ModelViewer() {
         )}
       </aside>
 
+      {/* Modals */}
+      <WelcomeModal
+        isOpen={showWelcomeModal}
+        onGetQuote={handleGetQuote}
+        onTrySample={handleTrySample}
+      />
+
+      <EmailVerificationModal
+        isOpen={showEmailModal}
+        onVerified={handleEmailVerified}
+        onClose={() => setShowEmailModal(false)}
+      />
+
+      {currentModelName && (
+        <QuoteForm
+          isOpen={showQuoteForm}
+          modelName={currentModelName}
+          onSubmit={handleQuoteSubmit}
+          onClose={() => setShowQuoteForm(false)}
+        />
+      )}
+
+      {currentQuote && (
+        <QuoteDisplay
+          isOpen={showQuoteDisplay}
+          quote={currentQuote}
+          onClose={() => setShowQuoteDisplay(false)}
+          onNewQuote={handleNewQuote}
+        />
+      )}
       {/* Quote Request Modal */}
       <QuoteRequestModal
         isOpen={isQuoteModalOpen}
