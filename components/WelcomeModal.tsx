@@ -1,11 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Upload, Play, X } from 'lucide-react';
 
 interface WelcomeModalProps {
   isOpen: boolean;
-  onGetQuote: () => void;
+  onGetQuote: (name: string, email: string) => void;
   onTrySample: () => void;
   onClose?: () => void;
+}
+
+interface FormErrors {
+  name?: string;
+  email?: string;
 }
 
 export const WelcomeModal: React.FC<WelcomeModalProps> = ({
@@ -15,6 +20,9 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
   onClose,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [errors, setErrors] = useState<FormErrors>({});
 
   // Focus trap implementation
   useEffect(() => {
@@ -80,6 +88,29 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
     };
   }, [isOpen, onClose]);
 
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Invalid email address';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleGetQuote = () => {
+    if (validateForm()) {
+      onGetQuote(name, email);
+    }
+  };
+
   if (!isOpen) return null;
 
   const handleBackdropClick = () => {
@@ -136,10 +167,59 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
           select your scale and materials, and receive a professional quote.
         </p>
 
+        {/* User Info Form */}
+        <div className="space-y-4 mb-6">
+          <div>
+            <label htmlFor="welcome-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="welcome-name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (errors.name) setErrors({ ...errors, name: undefined });
+              }}
+              className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border ${
+                errors.name ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
+              } rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              placeholder="John Smith"
+              aria-required="true"
+              aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? 'welcome-name-error' : undefined}
+            />
+            {errors.name && <p id="welcome-name-error" className="mt-1 text-xs text-red-500" role="alert">{errors.name}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="welcome-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              id="welcome-email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors({ ...errors, email: undefined });
+              }}
+              className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border ${
+                errors.email ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
+              } rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              placeholder="john@example.com"
+              aria-required="true"
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? 'welcome-email-error' : undefined}
+            />
+            {errors.email && <p id="welcome-email-error" className="mt-1 text-xs text-red-500" role="alert">{errors.email}</p>}
+          </div>
+        </div>
+
         {/* CTA Message */}
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl p-4 mb-6 border border-indigo-200 dark:border-indigo-800">
           <p className="text-sm text-gray-700 dark:text-gray-300 text-center">
-            <span className="font-semibold text-indigo-600 dark:text-indigo-400">First, confirm your email to get started.</span>
+            <span className="font-semibold text-indigo-600 dark:text-indigo-400">Get started with a quote</span>
             <br />
             Or try our sample file to explore the viewer.
           </p>
@@ -148,7 +228,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
         {/* Buttons */}
         <div className="space-y-3">
           <button
-            onClick={onGetQuote}
+            onClick={handleGetQuote}
             className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-[1.02] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-slate-900"
           >
             <Upload className="w-5 h-5" />

@@ -12,6 +12,10 @@ interface QuoteRequestModalProps {
     material: string;
     scale: number;
   } | null;
+  userInfo?: {
+    name: string;
+    email: string;
+  };
 }
 
 interface FormData {
@@ -21,6 +25,7 @@ interface FormData {
   company: string;
   quantity: string;
   timeline: string;
+  finishing: string;
   message: string;
 }
 
@@ -45,6 +50,7 @@ interface QuoteData {
     scale: number;
     quantity: number;
     timeline: string;
+    finishing: string;
     vertices: number;
     triangles: number;
     dimensions: { x: string; y: string; z: string };
@@ -52,6 +58,7 @@ interface QuoteData {
   pricing: {
     baseCost: number;
     materialCost: number;
+    finishingCost: number;
     quantityDiscount: number;
     total: number;
   };
@@ -77,14 +84,22 @@ const materialPrices: Record<string, number> = {
   'resin-clear': 40,
 };
 
-export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, modelData }) => {
+const finishingPrices: Record<string, number> = {
+  'standard': 0,
+  'smooth': 15,
+  'painted': 30,
+  'premium': 50,
+};
+
+export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, modelData, userInfo }) => {
   const [formData, setFormData] = useState<FormData>({
-    name: '',
-    email: '',
+    name: userInfo?.name || '',
+    email: userInfo?.email || '',
     phone: '',
     company: '',
     quantity: '1',
     timeline: '',
+    finishing: '',
     message: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -92,6 +107,17 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [generatedQuote, setGeneratedQuote] = useState<QuoteData | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+
+  // Pre-populate form with userInfo when it changes
+  useEffect(() => {
+    if (userInfo) {
+      setFormData(prev => ({
+        ...prev,
+        name: userInfo.name,
+        email: userInfo.email,
+      }));
+    }
+  }, [userInfo]);
 
   // Focus trap implementation
   useEffect(() => {
@@ -154,8 +180,11 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
     const materialCost = modelData?.material
       ? (materialPrices[modelData.material] || 20) * quantity
       : 20 * quantity;
+    const finishingCost = formData.finishing
+      ? (finishingPrices[formData.finishing] || 0) * quantity
+      : 0;
     const quantityDiscount = quantity >= 10 ? materialCost * 0.15 : quantity >= 5 ? materialCost * 0.10 : 0;
-    const total = baseCost + materialCost - quantityDiscount;
+    const total = baseCost + materialCost + finishingCost - quantityDiscount;
 
     return {
       quoteId: `HF-${Date.now().toString(36).toUpperCase()}`,
@@ -172,6 +201,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
         scale: modelData?.scale || 100,
         quantity,
         timeline: formData.timeline || 'Not specified',
+        finishing: formData.finishing || 'Standard',
         vertices: modelData?.vertices || 0,
         triangles: modelData?.triangles || 0,
         dimensions: modelData?.dimensions || { x: '0', y: '0', z: '0' },
@@ -179,6 +209,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
       pricing: {
         baseCost,
         materialCost,
+        finishingCost,
         quantityDiscount,
         total,
       },
@@ -332,6 +363,10 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
         <span class="value">${quote.modelInfo.timeline}</span>
       </div>
       <div class="info-row">
+        <span class="label">Finishing:</span>
+        <span class="value">${quote.modelInfo.finishing}</span>
+      </div>
+      <div class="info-row">
         <span class="label">Triangles:</span>
         <span class="value">${quote.modelInfo.triangles.toLocaleString()}</span>
       </div>
@@ -349,6 +384,12 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
         <span>Material (${quote.modelInfo.quantity} pcs)</span>
         <span>${quote.pricing.materialCost.toFixed(2)} €</span>
       </div>
+      ${quote.pricing.finishingCost > 0 ? `
+      <div class="pricing-row">
+        <span>Finishing (${quote.modelInfo.quantity} pcs)</span>
+        <span>${quote.pricing.finishingCost.toFixed(2)} €</span>
+      </div>
+      ` : ''}
       ${quote.pricing.quantityDiscount > 0 ? `
       <div class="pricing-row discount">
         <span>Quantity Discount</span>
@@ -424,6 +465,8 @@ Model Details:
 - Material: ${modelData.material ? materialNames[modelData.material] || modelData.material : 'Not selected'}
 - Scale: ${modelData.scale}%
 - Quantity: ${formData.quantity} pcs
+- Timeline: ${formData.timeline || 'Not specified'}
+- Finishing: ${formData.finishing || 'Standard'}
 - Vertices: ${modelData.vertices.toLocaleString()}
 - Triangles: ${modelData.triangles.toLocaleString()}
 - Dimensions (original): X: ${modelData.dimensions.x}, Y: ${modelData.dimensions.y}, Z: ${modelData.dimensions.z}
@@ -431,7 +474,7 @@ Model Details:
 Pricing:
 - Base Price: ${quote.pricing.baseCost.toFixed(2)} €
 - Material Cost: ${quote.pricing.materialCost.toFixed(2)} €
-${quote.pricing.quantityDiscount > 0 ? `- Quantity Discount: -${quote.pricing.quantityDiscount.toFixed(2)} €\n` : ''}- Total: ${quote.pricing.total.toFixed(2)} €
+${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishingCost.toFixed(2)} €\n` : ''}${quote.pricing.quantityDiscount > 0 ? `- Quantity Discount: -${quote.pricing.quantityDiscount.toFixed(2)} €\n` : ''}- Total: ${quote.pricing.total.toFixed(2)} €
       `.trim() : 'No model loaded';
 
       // Send to Web3Forms
@@ -450,6 +493,7 @@ ${quote.pricing.quantityDiscount > 0 ? `- Quantity Discount: -${quote.pricing.qu
           company: formData.company || 'Not provided',
           quantity: formData.quantity,
           timeline: formData.timeline || 'Not specified',
+          finishing: formData.finishing || 'Standard',
           message: formData.message || 'No additional information',
           model_info: modelInfo,
         }),
@@ -492,12 +536,13 @@ ${quote.pricing.quantityDiscount > 0 ? `- Quantity Discount: -${quote.pricing.qu
 
   const handleNewQuote = () => {
     setFormData({
-      name: '',
-      email: '',
+      name: userInfo?.name || '',
+      email: userInfo?.email || '',
       phone: '',
       company: '',
       quantity: '1',
       timeline: '',
+      finishing: '',
       message: '',
     });
     setGeneratedQuote(null);
@@ -707,6 +752,25 @@ ${quote.pricing.quantityDiscount > 0 ? `- Quantity Discount: -${quote.pricing.qu
                     <option value="flexible">Flexible (2+ weeks)</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label htmlFor="finishing" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Finishing
+                </label>
+                <select
+                  id="finishing"
+                  name="finishing"
+                  value={formData.finishing}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Select...</option>
+                  <option value="standard">Standard (No additional cost)</option>
+                  <option value="smooth">Smooth (+€15 per piece)</option>
+                  <option value="painted">Painted (+€30 per piece)</option>
+                  <option value="premium">Premium Finish (+€50 per piece)</option>
+                </select>
               </div>
 
               <div>

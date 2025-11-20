@@ -66,6 +66,7 @@ export default function ModelViewer() {
   // Modal and flow states
   const [showWelcomeModal, setShowWelcomeModal] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
   const [isSampleMode, setIsSampleMode] = useState(false);
 
@@ -618,7 +619,9 @@ export default function ModelViewer() {
   };
 
   // Modal handlers
-  const handleGetQuote = () => {
+  const handleGetQuote = (name: string, email: string) => {
+    setUserName(name);
+    setUserEmail(email);
     setShowWelcomeModal(false);
     setShowEmailModal(true);
   };
@@ -1128,6 +1131,10 @@ export default function ModelViewer() {
           material: selectedMaterial,
           scale: modelScale,
         } : null}
+        userInfo={userName && userEmail ? {
+          name: userName,
+          email: userEmail,
+        } : undefined}
       />
     </div>
   );
