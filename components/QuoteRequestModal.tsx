@@ -58,13 +58,13 @@ interface QuoteData {
 }
 
 const materialNames: Record<string, string> = {
-  'asa': 'ASA - Kestävä ja säänkestävä',
-  'tpu': 'TPU - Joustava kumimainen',
-  'pla': 'PLA - Edullinen',
-  'petg': 'PETG - Kestävä ja sitkeä',
-  'nylon-carbon': 'Nylon + hiilikuitu',
-  'resin-standard': 'Hartsi - ABS-tyyppinen',
-  'resin-clear': 'Hartsi - Kirkas',
+  'asa': 'ASA - Durable and weather-resistant',
+  'tpu': 'TPU - Flexible rubber-like',
+  'pla': 'PLA - Affordable',
+  'petg': 'PETG - Durable and tough',
+  'nylon-carbon': 'Nylon + carbon fiber',
+  'resin-standard': 'Resin - ABS-type',
+  'resin-clear': 'Resin - Clear',
 };
 
 const materialPrices: Record<string, number> = {
@@ -159,19 +159,19 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
 
     return {
       quoteId: `HF-${Date.now().toString(36).toUpperCase()}`,
-      date: new Date().toLocaleDateString('fi-FI'),
+      date: new Date().toLocaleDateString('en-US'),
       customer: {
         name: formData.name,
         email: formData.email,
-        phone: formData.phone || 'Ei annettu',
+        phone: formData.phone || 'Not provided',
         company: formData.company || '-',
       },
       modelInfo: {
-        fileName: modelData?.fileName || 'Tuntematon',
-        material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Ei valittu',
+        fileName: modelData?.fileName || 'Unknown',
+        material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not selected',
         scale: modelData?.scale || 100,
         quantity,
-        timeline: formData.timeline || 'Ei määritelty',
+        timeline: formData.timeline || 'Not specified',
         vertices: modelData?.vertices || 0,
         triangles: modelData?.triangles || 0,
         dimensions: modelData?.dimensions || { x: '0', y: '0', z: '0' },
@@ -192,7 +192,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Tarjous ${quote.quoteId}</title>
+  <title>Quote ${quote.quoteId}</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
@@ -282,90 +282,90 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
 <body>
   <div class="header">
     <h1>HEXEA FORGE</h1>
-    <div class="quote-id">Tarjous #${quote.quoteId}</div>
-    <div class="quote-id">Päivämäärä: ${quote.date}</div>
+    <div class="quote-id">Quote #${quote.quoteId}</div>
+    <div class="quote-id">Date: ${quote.date}</div>
   </div>
 
   <div class="section">
-    <div class="section-title">Asiakastiedot</div>
+    <div class="section-title">Customer Information</div>
     <div class="info-grid">
       <div class="info-row">
-        <span class="label">Nimi:</span>
+        <span class="label">Name:</span>
         <span class="value">${quote.customer.name}</span>
       </div>
       <div class="info-row">
-        <span class="label">Yritys:</span>
+        <span class="label">Company:</span>
         <span class="value">${quote.customer.company}</span>
       </div>
       <div class="info-row">
-        <span class="label">Sähköposti:</span>
+        <span class="label">Email:</span>
         <span class="value">${quote.customer.email}</span>
       </div>
       <div class="info-row">
-        <span class="label">Puhelin:</span>
+        <span class="label">Phone:</span>
         <span class="value">${quote.customer.phone}</span>
       </div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-title">Mallin tiedot</div>
+    <div class="section-title">Model Details</div>
     <div class="info-grid">
       <div class="info-row">
-        <span class="label">Tiedosto:</span>
+        <span class="label">File:</span>
         <span class="value">${quote.modelInfo.fileName}</span>
       </div>
       <div class="info-row">
-        <span class="label">Materiaali:</span>
+        <span class="label">Material:</span>
         <span class="value">${quote.modelInfo.material}</span>
       </div>
       <div class="info-row">
-        <span class="label">Koko:</span>
+        <span class="label">Scale:</span>
         <span class="value">${quote.modelInfo.scale}%</span>
       </div>
       <div class="info-row">
-        <span class="label">Määrä:</span>
-        <span class="value">${quote.modelInfo.quantity} kpl</span>
+        <span class="label">Quantity:</span>
+        <span class="value">${quote.modelInfo.quantity} pcs</span>
       </div>
       <div class="info-row">
-        <span class="label">Aikataulu:</span>
+        <span class="label">Timeline:</span>
         <span class="value">${quote.modelInfo.timeline}</span>
       </div>
       <div class="info-row">
-        <span class="label">Kolmiot:</span>
+        <span class="label">Triangles:</span>
         <span class="value">${quote.modelInfo.triangles.toLocaleString()}</span>
       </div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-title">Hinnoittelu</div>
+    <div class="section-title">Pricing</div>
     <div class="pricing-table">
       <div class="pricing-row">
-        <span>Perushinta</span>
+        <span>Base Price</span>
         <span>${quote.pricing.baseCost.toFixed(2)} €</span>
       </div>
       <div class="pricing-row">
-        <span>Materiaali (${quote.modelInfo.quantity} kpl)</span>
+        <span>Material (${quote.modelInfo.quantity} pcs)</span>
         <span>${quote.pricing.materialCost.toFixed(2)} €</span>
       </div>
       ${quote.pricing.quantityDiscount > 0 ? `
       <div class="pricing-row discount">
-        <span>Määräalennus</span>
+        <span>Quantity Discount</span>
         <span>-${quote.pricing.quantityDiscount.toFixed(2)} €</span>
       </div>
       ` : ''}
       <div class="pricing-row total">
-        <span>YHTEENSÄ (ALV 0%)</span>
+        <span>TOTAL (VAT 0%)</span>
         <span>${quote.pricing.total.toFixed(2)} €</span>
       </div>
     </div>
   </div>
 
   <div class="footer">
-    <p>Hexea Forge - 3D-tulostuspalvelut</p>
-    <p>Tarjous on voimassa 30 päivää</p>
-    <p>Hinnat eivät sisällä arvonlisäveroa</p>
+    <p>Hexea Forge - 3D Printing Services</p>
+    <p>Quote valid for 30 days</p>
+    <p>Prices do not include VAT</p>
   </div>
 </body>
 </html>
@@ -376,7 +376,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `hexea-tarjous-${quote.quoteId}.html`;
+    link.download = `hexea-quote-${quote.quoteId}.html`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -387,17 +387,17 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
     const newErrors: FormErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Nimi on pakollinen';
+      newErrors.name = 'Name is required';
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Sähköposti on pakollinen';
+      newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Virheellinen sähköpostiosoite';
+      newErrors.email = 'Invalid email address';
     }
 
     if (formData.phone && !/^[+]?[\d\s-]{6,}$/.test(formData.phone)) {
-      newErrors.phone = 'Virheellinen puhelinnumero';
+      newErrors.phone = 'Invalid phone number';
     }
 
     setErrors(newErrors);
@@ -419,20 +419,20 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
 
       // Prepare model info for the email
       const modelInfo = modelData ? `
-Mallin tiedot:
-- Tiedosto: ${modelData.fileName}
-- Materiaali: ${modelData.material ? materialNames[modelData.material] || modelData.material : 'Ei valittu'}
-- Koko: ${modelData.scale}%
-- Määrä: ${formData.quantity} kpl
+Model Details:
+- File: ${modelData.fileName}
+- Material: ${modelData.material ? materialNames[modelData.material] || modelData.material : 'Not selected'}
+- Scale: ${modelData.scale}%
+- Quantity: ${formData.quantity} pcs
 - Vertices: ${modelData.vertices.toLocaleString()}
 - Triangles: ${modelData.triangles.toLocaleString()}
-- Mitat (alkuperäiset): X: ${modelData.dimensions.x}, Y: ${modelData.dimensions.y}, Z: ${modelData.dimensions.z}
+- Dimensions (original): X: ${modelData.dimensions.x}, Y: ${modelData.dimensions.y}, Z: ${modelData.dimensions.z}
 
-Hinnoittelu:
-- Perushinta: ${quote.pricing.baseCost.toFixed(2)} €
-- Materiaalikustannus: ${quote.pricing.materialCost.toFixed(2)} €
-${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quantityDiscount.toFixed(2)} €\n` : ''}- Yhteensä: ${quote.pricing.total.toFixed(2)} €
-      `.trim() : 'Ei mallia ladattu';
+Pricing:
+- Base Price: ${quote.pricing.baseCost.toFixed(2)} €
+- Material Cost: ${quote.pricing.materialCost.toFixed(2)} €
+${quote.pricing.quantityDiscount > 0 ? `- Quantity Discount: -${quote.pricing.quantityDiscount.toFixed(2)} €\n` : ''}- Total: ${quote.pricing.total.toFixed(2)} €
+      `.trim() : 'No model loaded';
 
       // Send to Web3Forms
       const response = await fetch('https://api.web3forms.com/submit', {
@@ -442,15 +442,15 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
         },
         body: JSON.stringify({
           access_key: 'a82cd435-98b5-4787-a9e9-1476be34ece4',
-          subject: `Uusi tarjouspyyntö #${quote.quoteId} - ${formData.name}`,
+          subject: `New Quote Request #${quote.quoteId} - ${formData.name}`,
           from_name: 'Hexea Forge',
           name: formData.name,
           email: formData.email,
-          phone: formData.phone || 'Ei annettu',
-          company: formData.company || 'Ei annettu',
+          phone: formData.phone || 'Not provided',
+          company: formData.company || 'Not provided',
           quantity: formData.quantity,
-          timeline: formData.timeline || 'Ei määritelty',
-          message: formData.message || 'Ei lisätietoja',
+          timeline: formData.timeline || 'Not specified',
+          message: formData.message || 'No additional information',
           model_info: modelInfo,
         }),
       });
@@ -530,26 +530,26 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
                 </div>
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Tarjous lähetetty!
+                Quote Sent!
               </h2>
               <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Tarjouksesi #{generatedQuote.quoteId} on lähetetty sähköpostiisi
+                Your quote #{generatedQuote.quoteId} has been sent to your email
               </p>
             </div>
 
             <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 mb-6">
-              <h3 className="font-semibold text-indigo-700 dark:text-indigo-300 mb-3">Tarjouksen yhteenveto</h3>
+              <h3 className="font-semibold text-indigo-700 dark:text-indigo-300 mb-3">Quote Summary</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Materiaali:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Material:</span>
                   <span className="font-medium text-gray-900 dark:text-white">{generatedQuote.modelInfo.material}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Määrä:</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{generatedQuote.modelInfo.quantity} kpl</span>
+                  <span className="text-gray-600 dark:text-gray-400">Quantity:</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{generatedQuote.modelInfo.quantity} pcs</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-indigo-200 dark:border-indigo-800">
-                  <span className="font-semibold text-gray-900 dark:text-white">Yhteensä:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">Total:</span>
                   <span className="font-bold text-indigo-600 dark:text-indigo-400">{generatedQuote.pricing.total.toFixed(2)} €</span>
                 </div>
               </div>
@@ -561,13 +561,13 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-4 py-3 rounded-lg font-medium transition-all"
               >
                 <Download className="w-4 h-4" />
-                Lataa tarjous (HTML)
+                Download Quote (HTML)
               </button>
               <button
                 onClick={handleNewQuote}
                 className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-slate-800 transition-all"
               >
-                Sulje
+                Close
               </button>
             </div>
           </div>
@@ -575,11 +575,11 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
           // Form View
           <>
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
-              <h2 id="quote-modal-title" className="text-xl font-bold text-gray-900 dark:text-white">Pyydä tarjous</h2>
+              <h2 id="quote-modal-title" className="text-xl font-bold text-gray-900 dark:text-white">Request Quote</h2>
               <button
                 onClick={onClose}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-500 dark:text-gray-400"
-                aria-label="Sulje"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -587,12 +587,12 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
 
             {modelData && (
               <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border-b border-gray-200 dark:border-slate-700">
-                <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-2">Mallin yhteenveto</h3>
+                <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-2">Model Summary</h3>
                 <div className="text-xs text-indigo-600 dark:text-indigo-400 space-y-1">
-                  <p><strong>Tiedosto:</strong> {modelData.fileName}</p>
-                  <p><strong>Materiaali:</strong> {modelData.material ? materialNames[modelData.material] || 'Ei valittu' : 'Ei valittu'}</p>
-                  <p><strong>Koko:</strong> {modelData.scale}%</p>
-                  <p><strong>Kolmiot:</strong> {modelData.triangles.toLocaleString()}</p>
+                  <p><strong>File:</strong> {modelData.fileName}</p>
+                  <p><strong>Material:</strong> {modelData.material ? materialNames[modelData.material] || 'Not selected' : 'Not selected'}</p>
+                  <p><strong>Scale:</strong> {modelData.scale}%</p>
+                  <p><strong>Triangles:</strong> {modelData.triangles.toLocaleString()}</p>
                 </div>
               </div>
             )}
@@ -600,7 +600,7 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Nimi <span className="text-red-500">*</span>
+                  Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -611,7 +611,7 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
                   className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border ${
                     errors.name ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   } rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                  placeholder="Matti Meikäläinen"
+                  placeholder="John Smith"
                   aria-required="true"
                   aria-invalid={!!errors.name}
                   aria-describedby={errors.name ? 'name-error' : undefined}
@@ -621,7 +621,7 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
 
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Sähköposti <span className="text-red-500">*</span>
+                  Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -632,7 +632,7 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
                   className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border ${
                     errors.email ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   } rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                  placeholder="matti@esimerkki.fi"
+                  placeholder="john@example.com"
                   aria-required="true"
                   aria-invalid={!!errors.email}
                   aria-describedby={errors.email ? 'email-error' : undefined}
@@ -642,7 +642,7 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
 
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Puhelin
+                  Phone
                 </label>
                 <input
                   type="tel"
@@ -653,7 +653,7 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
                   className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border ${
                     errors.phone ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
                   } rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                  placeholder="+358 40 123 4567"
+                  placeholder="+1 234 567 8900"
                   aria-invalid={!!errors.phone}
                   aria-describedby={errors.phone ? 'phone-error' : undefined}
                 />
@@ -662,7 +662,7 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
 
               <div>
                 <label htmlFor="company" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Yritys
+                  Company
                 </label>
                 <input
                   type="text"
@@ -671,14 +671,14 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
                   value={formData.company}
                   onChange={handleChange}
                   className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Yrityksen nimi"
+                  placeholder="Company name"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Määrä (kpl)
+                    Quantity (pcs)
                   </label>
                   <input
                     type="number"
@@ -692,7 +692,7 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
                 </div>
                 <div>
                   <label htmlFor="timeline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Aikataulu
+                    Timeline
                   </label>
                   <select
                     id="timeline"
@@ -701,17 +701,17 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
                     onChange={handleChange}
                     className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="">Valitse...</option>
-                    <option value="urgent">Kiireellinen (1-3 pv)</option>
-                    <option value="normal">Normaali (1-2 vk)</option>
-                    <option value="flexible">Joustava (2+ vk)</option>
+                    <option value="">Select...</option>
+                    <option value="urgent">Urgent (1-3 days)</option>
+                    <option value="normal">Normal (1-2 weeks)</option>
+                    <option value="flexible">Flexible (2+ weeks)</option>
                   </select>
                 </div>
               </div>
 
               <div>
                 <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Lisätiedot
+                  Additional Information
                 </label>
                 <textarea
                   id="message"
@@ -720,14 +720,14 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
                   value={formData.message}
                   onChange={handleChange}
                   className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                  placeholder="Kerro projektistasi tarkemmin..."
+                  placeholder="Tell us more about your project..."
                 />
               </div>
 
               {submitStatus === 'error' && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg" role="alert">
                   <p className="text-sm text-red-700 dark:text-red-300">
-                    Virhe lähetyksessä. Yritä uudelleen tai ota yhteyttä suoraan.
+                    Submission error. Please try again or contact us directly.
                   </p>
                 </div>
               )}
@@ -740,18 +740,18 @@ ${quote.pricing.quantityDiscount > 0 ? `- Määräalennus: -${quote.pricing.quan
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                    Lähetetään...
+                    Sending...
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" aria-hidden="true" />
-                    Lähetä tarjouspyyntö
+                    Send Quote Request
                   </>
                 )}
               </button>
 
               <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-                Tietojasi käsitellään luottamuksellisesti.
+                Your information will be handled confidentially.
               </p>
             </form>
           </>
