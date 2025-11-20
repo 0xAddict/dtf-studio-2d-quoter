@@ -76,18 +76,18 @@ export default function ModelViewer() {
     setBackgroundColor(isDark ? '#0f172a' : '#f0f4f8');
   }, [isDark]);
 
-  // Scene setup
+  // Scene setup - retry when modal closes if initialization was skipped
   useEffect(() => {
     if (!containerRef.current) return;
     if (sceneInitializedRef.current) return; // Prevent re-initialization
     const currentContainer = containerRef.current;
 
     // Ensure container has valid dimensions before initializing Three.js
-    const width = currentContainer.clientWidth || window.innerWidth;
-    const height = currentContainer.clientHeight || window.innerHeight;
+    const width = currentContainer.clientWidth;
+    const height = currentContainer.clientHeight;
 
     if (width === 0 || height === 0) {
-      console.warn('Container has invalid dimensions, skipping scene initialization');
+      console.warn('Container has invalid dimensions, waiting for valid size. Current:', width, 'x', height);
       return;
     }
 
@@ -200,7 +200,7 @@ export default function ModelViewer() {
         if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
       };
     }
-  }, []);
+  }, [showWelcomeModal, backgroundColor]); // Re-run when modal closes or theme changes
 
   // Update lights and grid when theme changes (without recreating scene)
   useEffect(() => {
