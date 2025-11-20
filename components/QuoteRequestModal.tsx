@@ -40,7 +40,7 @@ const materialNames: Record<string, string> = {
   'resin-clear': 'Hartsi - Kirkas',
 };
 
-export default function QuoteRequestModal({ isOpen, onClose, modelData }: QuoteRequestModalProps) {
+export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, modelData }) => {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
@@ -354,4 +354,4 @@ Mallin tiedot:
       </div>
     </div>
   );
-}
+};
