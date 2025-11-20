@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react';
-import FocusLock from 'react-focus-lock';
+import React, { useEffect, useRef } from 'react';
 import { Upload, Play, X } from 'lucide-react';
 
 interface WelcomeModalProps {
@@ -15,18 +14,70 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
   onTrySample,
   onClose,
 }) => {
-  // ESC key handler
-  useEffect(() => {
-    if (!isOpen || !onClose) return;
+  const modalRef = useRef<HTMLDivElement>(null);
 
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+  // Focus trap implementation
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const modalElement = modalRef.current;
+    if (!modalElement) return;
+
+    // Store the previously focused element
+    const previouslyFocused = document.activeElement as HTMLElement;
+
+    // Get all focusable elements within the modal
+    const getFocusableElements = () => {
+      return modalElement.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+    };
+
+    // Focus first element
+    const focusableElements = getFocusableElements();
+    if (focusableElements.length > 0) {
+      focusableElements[0].focus();
+    }
+
+    // Handle tab key to trap focus
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // ESC key handler
+      if (e.key === 'Escape' && onClose) {
         onClose();
+        return;
+      }
+
+      // Tab key handler
+      if (e.key === 'Tab') {
+        const focusableElements = getFocusableElements();
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          // Shift + Tab
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          // Tab
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
       }
     };
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup: restore focus
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (previouslyFocused) {
+        previouslyFocused.focus();
+      }
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -44,14 +95,14 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
       onClick={handleBackdropClick}
     >
-      <FocusLock returnFocus>
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="welcome-title"
-          className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-8 animate-scale-in border border-gray-200 dark:border-slate-700"
-          onClick={handleModalClick}
-        >
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcome-title"
+        className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-8 animate-scale-in border border-gray-200 dark:border-slate-700"
+        onClick={handleModalClick}
+      >
         {/* Close Button (if onClose provided) */}
         {onClose && (
           <button
@@ -113,7 +164,6 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
           </button>
         </div>
       </div>
-      </FocusLock>
     </div>
   );
 };
