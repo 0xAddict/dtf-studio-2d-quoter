@@ -131,96 +131,96 @@ export default function ModelViewer() {
 
       console.log('[SCENE INIT] ✓ Valid dimensions detected, starting initialization...');
 
-    try {
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(backgroundColor);
-      sceneRef.current = scene;
-      scene.add(measurementHelpersRef.current);
-      pivotHelperRef.current.visible = false;
-      scene.add(pivotHelperRef.current);
+      try {
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(backgroundColor);
+        sceneRef.current = scene;
+        scene.add(measurementHelpersRef.current);
+        pivotHelperRef.current.visible = false;
+        scene.add(pivotHelperRef.current);
 
-      const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-      camera.position.set(0, 2, 5);
-      cameraRef.current = camera;
+        const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+        camera.position.set(0, 2, 5);
+        cameraRef.current = camera;
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
-    currentContainer.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        currentContainer.appendChild(renderer.domElement);
+        rendererRef.current = renderer;
 
-    // Lighting setup - adjusted for dark mode
-    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.5 : 0.7);
-    scene.add(ambientLight);
-    lightsRef.current.ambient = ambientLight;
+        // Lighting setup - adjusted for dark mode
+        const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.5 : 0.7);
+        scene.add(ambientLight);
+        lightsRef.current.ambient = ambientLight;
 
-    const directionalLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 0.7 : 0.9);
-    directionalLight1.position.set(5, 10, 7.5);
-    directionalLight1.castShadow = true;
-    directionalLight1.shadow.mapSize.width = 2048;
-    directionalLight1.shadow.mapSize.height = 2048;
-    scene.add(directionalLight1);
-    lightsRef.current.directional1 = directionalLight1;
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 0.7 : 0.9);
+        directionalLight1.position.set(5, 10, 7.5);
+        directionalLight1.castShadow = true;
+        directionalLight1.shadow.mapSize.width = 2048;
+        directionalLight1.shadow.mapSize.height = 2048;
+        scene.add(directionalLight1);
+        lightsRef.current.directional1 = directionalLight1;
 
-    const directionalLight2 = new THREE.DirectionalLight(0xffffff, isDark ? 0.3 : 0.5);
-    directionalLight2.position.set(-5, 10, -7.5);
-    scene.add(directionalLight2);
-    lightsRef.current.directional2 = directionalLight2;
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, isDark ? 0.3 : 0.5);
+        directionalLight2.position.set(-5, 10, -7.5);
+        scene.add(directionalLight2);
+        lightsRef.current.directional2 = directionalLight2;
 
-    const hemisphereLight = new THREE.HemisphereLight(
-      isDark ? 0x4a5568 : 0xffffbb,
-      isDark ? 0x1e293b : 0x080820,
-      isDark ? 0.3 : 0.4
-    );
-    scene.add(hemisphereLight);
-    lightsRef.current.hemisphere = hemisphereLight;
+        const hemisphereLight = new THREE.HemisphereLight(
+          isDark ? 0x4a5568 : 0xffffbb,
+          isDark ? 0x1e293b : 0x080820,
+          isDark ? 0.3 : 0.4
+        );
+        scene.add(hemisphereLight);
+        lightsRef.current.hemisphere = hemisphereLight;
 
-    const gridHelper = new THREE.GridHelper(
-      20,
-      20,
-      isDark ? 0x334155 : 0x444444,
-      isDark ? 0x1e293b : 0x222222
-    );
-    scene.add(gridHelper);
-    gridHelperRef.current = gridHelper;
+        const gridHelper = new THREE.GridHelper(
+          20,
+          20,
+          isDark ? 0x334155 : 0x444444,
+          isDark ? 0x1e293b : 0x222222
+        );
+        scene.add(gridHelper);
+        gridHelperRef.current = gridHelper;
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 1;
-    controls.maxDistance = 50;
-    controlsRef.current = controls;
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 1;
+        controls.maxDistance = 50;
+        controlsRef.current = controls;
 
-    const animate = () => {
-      animationFrameId.current = requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    };
-    animate();
+        const animate = () => {
+          animationFrameId.current = requestAnimationFrame(animate);
+          controls.update();
+          renderer.render(scene, camera);
+        };
+        animate();
 
-      const observer = new ResizeObserver(() => {
+        const observer = new ResizeObserver(() => {
           requestAnimationFrame(() => {
-              if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
-              cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
-              cameraRef.current.updateProjectionMatrix();
-              rendererRef.current.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+            if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
+            cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
+            cameraRef.current.updateProjectionMatrix();
+            rendererRef.current.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
           });
-      });
-      observer.observe(currentContainer);
+        });
+        observer.observe(currentContainer);
 
-      // Mark scene as successfully initialized
-      sceneInitializedRef.current = true;
-      console.log('[SCENE INIT] ✅ Three.js scene initialized successfully!');
-      console.log('[SCENE INIT] Canvas element:', renderer.domElement);
-      console.log('[SCENE INIT] Canvas parent:', renderer.domElement.parentElement);
-      console.log('[SCENE INIT] Canvas dimensions:', renderer.domElement.width, 'x', renderer.domElement.height);
-      console.log('[SCENE INIT] Canvas style:', renderer.domElement.style.cssText);
-    } catch (error) {
-      console.error('[SCENE INIT] ❌ Error initializing Three.js scene:', error);
+        // Mark scene as successfully initialized
+        sceneInitializedRef.current = true;
+        console.log('[SCENE INIT] ✅ Three.js scene initialized successfully!');
+        console.log('[SCENE INIT] Canvas element:', renderer.domElement);
+        console.log('[SCENE INIT] Canvas parent:', renderer.domElement.parentElement);
+        console.log('[SCENE INIT] Canvas dimensions:', renderer.domElement.width, 'x', renderer.domElement.height);
+        console.log('[SCENE INIT] Canvas style:', renderer.domElement.style.cssText);
+      } catch (error) {
+        console.error('[SCENE INIT] ❌ Error initializing Three.js scene:', error);
       }
     });
 
@@ -229,7 +229,7 @@ export default function ModelViewer() {
       console.log('[SCENE INIT] Cleanup called');
       cancelAnimationFrame(rafId);
     };
-  }, [showWelcomeModal, backgroundColor]); // Re-run when modal closes or theme changes
+  }, [showWelcomeModal, backgroundColor, isDark]); // Re-run when modal closes, theme or background changes
 
   // Update lights and grid when theme changes (without recreating scene)
   useEffect(() => {
