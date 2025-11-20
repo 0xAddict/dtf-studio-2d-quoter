@@ -76,22 +76,47 @@ export default function ModelViewer() {
     setBackgroundColor(isDark ? '#0f172a' : '#f0f4f8');
   }, [isDark]);
 
-  // Scene setup - retry when modal closes if initialization was skipped
+  // Scene setup - only initialize after welcome modal is dismissed
   useEffect(() => {
-    if (!containerRef.current) return;
-    if (sceneInitializedRef.current) return; // Prevent re-initialization
-    const currentContainer = containerRef.current;
-
-    // Ensure container has valid dimensions before initializing Three.js
-    const width = currentContainer.clientWidth;
-    const height = currentContainer.clientHeight;
-
-    if (width === 0 || height === 0) {
-      console.warn('Container has invalid dimensions, waiting for valid size. Current:', width, 'x', height);
+    // Don't initialize while welcome modal is open
+    if (showWelcomeModal) {
+      console.log('[SCENE INIT] Welcome modal is open, waiting to initialize');
       return;
     }
 
-    console.log('Initializing Three.js scene with dimensions:', width, 'x', height);
+    console.log('[SCENE INIT] Effect triggered. sceneInitialized:', sceneInitializedRef.current);
+
+    if (!containerRef.current) {
+      console.warn('[SCENE INIT] No container ref, aborting');
+      return;
+    }
+
+    if (sceneInitializedRef.current) {
+      console.log('[SCENE INIT] Scene already initialized, skipping');
+      return; // Prevent re-initialization
+    }
+
+    const currentContainer = containerRef.current;
+
+    // Wait for next frame to ensure DOM is laid out after modal closes
+    const rafId = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+
+      // Ensure container has valid dimensions before initializing Three.js
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+
+      console.log('[SCENE INIT] Container dimensions:', width, 'x', height);
+      console.log('[SCENE INIT] Container element:', containerRef.current);
+      console.log('[SCENE INIT] Container offsetParent:', containerRef.current.offsetParent);
+
+      if (width === 0 || height === 0) {
+        console.error('[SCENE INIT] ❌ Container STILL has invalid dimensions after modal closed!');
+        console.log('[SCENE INIT] Container computed style:', window.getComputedStyle(containerRef.current));
+        return;
+      }
+
+      console.log('[SCENE INIT] ✓ Valid dimensions detected, starting initialization...');
 
     try {
       const scene = new THREE.Scene();
@@ -176,30 +201,21 @@ export default function ModelViewer() {
 
       // Mark scene as successfully initialized
       sceneInitializedRef.current = true;
-      console.log('Three.js scene initialized successfully');
-
-      return () => {
-        observer.disconnect();
-        if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-        if (rendererRef.current) {
-          rendererRef.current.dispose();
-        }
-        if (controlsRef.current) controlsRef.current.dispose();
-        if (currentContainer && rendererRef.current?.domElement) {
-          try {
-            currentContainer.removeChild(rendererRef.current.domElement);
-          } catch (e) {
-            // Element might already be removed
-          }
-        }
-      };
+      console.log('[SCENE INIT] ✅ Three.js scene initialized successfully!');
+      console.log('[SCENE INIT] Canvas element:', renderer.domElement);
+      console.log('[SCENE INIT] Canvas parent:', renderer.domElement.parentElement);
+      console.log('[SCENE INIT] Canvas dimensions:', renderer.domElement.width, 'x', renderer.domElement.height);
+      console.log('[SCENE INIT] Canvas style:', renderer.domElement.style.cssText);
     } catch (error) {
-      console.error('Error initializing Three.js scene:', error);
-      return () => {
-        // Cleanup in case of error
-        if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-      };
-    }
+      console.error('[SCENE INIT] ❌ Error initializing Three.js scene:', error);
+      }
+    });
+
+    // Cleanup function
+    return () => {
+      console.log('[SCENE INIT] Cleanup called');
+      cancelAnimationFrame(rafId);
+    };
   }, [showWelcomeModal, backgroundColor]); // Re-run when modal closes or theme changes
 
   // Update lights and grid when theme changes (without recreating scene)
