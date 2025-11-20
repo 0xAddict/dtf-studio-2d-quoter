@@ -43,8 +43,20 @@ export default function ModelViewer() {
   const [modelColor, setModelColor] = useState('#6366f1');
   const [backgroundColor, setBackgroundColor] = useState(isDark ? '#0f172a' : '#f0f4f8');
   const [savedViews, setSavedViews] = useState<{ name: string; position: [number, number, number]; target: [number, number, number] }[]>([]);
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isPanelOpen, setIsPanelOpen] = useState(() => {
+    // Start with panel closed on mobile (< 768px)
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return true;
+  });
   const [modelStats, setModelStats] = useState<{ vertices: number; triangles: number; dimensions: { x: string; y: string; z: string; } } | null>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('');
+  const [modelScale, setModelScale] = useState<number>(100);
+  const baseScaleRef = useRef<number>(1);
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [currentFileName, setCurrentFileName] = useState<string>('');
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Tool state
   const measurementHelpersRef = useRef<THREE.Group>(new THREE.Group());
@@ -221,22 +233,19 @@ export default function ModelViewer() {
 
   // Update lights and grid when theme changes (without recreating scene)
   useEffect(() => {
-    if (!lightsRef.current.ambient) return;
+    // Only run if all lights are initialized
+    if (!lightsRef.current.ambient || !lightsRef.current.directional1 ||
+        !lightsRef.current.directional2 || !lightsRef.current.hemisphere) {
+      return;
+    }
 
-    if (lightsRef.current.ambient) {
-      lightsRef.current.ambient.intensity = isDark ? 0.5 : 0.7;
-    }
-    if (lightsRef.current.directional1) {
-      lightsRef.current.directional1.intensity = isDark ? 0.7 : 0.9;
-    }
-    if (lightsRef.current.directional2) {
-      lightsRef.current.directional2.intensity = isDark ? 0.3 : 0.5;
-    }
-    if (lightsRef.current.hemisphere) {
-      lightsRef.current.hemisphere.skyColor.setHex(isDark ? 0x4a5568 : 0xffffbb);
-      lightsRef.current.hemisphere.groundColor.setHex(isDark ? 0x1e293b : 0x080820);
-      lightsRef.current.hemisphere.intensity = isDark ? 0.3 : 0.4;
-    }
+    lightsRef.current.ambient.intensity = isDark ? 0.5 : 0.7;
+    lightsRef.current.directional1.intensity = isDark ? 0.7 : 0.9;
+    lightsRef.current.directional2.intensity = isDark ? 0.3 : 0.5;
+
+    lightsRef.current.hemisphere.color.setHex(isDark ? 0x4a5568 : 0xffffbb);
+    lightsRef.current.hemisphere.groundColor.setHex(isDark ? 0x1e293b : 0x080820);
+    lightsRef.current.hemisphere.intensity = isDark ? 0.3 : 0.4;
     if (gridHelperRef.current && sceneRef.current) {
       // Remove old grid and create new one with updated colors
       sceneRef.current.remove(gridHelperRef.current);
@@ -351,7 +360,7 @@ export default function ModelViewer() {
         materials.forEach(material => {
           if (material instanceof THREE.MeshStandardMaterial || material instanceof THREE.MeshPhongMaterial) {
             material.wireframe = isWireframe;
-            material.color = newColor;
+            material.color.copy(newColor);
           }
         });
       }
@@ -363,6 +372,18 @@ export default function ModelViewer() {
       updateMaterialProperties(currentModelRef.current);
     }
   }, [isWireframe, modelColor, updateMaterialProperties]);
+
+  // Apply scale changes to the model
+  useEffect(() => {
+    if (currentModelRef.current && baseScaleRef.current) {
+      const newScale = baseScaleRef.current * (modelScale / 100);
+      currentModelRef.current.scale.setScalar(newScale);
+
+      // Recalculate position to keep model on the grid
+      const box = new THREE.Box3().setFromObject(currentModelRef.current);
+      currentModelRef.current.position.y -= box.min.y;
+    }
+  }, [modelScale]);
 
   const removeCurrentModel = useCallback(() => {
     if (currentModelRef.current && sceneRef.current) {
@@ -380,6 +401,9 @@ export default function ModelViewer() {
         currentModelRef.current = null;
         setModelStats(null);
         setModelInfo('');
+        setModelScale(100);
+        baseScaleRef.current = 1;
+        setCurrentFileName('');
         while(measurementHelpersRef.current.children.length > 0){
             measurementHelpersRef.current.remove(measurementHelpersRef.current.children[0]);
         }
@@ -400,6 +424,9 @@ export default function ModelViewer() {
     const scale = 4 / maxDim;
     object.scale.multiplyScalar(scale);
     object.updateMatrixWorld(true);
+
+    // Store the base scale for later adjustments
+    baseScaleRef.current = scale;
 
     // After scaling, recalculate and ensure model sits on the grid floor (y = 0)
     const newBox = new THREE.Box3().setFromObject(object);
@@ -495,6 +522,7 @@ export default function ModelViewer() {
 
     removeCurrentModel();
     setError('');
+    setCurrentFileName(file.name);
 
     const extension = file.name.split('.').pop()?.toLowerCase();
     if (extension === 'stl') {
@@ -503,9 +531,53 @@ export default function ModelViewer() {
       loadModel(file, new FBXLoader(), (data) => new FBXLoader().parse(data as ArrayBuffer, ''));
     } else {
       setError('Unsupported file format. Please upload STL or FBX files.');
+      setCurrentFileName('');
     }
     event.target.value = '';
   };
+
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set to false if we're leaving the main container
+    if (e.currentTarget === e.target) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length === 0) return;
+
+    const file = files[0];
+    const extension = file.name.split('.').pop()?.toLowerCase();
+
+    if (extension !== 'stl' && extension !== 'fbx') {
+      setError('Unsupported file format. Please upload STL or FBX files.');
+      return;
+    }
+
+    removeCurrentModel();
+    setError('');
+    setCurrentFileName(file.name);
+
+    if (extension === 'stl') {
+      loadModel(file, new STLLoader(), (data) => new STLLoader().parse(data as ArrayBuffer));
+    } else if (extension === 'fbx') {
+      loadModel(file, new FBXLoader(), (data) => new FBXLoader().parse(data as ArrayBuffer, ''));
+    }
+  }, [loadModel, removeCurrentModel]);
 
   const resetCamera = useCallback(() => {
     if (cameraRef.current && controlsRef.current) {
@@ -708,7 +780,24 @@ export default function ModelViewer() {
   }, [resetCamera]);
 
   return (
-    <div className="w-full h-screen flex bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300">
+    <div
+      className="w-full h-screen flex bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag and Drop Overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 z-50 bg-indigo-600/20 dark:bg-indigo-500/20 backdrop-blur-sm flex items-center justify-center pointer-events-none animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-2xl border-2 border-dashed border-indigo-500 dark:border-indigo-400">
+            <div className="text-center">
+              <Upload className="w-16 h-16 mx-auto mb-4 text-indigo-600 dark:text-indigo-400" />
+              <p className="text-xl font-semibold text-gray-900 dark:text-white">Drop your 3D model here</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">STL or FBX files</p>
+            </div>
+          </div>
+        </div>
+      )}
       <main className="flex-1 flex flex-col relative overflow-hidden">
         {/* Clean Minimal Header */}
         <header className="glass border-b border-gray-200 dark:border-slate-700 z-20 animate-fade-in">
@@ -716,7 +805,7 @@ export default function ModelViewer() {
                 {/* Left: Logo & Title */}
                 <div className="flex items-center gap-2 md:gap-3">
                     <img
-                      src="/hexea.png"
+                      src={isDark ? "/hexea_white.webp" : "/hexea.webp"}
                       alt="Hexea Logo"
                       className="h-7 md:h-8 w-auto transition-transform duration-300 hover:scale-110"
                     />
@@ -788,8 +877,8 @@ export default function ModelViewer() {
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-20 h-20 mx-auto mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1} aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
-                        <p className="text-xl text-gray-500 dark:text-gray-400 font-medium">Upload a 3D model to get started</p>
-                        <p className="text-sm mt-2 text-gray-400 dark:text-gray-500">Supported formats: STL, FBX</p>
+                        <p className="text-xl text-gray-500 dark:text-gray-400 font-medium">Drag & drop a 3D model here</p>
+                        <p className="text-sm mt-2 text-gray-400 dark:text-gray-500">or click Upload • Supported formats: STL, FBX</p>
                     </div>
                 </div>
             )}
@@ -973,6 +1062,86 @@ export default function ModelViewer() {
                 </svg>
               </button>
             </div>
+
+            {/* Material Selection */}
+            <div className="mb-6 animate-fade-in">
+              <label htmlFor="material-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Tulostusmateriaalit
+              </label>
+              <select
+                id="material-select"
+                value={selectedMaterial}
+                onChange={(e) => setSelectedMaterial(e.target.value)}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors"
+              >
+                <option value="">Valitse materiaali...</option>
+                <option value="asa">ASA - Kestävä ja säänkestävä (ulkokäyttö)</option>
+                <option value="tpu">TPU - Joustava kumimainen materiaali</option>
+                <option value="pla">PLA - Edullinen (prototyypit)</option>
+                <option value="petg">PETG - Kestävä ja sitkeä (funktionaaliset osat)</option>
+                <option value="nylon-carbon">Nylon + hiilikuitu - Erittäin luja ja kevyt</option>
+                <option value="resin-standard">Hartsi - ABS-tyyppinen (yksityiskohdat)</option>
+                <option value="resin-clear">Hartsi - Kirkas vaihtoehto</option>
+              </select>
+              {selectedMaterial && (
+                <div className="mt-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                  <p className="text-xs text-indigo-700 dark:text-indigo-300">
+                    {selectedMaterial === 'asa' && 'Kestävä ja säänkestävä materiaali, joka soveltuu hyvin ulkokäyttöön.'}
+                    {selectedMaterial === 'tpu' && 'Joustava kumimainen materiaali joustaviin ja pehmeisiin osiin.'}
+                    {selectedMaterial === 'pla' && 'Edullinen ja helppo materiaali prototyyppeihin ja visuaalisiin malleihin.'}
+                    {selectedMaterial === 'petg' && 'Kestävä ja sitkeä materiaali, joka soveltuu hyvin funktionaalisiin osiin.'}
+                    {selectedMaterial === 'nylon-carbon' && 'Erittäin luja ja kevyt komposiitti teknisiin ja vaativiin osiin.'}
+                    {selectedMaterial === 'resin-standard' && 'Soveltuu parhaiten pikkutarkkoihin tulosteisiin. Kestävämpi ABS-tyyppinen hartsi.'}
+                    {selectedMaterial === 'resin-clear' && 'Kirkas hartsivaihtoehto pikkutarkkoihin tulosteisiin.'}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Model Scale Control */}
+            {modelStats && (
+              <div className="mb-6 animate-fade-in">
+                <label htmlFor="model-scale" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Mallin koko
+                </label>
+                <div className="space-y-2">
+                  <input
+                    id="model-scale"
+                    type="range"
+                    min="10"
+                    max="300"
+                    value={modelScale}
+                    onChange={(e) => setModelScale(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600 dark:accent-indigo-400"
+                  />
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">10%</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="10"
+                        max="300"
+                        value={modelScale}
+                        onChange={(e) => {
+                          const value = Math.min(300, Math.max(10, Number(e.target.value)));
+                          setModelScale(value);
+                        }}
+                        className="w-16 px-2 py-1 text-center text-sm bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                      <span className="text-xs text-gray-500 dark:text-gray-400">%</span>
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">300%</span>
+                  </div>
+                  <button
+                    onClick={() => setModelScale(100)}
+                    className="w-full mt-1 px-3 py-1.5 text-xs bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+                  >
+                    Palauta oletuskoko
+                  </button>
+                </div>
+              </div>
+            )}
+
             {modelStats ? (
                 <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 md:whitespace-nowrap animate-fade-in">
                     <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
@@ -999,6 +1168,20 @@ export default function ModelViewer() {
                             <span className="font-mono text-gray-900 dark:text-white">{modelStats.dimensions.z}</span>
                           </div>
                         </div>
+                    </div>
+
+                    {/* Quote Request Button */}
+                    <div className="pt-4 mt-4 border-t border-gray-200 dark:border-slate-700">
+                      <button
+                        onClick={() => setIsQuoteModalOpen(true)}
+                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 dark:from-indigo-500 dark:to-purple-500 dark:hover:from-indigo-600 dark:hover:to-purple-600 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                      >
+                        <Send className="w-4 h-4" />
+                        Pyydä tarjous
+                      </button>
+                      <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+                        Saat tarjouksen sähköpostiisi
+                      </p>
                     </div>
                 </div>
             ) : (
@@ -1040,6 +1223,19 @@ export default function ModelViewer() {
           onNewQuote={handleNewQuote}
         />
       )}
+      {/* Quote Request Modal */}
+      <QuoteRequestModal
+        isOpen={isQuoteModalOpen}
+        onClose={() => setIsQuoteModalOpen(false)}
+        modelData={modelStats ? {
+          fileName: currentFileName,
+          vertices: modelStats.vertices,
+          triangles: modelStats.triangles,
+          dimensions: modelStats.dimensions,
+          material: selectedMaterial,
+          scale: modelScale,
+        } : null}
+      />
     </div>
   );
 }
