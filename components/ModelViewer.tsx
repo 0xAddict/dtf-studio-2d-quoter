@@ -7,8 +7,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggle } from './ThemeToggle';
 import { WelcomeModal } from './WelcomeModal';
 import { EmailVerificationModal } from './EmailVerificationModal';
-import { QuoteForm, QuoteData } from './QuoteForm';
-import { QuoteDisplay } from './QuoteDisplay';
 import { QuoteRequestModal } from './QuoteRequestModal';
 import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Axis3d, Box, Send } from 'lucide-react';
 
@@ -68,11 +66,7 @@ export default function ModelViewer() {
   // Modal and flow states
   const [showWelcomeModal, setShowWelcomeModal] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showQuoteForm, setShowQuoteForm] = useState(false);
-  const [showQuoteDisplay, setShowQuoteDisplay] = useState(false);
   const [userEmail, setUserEmail] = useState<string>('');
-  const [currentQuote, setCurrentQuote] = useState<any>(null);
-  const [currentModelName, setCurrentModelName] = useState<string>('');
   const [isSampleMode, setIsSampleMode] = useState(false);
 
   // Refs for lights and grid to update on theme change
@@ -662,93 +656,8 @@ export default function ModelViewer() {
     if (sceneRef.current) sceneRef.current.add(cube);
     currentModelRef.current = cube;
 
-    setCurrentModelName('Sample Cube');
     setModelInfo('Sample model loaded: Cube');
     calculateModelStats(cube, size);
-  };
-
-  const handleQuoteSubmit = (quoteData: QuoteData) => {
-    // Generate mock quote
-    const materialPrices: { [key: string]: number } = {
-      pla: 0.05,
-      abs: 0.08,
-      petg: 0.10,
-      nylon: 0.15,
-      resin: 0.20,
-      metal: 0.50,
-    };
-
-    const finishPrices: { [key: string]: number } = {
-      standard: 0,
-      smooth: 15,
-      painted: 30,
-      premium: 50,
-    };
-
-    // Mock volume calculation (in cm³)
-    const mockVolume = 100 * (quoteData.scale / 100) ** 3;
-
-    const baseCost = 10;
-    const materialCost = mockVolume * (materialPrices[quoteData.material] || 0.05) * quoteData.quantity;
-    const finishCost = (finishPrices[quoteData.finishType] || 0) * quoteData.quantity;
-    const total = baseCost + materialCost + finishCost;
-
-    // Calculate delivery date (5-10 business days)
-    const deliveryDays = Math.floor(Math.random() * 6) + 5;
-    const deliveryDate = new Date();
-    deliveryDate.setDate(deliveryDate.getDate() + deliveryDays);
-
-    const quote = {
-      quoteId: `HF-${Date.now().toString(36).toUpperCase()}`,
-      modelName: currentModelName,
-      email: userEmail || 'demo@example.com',
-      quoteData,
-      pricing: {
-        baseCost,
-        materialCost,
-        finishCost,
-        total,
-      },
-      estimatedDelivery: `${deliveryDays} business days (${deliveryDate.toLocaleDateString()})`,
-      createdAt: new Date().toLocaleString(),
-    };
-
-    setCurrentQuote(quote);
-    setShowQuoteForm(false);
-    setShowQuoteDisplay(true);
-  };
-
-  const handleNewQuote = () => {
-    setShowQuoteDisplay(false);
-    setCurrentQuote(null);
-    removeCurrentModel();
-    setCurrentModelName('');
-  };
-
-  const handleModelUploadForQuote = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setCurrentModelName(file.name);
-
-    // Load the model first
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    if (extension === 'stl') {
-      loadModel(file, new STLLoader(), (data) => new STLLoader().parse(data as ArrayBuffer));
-    } else if (extension === 'fbx') {
-      loadModel(file, new FBXLoader(), (data) => new FBXLoader().parse(data as ArrayBuffer, ''));
-    } else {
-      setError('Unsupported file format. Please upload STL or FBX files.');
-      event.target.value = '';
-      return;
-    }
-
-    // Show quote form after upload
-    setTimeout(() => {
-      setShowQuoteForm(true);
-    }, 1000);
-
-    event.target.value = '';
   };
 
   // Keyboard shortcuts
@@ -823,7 +732,7 @@ export default function ModelViewer() {
                       <input
                         type="file"
                         accept=".stl,.fbx"
-                        onChange={userEmail ? handleModelUploadForQuote : handleFileUpload}
+                        onChange={handleFileUpload}
                         className="hidden"
                         aria-label="Upload 3D model file"
                       />
@@ -1025,7 +934,7 @@ export default function ModelViewer() {
                   <input
                     type="file"
                     accept=".stl,.fbx"
-                    onChange={userEmail ? handleModelUploadForQuote : handleFileUpload}
+                    onChange={handleFileUpload}
                     className="hidden"
                     aria-label="Upload 3D model file"
                   />
@@ -1207,23 +1116,6 @@ export default function ModelViewer() {
         onClose={() => setShowEmailModal(false)}
       />
 
-      {currentModelName && (
-        <QuoteForm
-          isOpen={showQuoteForm}
-          modelName={currentModelName}
-          onSubmit={handleQuoteSubmit}
-          onClose={() => setShowQuoteForm(false)}
-        />
-      )}
-
-      {currentQuote && (
-        <QuoteDisplay
-          isOpen={showQuoteDisplay}
-          quote={currentQuote}
-          onClose={() => setShowQuoteDisplay(false)}
-          onNewQuote={handleNewQuote}
-        />
-      )}
       {/* Quote Request Modal */}
       <QuoteRequestModal
         isOpen={isQuoteModalOpen}
