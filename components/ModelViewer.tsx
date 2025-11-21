@@ -7,9 +7,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggle } from './ThemeToggle';
 import { WelcomeModal } from './WelcomeModal';
 import { EmailVerificationModal } from './EmailVerificationModal';
-import { QuoteForm, QuoteData } from './QuoteForm';
-import { QuoteDisplay } from './QuoteDisplay';
-import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Axis3d, Box } from 'lucide-react';
+import { QuoteRequestModal } from './QuoteRequestModal';
+import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Axis3d, Box, Send } from 'lucide-react';
 
 type ActiveTool = 'none' | 'measure' | 'pivot';
 
@@ -67,11 +66,8 @@ export default function ModelViewer() {
   // Modal and flow states
   const [showWelcomeModal, setShowWelcomeModal] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showQuoteForm, setShowQuoteForm] = useState(false);
-  const [showQuoteDisplay, setShowQuoteDisplay] = useState(false);
+  const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
-  const [currentQuote, setCurrentQuote] = useState<any>(null);
-  const [currentModelName, setCurrentModelName] = useState<string>('');
   const [isSampleMode, setIsSampleMode] = useState(false);
 
   // Refs for lights and grid to update on theme change
@@ -131,96 +127,96 @@ export default function ModelViewer() {
 
       console.log('[SCENE INIT] ✓ Valid dimensions detected, starting initialization...');
 
-    try {
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(backgroundColor);
-      sceneRef.current = scene;
-      scene.add(measurementHelpersRef.current);
-      pivotHelperRef.current.visible = false;
-      scene.add(pivotHelperRef.current);
+      try {
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(backgroundColor);
+        sceneRef.current = scene;
+        scene.add(measurementHelpersRef.current);
+        pivotHelperRef.current.visible = false;
+        scene.add(pivotHelperRef.current);
 
-      const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-      camera.position.set(0, 2, 5);
-      cameraRef.current = camera;
+        const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+        camera.position.set(0, 2, 5);
+        cameraRef.current = camera;
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
-    currentContainer.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        currentContainer.appendChild(renderer.domElement);
+        rendererRef.current = renderer;
 
-    // Lighting setup - adjusted for dark mode
-    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.5 : 0.7);
-    scene.add(ambientLight);
-    lightsRef.current.ambient = ambientLight;
+        // Lighting setup - adjusted for dark mode
+        const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.5 : 0.7);
+        scene.add(ambientLight);
+        lightsRef.current.ambient = ambientLight;
 
-    const directionalLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 0.7 : 0.9);
-    directionalLight1.position.set(5, 10, 7.5);
-    directionalLight1.castShadow = true;
-    directionalLight1.shadow.mapSize.width = 2048;
-    directionalLight1.shadow.mapSize.height = 2048;
-    scene.add(directionalLight1);
-    lightsRef.current.directional1 = directionalLight1;
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 0.7 : 0.9);
+        directionalLight1.position.set(5, 10, 7.5);
+        directionalLight1.castShadow = true;
+        directionalLight1.shadow.mapSize.width = 2048;
+        directionalLight1.shadow.mapSize.height = 2048;
+        scene.add(directionalLight1);
+        lightsRef.current.directional1 = directionalLight1;
 
-    const directionalLight2 = new THREE.DirectionalLight(0xffffff, isDark ? 0.3 : 0.5);
-    directionalLight2.position.set(-5, 10, -7.5);
-    scene.add(directionalLight2);
-    lightsRef.current.directional2 = directionalLight2;
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, isDark ? 0.3 : 0.5);
+        directionalLight2.position.set(-5, 10, -7.5);
+        scene.add(directionalLight2);
+        lightsRef.current.directional2 = directionalLight2;
 
-    const hemisphereLight = new THREE.HemisphereLight(
-      isDark ? 0x4a5568 : 0xffffbb,
-      isDark ? 0x1e293b : 0x080820,
-      isDark ? 0.3 : 0.4
-    );
-    scene.add(hemisphereLight);
-    lightsRef.current.hemisphere = hemisphereLight;
+        const hemisphereLight = new THREE.HemisphereLight(
+          isDark ? 0x4a5568 : 0xffffbb,
+          isDark ? 0x1e293b : 0x080820,
+          isDark ? 0.3 : 0.4
+        );
+        scene.add(hemisphereLight);
+        lightsRef.current.hemisphere = hemisphereLight;
 
-    const gridHelper = new THREE.GridHelper(
-      20,
-      20,
-      isDark ? 0x334155 : 0x444444,
-      isDark ? 0x1e293b : 0x222222
-    );
-    scene.add(gridHelper);
-    gridHelperRef.current = gridHelper;
+        const gridHelper = new THREE.GridHelper(
+          20,
+          20,
+          isDark ? 0x334155 : 0x444444,
+          isDark ? 0x1e293b : 0x222222
+        );
+        scene.add(gridHelper);
+        gridHelperRef.current = gridHelper;
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 1;
-    controls.maxDistance = 50;
-    controlsRef.current = controls;
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 1;
+        controls.maxDistance = 50;
+        controlsRef.current = controls;
 
-    const animate = () => {
-      animationFrameId.current = requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    };
-    animate();
+        const animate = () => {
+          animationFrameId.current = requestAnimationFrame(animate);
+          controls.update();
+          renderer.render(scene, camera);
+        };
+        animate();
 
-      const observer = new ResizeObserver(() => {
+        const observer = new ResizeObserver(() => {
           requestAnimationFrame(() => {
-              if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
-              cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
-              cameraRef.current.updateProjectionMatrix();
-              rendererRef.current.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+            if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
+            cameraRef.current.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
+            cameraRef.current.updateProjectionMatrix();
+            rendererRef.current.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
           });
-      });
-      observer.observe(currentContainer);
+        });
+        observer.observe(currentContainer);
 
-      // Mark scene as successfully initialized
-      sceneInitializedRef.current = true;
-      console.log('[SCENE INIT] ✅ Three.js scene initialized successfully!');
-      console.log('[SCENE INIT] Canvas element:', renderer.domElement);
-      console.log('[SCENE INIT] Canvas parent:', renderer.domElement.parentElement);
-      console.log('[SCENE INIT] Canvas dimensions:', renderer.domElement.width, 'x', renderer.domElement.height);
-      console.log('[SCENE INIT] Canvas style:', renderer.domElement.style.cssText);
-    } catch (error) {
-      console.error('[SCENE INIT] ❌ Error initializing Three.js scene:', error);
+        // Mark scene as successfully initialized
+        sceneInitializedRef.current = true;
+        console.log('[SCENE INIT] ✅ Three.js scene initialized successfully!');
+        console.log('[SCENE INIT] Canvas element:', renderer.domElement);
+        console.log('[SCENE INIT] Canvas parent:', renderer.domElement.parentElement);
+        console.log('[SCENE INIT] Canvas dimensions:', renderer.domElement.width, 'x', renderer.domElement.height);
+        console.log('[SCENE INIT] Canvas style:', renderer.domElement.style.cssText);
+      } catch (error) {
+        console.error('[SCENE INIT] ❌ Error initializing Three.js scene:', error);
       }
     });
 
@@ -229,7 +225,7 @@ export default function ModelViewer() {
       console.log('[SCENE INIT] Cleanup called');
       cancelAnimationFrame(rafId);
     };
-  }, [showWelcomeModal, backgroundColor]); // Re-run when modal closes or theme changes
+  }, [showWelcomeModal, backgroundColor, isDark]); // Re-run when modal closes, theme or background changes
 
   // Update lights and grid when theme changes (without recreating scene)
   useEffect(() => {
@@ -634,7 +630,8 @@ export default function ModelViewer() {
     loadSampleModel();
   };
 
-  const handleEmailVerified = (email: string) => {
+  const handleEmailVerified = (name: string, email: string) => {
+    setUserName(name);
     setUserEmail(email);
     setShowEmailModal(false);
     // User is now verified and can use the full interface
@@ -661,93 +658,8 @@ export default function ModelViewer() {
     if (sceneRef.current) sceneRef.current.add(cube);
     currentModelRef.current = cube;
 
-    setCurrentModelName('Sample Cube');
     setModelInfo('Sample model loaded: Cube');
     calculateModelStats(cube, size);
-  };
-
-  const handleQuoteSubmit = (quoteData: QuoteData) => {
-    // Generate mock quote
-    const materialPrices: { [key: string]: number } = {
-      pla: 0.05,
-      abs: 0.08,
-      petg: 0.10,
-      nylon: 0.15,
-      resin: 0.20,
-      metal: 0.50,
-    };
-
-    const finishPrices: { [key: string]: number } = {
-      standard: 0,
-      smooth: 15,
-      painted: 30,
-      premium: 50,
-    };
-
-    // Mock volume calculation (in cm³)
-    const mockVolume = 100 * (quoteData.scale / 100) ** 3;
-
-    const baseCost = 10;
-    const materialCost = mockVolume * (materialPrices[quoteData.material] || 0.05) * quoteData.quantity;
-    const finishCost = (finishPrices[quoteData.finishType] || 0) * quoteData.quantity;
-    const total = baseCost + materialCost + finishCost;
-
-    // Calculate delivery date (5-10 business days)
-    const deliveryDays = Math.floor(Math.random() * 6) + 5;
-    const deliveryDate = new Date();
-    deliveryDate.setDate(deliveryDate.getDate() + deliveryDays);
-
-    const quote = {
-      quoteId: `HF-${Date.now().toString(36).toUpperCase()}`,
-      modelName: currentModelName,
-      email: userEmail || 'demo@example.com',
-      quoteData,
-      pricing: {
-        baseCost,
-        materialCost,
-        finishCost,
-        total,
-      },
-      estimatedDelivery: `${deliveryDays} business days (${deliveryDate.toLocaleDateString()})`,
-      createdAt: new Date().toLocaleString(),
-    };
-
-    setCurrentQuote(quote);
-    setShowQuoteForm(false);
-    setShowQuoteDisplay(true);
-  };
-
-  const handleNewQuote = () => {
-    setShowQuoteDisplay(false);
-    setCurrentQuote(null);
-    removeCurrentModel();
-    setCurrentModelName('');
-  };
-
-  const handleModelUploadForQuote = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setCurrentModelName(file.name);
-
-    // Load the model first
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    if (extension === 'stl') {
-      loadModel(file, new STLLoader(), (data) => new STLLoader().parse(data as ArrayBuffer));
-    } else if (extension === 'fbx') {
-      loadModel(file, new FBXLoader(), (data) => new FBXLoader().parse(data as ArrayBuffer, ''));
-    } else {
-      setError('Unsupported file format. Please upload STL or FBX files.');
-      event.target.value = '';
-      return;
-    }
-
-    // Show quote form after upload
-    setTimeout(() => {
-      setShowQuoteForm(true);
-    }, 1000);
-
-    event.target.value = '';
   };
 
   // Keyboard shortcuts
@@ -805,7 +717,7 @@ export default function ModelViewer() {
                 {/* Left: Logo & Title */}
                 <div className="flex items-center gap-2 md:gap-3">
                     <img
-                      src={isDark ? "/hexea_white.webp" : "/hexea.webp"}
+                      src="/hexea.png"
                       alt="Hexea Logo"
                       className="h-7 md:h-8 w-auto transition-transform duration-300 hover:scale-110"
                     />
@@ -822,7 +734,7 @@ export default function ModelViewer() {
                       <input
                         type="file"
                         accept=".stl,.fbx"
-                        onChange={userEmail ? handleModelUploadForQuote : handleFileUpload}
+                        onChange={handleFileUpload}
                         className="hidden"
                         aria-label="Upload 3D model file"
                       />
@@ -1024,7 +936,7 @@ export default function ModelViewer() {
                   <input
                     type="file"
                     accept=".stl,.fbx"
-                    onChange={userEmail ? handleModelUploadForQuote : handleFileUpload}
+                    onChange={handleFileUpload}
                     className="hidden"
                     aria-label="Upload 3D model file"
                   />
@@ -1066,7 +978,7 @@ export default function ModelViewer() {
             {/* Material Selection */}
             <div className="mb-6 animate-fade-in">
               <label htmlFor="material-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Tulostusmateriaalit
+                Print Materials
               </label>
               <select
                 id="material-select"
@@ -1074,25 +986,25 @@ export default function ModelViewer() {
                 onChange={(e) => setSelectedMaterial(e.target.value)}
                 className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors"
               >
-                <option value="">Valitse materiaali...</option>
-                <option value="asa">ASA - Kestävä ja säänkestävä (ulkokäyttö)</option>
-                <option value="tpu">TPU - Joustava kumimainen materiaali</option>
-                <option value="pla">PLA - Edullinen (prototyypit)</option>
-                <option value="petg">PETG - Kestävä ja sitkeä (funktionaaliset osat)</option>
-                <option value="nylon-carbon">Nylon + hiilikuitu - Erittäin luja ja kevyt</option>
-                <option value="resin-standard">Hartsi - ABS-tyyppinen (yksityiskohdat)</option>
-                <option value="resin-clear">Hartsi - Kirkas vaihtoehto</option>
+                <option value="">Select material...</option>
+                <option value="asa">ASA - Durable and weather-resistant (outdoor use)</option>
+                <option value="tpu">TPU - Flexible rubber-like material</option>
+                <option value="pla">PLA - Affordable (prototypes)</option>
+                <option value="petg">PETG - Durable and tough (functional parts)</option>
+                <option value="nylon-carbon">Nylon + carbon fiber - Extremely strong and lightweight</option>
+                <option value="resin-standard">Resin - ABS-type (fine details)</option>
+                <option value="resin-clear">Resin - Clear alternative</option>
               </select>
               {selectedMaterial && (
                 <div className="mt-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
                   <p className="text-xs text-indigo-700 dark:text-indigo-300">
-                    {selectedMaterial === 'asa' && 'Kestävä ja säänkestävä materiaali, joka soveltuu hyvin ulkokäyttöön.'}
-                    {selectedMaterial === 'tpu' && 'Joustava kumimainen materiaali joustaviin ja pehmeisiin osiin.'}
-                    {selectedMaterial === 'pla' && 'Edullinen ja helppo materiaali prototyyppeihin ja visuaalisiin malleihin.'}
-                    {selectedMaterial === 'petg' && 'Kestävä ja sitkeä materiaali, joka soveltuu hyvin funktionaalisiin osiin.'}
-                    {selectedMaterial === 'nylon-carbon' && 'Erittäin luja ja kevyt komposiitti teknisiin ja vaativiin osiin.'}
-                    {selectedMaterial === 'resin-standard' && 'Soveltuu parhaiten pikkutarkkoihin tulosteisiin. Kestävämpi ABS-tyyppinen hartsi.'}
-                    {selectedMaterial === 'resin-clear' && 'Kirkas hartsivaihtoehto pikkutarkkoihin tulosteisiin.'}
+                    {selectedMaterial === 'asa' && 'Durable and weather-resistant material, perfect for outdoor use.'}
+                    {selectedMaterial === 'tpu' && 'Flexible rubber-like material for flexible and soft parts.'}
+                    {selectedMaterial === 'pla' && 'Affordable and easy material for prototypes and visual models.'}
+                    {selectedMaterial === 'petg' && 'Durable and tough material, perfect for functional parts.'}
+                    {selectedMaterial === 'nylon-carbon' && 'Extremely strong and lightweight composite for technical and demanding parts.'}
+                    {selectedMaterial === 'resin-standard' && 'Best suited for fine detail prints. More durable ABS-type resin.'}
+                    {selectedMaterial === 'resin-clear' && 'Clear resin alternative for fine detail prints.'}
                   </p>
                 </div>
               )}
@@ -1102,7 +1014,7 @@ export default function ModelViewer() {
             {modelStats && (
               <div className="mb-6 animate-fade-in">
                 <label htmlFor="model-scale" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Mallin koko
+                  Model Size
                 </label>
                 <div className="space-y-2">
                   <input
@@ -1136,7 +1048,7 @@ export default function ModelViewer() {
                     onClick={() => setModelScale(100)}
                     className="w-full mt-1 px-3 py-1.5 text-xs bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
                   >
-                    Palauta oletuskoko
+                    Reset to default size
                   </button>
                 </div>
               </div>
@@ -1177,10 +1089,10 @@ export default function ModelViewer() {
                         className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 dark:from-indigo-500 dark:to-purple-500 dark:hover:from-indigo-600 dark:hover:to-purple-600 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
                       >
                         <Send className="w-4 h-4" />
-                        Pyydä tarjous
+                        Request Quote
                       </button>
                       <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
-                        Saat tarjouksen sähköpostiisi
+                        You will receive the quote via email
                       </p>
                     </div>
                 </div>
@@ -1206,23 +1118,6 @@ export default function ModelViewer() {
         onClose={() => setShowEmailModal(false)}
       />
 
-      {currentModelName && (
-        <QuoteForm
-          isOpen={showQuoteForm}
-          modelName={currentModelName}
-          onSubmit={handleQuoteSubmit}
-          onClose={() => setShowQuoteForm(false)}
-        />
-      )}
-
-      {currentQuote && (
-        <QuoteDisplay
-          isOpen={showQuoteDisplay}
-          quote={currentQuote}
-          onClose={() => setShowQuoteDisplay(false)}
-          onNewQuote={handleNewQuote}
-        />
-      )}
       {/* Quote Request Modal */}
       <QuoteRequestModal
         isOpen={isQuoteModalOpen}
@@ -1235,6 +1130,10 @@ export default function ModelViewer() {
           material: selectedMaterial,
           scale: modelScale,
         } : null}
+        userInfo={userName && userEmail ? {
+          name: userName,
+          email: userEmail,
+        } : undefined}
       />
     </div>
   );

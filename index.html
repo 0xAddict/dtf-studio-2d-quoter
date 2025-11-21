@@ -88,6 +88,18 @@
     .dark .glass {
       background: rgba(15, 23, 42, 0.7);
     }
+
+    /* Respect user's motion preferences - WCAG 2.1 AA Compliance */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
   </style>
 </head>
 <body>

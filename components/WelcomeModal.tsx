@@ -1,22 +1,119 @@
-import React from 'react';
-import { Upload, Play } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Upload, Play, X } from 'lucide-react';
 
 interface WelcomeModalProps {
   isOpen: boolean;
   onGetQuote: () => void;
   onTrySample: () => void;
+  onClose?: () => void;
 }
 
 export const WelcomeModal: React.FC<WelcomeModalProps> = ({
   isOpen,
   onGetQuote,
   onTrySample,
+  onClose,
 }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap implementation
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const modalElement = modalRef.current;
+    if (!modalElement) return;
+
+    // Store the previously focused element
+    const previouslyFocused = document.activeElement as HTMLElement;
+
+    // Get all focusable elements within the modal
+    const getFocusableElements = () => {
+      return modalElement.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+    };
+
+    // Focus first element
+    const focusableElements = getFocusableElements();
+    if (focusableElements.length > 0) {
+      focusableElements[0].focus();
+    }
+
+    // Handle tab key to trap focus
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // ESC key handler
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+        return;
+      }
+
+      // Tab key handler
+      if (e.key === 'Tab') {
+        const focusableElements = getFocusableElements();
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          // Shift + Tab
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          // Tab
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup: restore focus
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (previouslyFocused) {
+        previouslyFocused.focus();
+      }
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
+  const handleBackdropClick = () => {
+    if (onClose) onClose();
+  };
+
+  const handleModalClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-8 animate-scale-in border border-gray-200 dark:border-slate-700">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
+      onClick={handleBackdropClick}
+    >
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcome-title"
+        className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-8 animate-scale-in border border-gray-200 dark:border-slate-700"
+        onClick={handleModalClick}
+      >
+        {/* Close Button (if onClose provided) */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            aria-label="Close welcome dialog"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+
         {/* Logo/Header */}
         <div className="flex justify-center mb-6">
           <div className="bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 p-4 rounded-2xl shadow-lg">
@@ -29,9 +126,9 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
         </div>
 
         {/* Title */}
-        <h2 className="text-3xl font-bold text-center mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+        <h1 id="welcome-title" className="text-3xl font-bold text-center mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
           Welcome to Hexea Forge
-        </h2>
+        </h1>
 
         {/* Description */}
         <p className="text-gray-700 dark:text-gray-300 text-center mb-6 leading-relaxed">
