@@ -27,6 +27,7 @@ export const isSupabaseConfigured = () => {
 export const STORAGE_BUCKETS = {
   MODELS: 'models',
   THUMBNAILS: 'thumbnails',
+  ATTACHMENTS: 'attachments',
 } as const;
 
 export default supabase;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Loader2, Download, CheckCircle } from 'lucide-react';
+import { X, Send, Loader2, Download, CheckCircle, Upload, Trash2 } from 'lucide-react';
+import { uploadMultipleFiles } from '../services/supabase/storage';
 
 interface QuoteRequestModalProps {
   isOpen: boolean;
@@ -106,7 +107,10 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [generatedQuote, setGeneratedQuote] = useState<QuoteData | null>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Pre-populate form with userInfo when it changes
   useEffect(() => {
@@ -424,6 +428,18 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
     URL.revokeObjectURL(url);
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setAttachments(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
@@ -458,6 +474,24 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
       const quote = generateQuote();
       setGeneratedQuote(quote);
 
+      // Upload attachments to Supabase if any
+      let attachmentUrls: string[] = [];
+      if (attachments.length > 0) {
+        setUploadingFiles(true);
+        const uploadResults = await uploadMultipleFiles(
+          attachments,
+          'ATTACHMENTS',
+          `quotes/${quote.quoteId}`
+        );
+
+        // Filter successful uploads and get URLs
+        attachmentUrls = uploadResults
+          .filter(result => result.url && !result.error)
+          .map(result => result.url);
+
+        setUploadingFiles(false);
+      }
+
       // Prepare model info for the email
       const modelInfo = modelData ? `
 Model Details:
@@ -477,6 +511,11 @@ Pricing:
 ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishingCost.toFixed(2)} €\n` : ''}${quote.pricing.quantityDiscount > 0 ? `- Quantity Discount: -${quote.pricing.quantityDiscount.toFixed(2)} €\n` : ''}- Total: ${quote.pricing.total.toFixed(2)} €
       `.trim() : 'No model loaded';
 
+      // Prepare attachment links for email
+      const attachmentLinks = attachmentUrls.length > 0
+        ? `\n\nAttachments:\n${attachmentUrls.map((url, i) => `${i + 1}. ${url}`).join('\n')}`
+        : '';
+
       // Send to Web3Forms
       const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
@@ -484,7 +523,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          access_key: 'a82cd435-98b5-4787-a9e9-1476be34ece4',
+          access_key: 'ad897559-e4df-411a-bcb7-086c366bf81f',
           subject: `New Quote Request #${quote.quoteId} - ${formData.name}`,
           from_name: 'Hexea Forge',
           name: formData.name,
@@ -495,7 +534,8 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
           timeline: formData.timeline || 'Not specified',
           finishing: formData.finishing || 'Standard',
           message: formData.message || 'No additional information',
-          model_info: modelInfo,
+          model_info: modelInfo + attachmentLinks,
+          attachments: attachmentUrls.join(', '),
         }),
       });
 
@@ -513,6 +553,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
+      setUploadingFiles(false);
     }
   };
 
@@ -545,6 +586,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
       finishing: '',
       message: '',
     });
+    setAttachments([]);
     setGeneratedQuote(null);
     setSubmitStatus('idle');
     onClose();
@@ -788,6 +830,52 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Attachments (Optional)
+                </label>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-indigo-500 hover:text-indigo-600 dark:hover:border-indigo-400 dark:hover:text-indigo-400 transition-all"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span className="text-sm font-medium">Add Files</span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                  />
+
+                  {attachments.length > 0 && (
+                    <div className="space-y-1">
+                      {attachments.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded-lg"
+                        >
+                          <span className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1">
+                            {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(index)}
+                            className="ml-2 p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {submitStatus === 'error' && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg" role="alert">
                   <p className="text-sm text-red-700 dark:text-red-300">
@@ -798,10 +886,15 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || uploadingFiles}
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.01] disabled:scale-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                {isSubmitting ? (
+                {uploadingFiles ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    Uploading files...
+                  </>
+                ) : isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                     Sending...
