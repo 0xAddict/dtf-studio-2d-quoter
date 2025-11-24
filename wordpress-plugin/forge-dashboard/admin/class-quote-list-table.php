@@ -160,11 +160,21 @@ class Forge_Quote_List_Table extends WP_List_Table {
         // Build actions
         $actions = array(
             'view'   => sprintf('<a href="%s">%s</a>', esc_url($view_url), __('View', 'forge-dashboard')),
-            'delete' => sprintf(
-                '<a href="#" class="forge-delete-quote" data-quote-id="%s">%s</a>',
-                esc_attr($item['id']),
-                __('Delete', 'forge-dashboard')
-            )
+        );
+
+        // Add model download link if available
+        if (isset($model_data['attachmentUrl']) && !empty($model_data['attachmentUrl'])) {
+            $actions['download'] = sprintf(
+                '<a href="%s" target="_blank"><span class="dashicons dashicons-download" style="font-size: 13px; width: 13px; height: 13px;"></span> %s</a>',
+                esc_url($model_data['attachmentUrl']),
+                __('Model', 'forge-dashboard')
+            );
+        }
+
+        $actions['delete'] = sprintf(
+            '<a href="#" class="forge-delete-quote" data-quote-id="%s">%s</a>',
+            esc_attr($item['id']),
+            __('Delete', 'forge-dashboard')
         );
 
         return sprintf(
