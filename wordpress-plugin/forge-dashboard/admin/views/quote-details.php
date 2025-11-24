@@ -289,10 +289,10 @@ $model_info = isset($model_data['model']) ? $model_data['model'] : array();
                     <h2><?php _e('Actions', 'forge-dashboard'); ?></h2>
                 </div>
                 <div class="forge-card-body">
-                    <button type="button" class="button button-large button-secondary" style="width: 100%; margin-bottom: 10px;">
+                    <a href="mailto:<?php echo esc_attr($quote['email']); ?>?subject=<?php echo esc_attr('Re: Quote Request #' . $quote_display_id); ?>" class="button button-large button-secondary" style="width: 100%; margin-bottom: 10px; text-decoration: none; text-align: center; display: block;">
                         <span class="dashicons dashicons-email" style="margin-top: 3px;"></span>
                         <?php _e('Email Customer', 'forge-dashboard'); ?>
-                    </button>
+                    </a>
 
                     <button type="button" class="button button-large forge-delete-quote-btn" data-quote-id="<?php echo esc_attr($quote['id']); ?>" style="width: 100%; background: #d9534f; border-color: #d9534f; color: white;">
                         <span class="dashicons dashicons-trash" style="margin-top: 3px;"></span>
