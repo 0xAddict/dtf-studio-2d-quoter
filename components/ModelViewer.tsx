@@ -654,6 +654,21 @@ export default function ModelViewer() {
     setShowEmailModal(true);
   };
 
+  const handleRequestQuote = () => {
+    if (!selectedMaterial) {
+      setError('Please select a material type before requesting a quote.');
+      // Scroll to material selection if on mobile
+      const materialSelect = document.getElementById('material-select');
+      if (materialSelect) {
+        materialSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        materialSelect.focus();
+      }
+      return;
+    }
+    setError('');
+    setIsQuoteModalOpen(true);
+  };
+
   const handleTrySample = () => {
     setShowWelcomeModal(false);
     setIsSampleMode(true);
@@ -667,36 +682,75 @@ export default function ModelViewer() {
     // User is now verified and can use the full interface
   };
 
-  const loadSampleModel = () => {
-    // Create a simple sample STL cube programmatically
-    const geometry = new THREE.BoxGeometry(2, 2, 2);
-    const material = new THREE.MeshPhongMaterial({
-      color: modelColor,
-      specular: 0x111111,
-      shininess: 200,
-      wireframe: isWireframe,
-    });
-    const cube = new THREE.Mesh(geometry, material);
-    cube.castShadow = true;
-    cube.receiveShadow = true;
+  const loadSampleModel = async () => {
+    const sampleUrl = 'https://jqfudagohdkdtnplgtob.supabase.co/storage/v1/object/public/attachments/Inner.STL';
 
-    removeCurrentModel();
+    setLoading(true);
+    setError('');
 
-    const box = new THREE.Box3().setFromObject(cube);
-    const size = box.getSize(new THREE.Vector3());
+    try {
+      const response = await fetch(sampleUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch sample model: ${response.statusText}`);
+      }
 
-    if (sceneRef.current) sceneRef.current.add(cube);
-    currentModelRef.current = cube;
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+      const file = new File([blob], 'Inner.STL', { type: 'application/octet-stream' });
 
-    // Set pivot point to center of model
-    if (controlsRef.current) {
-      controlsRef.current.target.set(0, 0, 0);
-      pivotHelperRef.current.position.set(0, 0, 0);
-      pivotHelperRef.current.visible = true;
+      // Set the file state for quote submission
+      setCurrentFileName('Inner.STL');
+      setCurrentFile(file);
+
+      // Load the model using existing loader
+      const loader = new STLLoader();
+      const geometry = loader.parse(arrayBuffer);
+      geometry.computeVertexNormals();
+
+      const material = new THREE.MeshPhongMaterial({
+        color: modelColor,
+        specular: 0x111111,
+        shininess: 200,
+        wireframe: isWireframe,
+      });
+
+      let object: THREE.Object3D;
+      if (geometry instanceof THREE.BufferGeometry) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        object = mesh;
+      } else {
+        object = geometry;
+      }
+
+      removeCurrentModel();
+
+      const { centeredObject, size } = centerAndScaleModel(object);
+      if (sceneRef.current) {
+        sceneRef.current.add(centeredObject);
+      }
+      currentModelRef.current = centeredObject;
+
+      // Update material properties after loading
+      updateMaterialProperties();
+
+      // Set pivot point to center of model
+      if (controlsRef.current) {
+        controlsRef.current.target.set(0, 0, 0);
+        pivotHelperRef.current.position.set(0, 0, 0);
+        pivotHelperRef.current.visible = true;
+      }
+
+      setModelInfo('Sample model loaded: Inner.STL');
+      calculateModelStats(centeredObject, size);
+
+    } catch (err: any) {
+      setError(`Error loading sample model: ${err.message}`);
+      console.error('Sample model loading error:', err);
+    } finally {
+      setLoading(false);
     }
-
-    setModelInfo('Sample model loaded: Cube');
-    calculateModelStats(cube, size);
   };
 
   // Keyboard shortcuts
@@ -1020,7 +1074,10 @@ export default function ModelViewer() {
               <select
                 id="material-select"
                 value={selectedMaterial}
-                onChange={(e) => setSelectedMaterial(e.target.value)}
+                onChange={(e) => {
+                  setSelectedMaterial(e.target.value);
+                  if (e.target.value) setError(''); // Clear error when material is selected
+                }}
                 className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors"
                 required
               >
@@ -1047,6 +1104,13 @@ export default function ModelViewer() {
                 </div>
               )}
             </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 animate-fade-in" role="alert">
+                <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+              </div>
+            )}
 
             {/* Model Scale Control */}
             {modelStats && (
@@ -1123,7 +1187,7 @@ export default function ModelViewer() {
                     {/* Action Buttons */}
                     <div className="pt-4 mt-4 border-t border-gray-200 dark:border-slate-700 space-y-3">
                       <button
-                        onClick={() => setIsQuoteModalOpen(true)}
+                        onClick={handleRequestQuote}
                         className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 dark:from-indigo-500 dark:to-purple-500 dark:hover:from-indigo-600 dark:hover:to-purple-600 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
                       >
                         <Send className="w-4 h-4" />

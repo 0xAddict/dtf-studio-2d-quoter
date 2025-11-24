@@ -592,6 +592,17 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
     onClose();
   };
 
+  // Helper to get tooltip message for disabled button
+  const getDisabledButtonTooltip = () => {
+    const missing: string[] = [];
+    if (!modelData?.material) missing.push('Material');
+    if (!formData.timeline) missing.push('Timeline');
+    if (!formData.finishing) missing.push('Finishing');
+
+    if (missing.length === 0) return '';
+    return `Please fill required fields: ${missing.join(', ')}`;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -843,6 +854,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
               <button
                 type="submit"
                 disabled={isSubmitting || uploadingFiles || !modelData?.material || !formData.timeline || !formData.finishing}
+                title={getDisabledButtonTooltip()}
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.01] disabled:scale-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 {uploadingFiles ? (
