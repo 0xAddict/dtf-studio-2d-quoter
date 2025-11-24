@@ -58,6 +58,7 @@ export const MyQuotesPage: React.FC = () => {
   }, [quotes, filter, searchTerm]);
 
   const loadQuotes = async () => {
+    console.log('📊 MyQuotesPage: Loading quotes...');
     setLoading(true);
     setError('');
 
@@ -65,13 +66,22 @@ export const MyQuotesPage: React.FC = () => {
       const { data, error: fetchError } = await getUserQuotes();
 
       if (fetchError) {
-        setError(fetchError.message || 'Failed to load quotes');
+        console.error('❌ Failed to load quotes:', fetchError);
+
+        // Check if it's a table doesn't exist error
+        if (fetchError.message?.includes('relation "quotes" does not exist')) {
+          setError('Quotes table not set up yet. Please run the SQL migration in Supabase Dashboard.');
+        } else {
+          setError(fetchError.message || 'Failed to load quotes');
+        }
         setLoading(false);
         return;
       }
 
+      console.log('✅ Loaded', data?.length || 0, 'quotes');
       setQuotes(data || []);
     } catch (err: any) {
+      console.error('❌ Unexpected error loading quotes:', err);
       setError(err.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -79,13 +89,23 @@ export const MyQuotesPage: React.FC = () => {
   };
 
   const loadStats = async () => {
+    console.log('📊 MyQuotesPage: Loading stats...');
     try {
-      const { data } = await getUserQuoteStats();
+      const { data, error: statsError } = await getUserQuoteStats();
+
+      if (statsError) {
+        console.error('❌ Failed to load stats:', statsError);
+        // Don't show error to user, stats are optional
+        return;
+      }
+
       if (data) {
+        console.log('✅ Stats loaded:', data);
         setStats(data);
       }
     } catch (err) {
-      console.error('Failed to load stats:', err);
+      console.error('❌ Unexpected error loading stats:', err);
+      // Don't show error to user, stats are optional
     }
   };
 
