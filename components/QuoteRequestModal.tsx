@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Loader2, Download, CheckCircle } from 'lucide-react';
 import { uploadMultipleFiles } from '../services/supabase/storage';
+import { useQuoteRequests } from '../services/supabase/hooks';
 import { saveQuote } from '../services/supabase/quotes';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -97,6 +98,7 @@ const finishingPrices: Record<string, number> = {
 
 export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, modelData, modelFile, userInfo }) => {
   const { user } = useAuth();
+  const { submitQuote } = useQuoteRequests();
 
   const [formData, setFormData] = useState<FormData>({
     name: userInfo?.name || user?.name || '',
@@ -116,10 +118,6 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Pre-populate form with userInfo or authenticated user
-  // Supabase hook for saving quotes
-  const { submitQuote } = useQuoteRequests();
-
-  // Pre-populate form with userInfo when it changes
   useEffect(() => {
     const name = userInfo?.name || user?.name || '';
     const email = userInfo?.email || user?.email || '';
@@ -503,7 +501,47 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
         console.warn('No model file to upload with quote');
       }
 
-      // Save quote to database (if user is authenticated)
+      // Save quote to WordPress admin system (quote_requests table - for ALL quotes)
+      try {
+        const quoteData = {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || null,
+          company: formData.company || null,
+          quantity: parseInt(formData.quantity),
+          material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
+          timeline: formData.timeline || null,
+          notes: formData.message || null,
+          model_data: JSON.stringify({
+            quoteId: quote.quoteId,
+            fileName: modelData?.fileName,
+            material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
+            scale: modelData?.scale,
+            quantity: parseInt(formData.quantity),
+            timeline: formData.timeline,
+            finishing: formData.finishing,
+            vertices: modelData?.vertices,
+            triangles: modelData?.triangles,
+            dimensions: modelData?.dimensions,
+            pricing: quote.pricing,
+            attachmentUrl: attachmentUrls[0] || null,
+          }),
+        };
+
+        const { data: wordpressQuote, error: wpError } = await submitQuote(quoteData);
+
+        if (wpError) {
+          console.error('Error saving quote to WordPress system:', wpError);
+          // Don't fail - WordPress sync is not critical
+        } else {
+          console.log('Quote saved to WordPress admin system successfully:', wordpressQuote);
+        }
+      } catch (wpError) {
+        console.error('Error saving quote to WordPress system:', wpError);
+        // Continue with other systems
+      }
+
+      // Save quote to user history (quotes table - only for authenticated users)
       if (user && user.emailVerified && modelData) {
         try {
           const { data: savedQuote, error: saveError } = await saveQuote({
@@ -531,13 +569,13 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           });
 
           if (saveError) {
-            console.error('Failed to save quote to database:', saveError);
+            console.error('Failed to save quote to user history:', saveError);
             // Continue with email submission even if DB save fails
           } else {
-            console.log('Quote saved to database successfully:', savedQuote?.id);
+            console.log('Quote saved to user history successfully:', savedQuote?.id);
           }
         } catch (dbError) {
-          console.error('Database save error:', dbError);
+          console.error('User history save error:', dbError);
           // Continue with email submission
         }
       }
@@ -591,47 +629,6 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
       const result = await response.json();
 
       if (result.success) {
-        // Save quote to Supabase database
-        try {
-          const quoteData = {
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone || null,
-            company: formData.company || null,
-            quantity: parseInt(formData.quantity),
-            material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
-            timeline: formData.timeline || null,
-            notes: formData.message || null,
-            model_data: JSON.stringify({
-              quoteId: quote.quoteId,
-              fileName: modelData?.fileName,
-              material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
-              scale: modelData?.scale,
-              quantity: parseInt(formData.quantity),
-              timeline: formData.timeline,
-              finishing: formData.finishing,
-              vertices: modelData?.vertices,
-              triangles: modelData?.triangles,
-              dimensions: modelData?.dimensions,
-              pricing: quote.pricing,
-              attachmentUrl: attachmentUrls[0] || null,
-            }),
-          };
-
-          const { data: savedQuote, error: dbError } = await submitQuote(quoteData);
-
-          if (dbError) {
-            console.error('Error saving quote to database:', dbError);
-            // Don't fail the entire submission if database save fails
-            // The email was sent successfully, which is the primary goal
-          } else {
-            console.log('Quote saved to database successfully:', savedQuote);
-          }
-        } catch (dbError) {
-          console.error('Error saving quote to database:', dbError);
-          // Continue with success flow even if database save fails
-        }
-
         setSubmitStatus('success');
         // Auto-download quote PDF
         downloadQuotePDF(quote);
