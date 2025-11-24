@@ -55,6 +55,7 @@ export default function ModelViewer() {
   const baseScaleRef = useRef<number>(1);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [currentFileName, setCurrentFileName] = useState<string>('');
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Tool state
@@ -519,6 +520,7 @@ export default function ModelViewer() {
     removeCurrentModel();
     setError('');
     setCurrentFileName(file.name);
+    setCurrentFile(file);
 
     const extension = file.name.split('.').pop()?.toLowerCase();
     if (extension === 'stl') {
@@ -528,6 +530,7 @@ export default function ModelViewer() {
     } else {
       setError('Unsupported file format. Please upload STL or FBX files.');
       setCurrentFileName('');
+      setCurrentFile(null);
     }
     event.target.value = '';
   };
@@ -567,6 +570,7 @@ export default function ModelViewer() {
     removeCurrentModel();
     setError('');
     setCurrentFileName(file.name);
+    setCurrentFile(file);
 
     if (extension === 'stl') {
       loadModel(file, new STLLoader(), (data) => new STLLoader().parse(data as ArrayBuffer));
@@ -1130,6 +1134,7 @@ export default function ModelViewer() {
           material: selectedMaterial,
           scale: modelScale,
         } : null}
+        modelFile={currentFile}
         userInfo={userName && userEmail ? {
           name: userName,
           email: userEmail,

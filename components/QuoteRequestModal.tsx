@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Loader2, Download, CheckCircle } from 'lucide-react';
+import { uploadMultipleFiles } from '../services/supabase/storage';
 
 interface QuoteRequestModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface QuoteRequestModalProps {
     material: string;
     scale: number;
   } | null;
+  modelFile?: File | null;
   userInfo?: {
     name: string;
     email: string;
@@ -91,7 +93,7 @@ const finishingPrices: Record<string, number> = {
   'premium': 50,
 };
 
-export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, modelData, userInfo }) => {
+export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, modelData, modelFile, userInfo }) => {
   const [formData, setFormData] = useState<FormData>({
     name: userInfo?.name || '',
     email: userInfo?.email || '',
@@ -106,6 +108,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [generatedQuote, setGeneratedQuote] = useState<QuoteData | null>(null);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Pre-populate form with userInfo when it changes
@@ -458,6 +461,24 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
       const quote = generateQuote();
       setGeneratedQuote(quote);
 
+      // Upload model file to Supabase if available
+      let attachmentUrls: string[] = [];
+      if (modelFile) {
+        setUploadingFiles(true);
+        const uploadResults = await uploadMultipleFiles(
+          [modelFile],
+          'ATTACHMENTS',
+          `quotes/${quote.quoteId}`
+        );
+
+        // Filter successful uploads and get URLs
+        attachmentUrls = uploadResults
+          .filter(result => result.url && !result.error)
+          .map(result => result.url);
+
+        setUploadingFiles(false);
+      }
+
       // Prepare model info for the email
       const modelInfo = modelData ? `
 Model Details:
@@ -477,6 +498,11 @@ Pricing:
 ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishingCost.toFixed(2)} €\n` : ''}${quote.pricing.quantityDiscount > 0 ? `- Quantity Discount: -${quote.pricing.quantityDiscount.toFixed(2)} €\n` : ''}- Total: ${quote.pricing.total.toFixed(2)} €
       `.trim() : 'No model loaded';
 
+      // Prepare model file link for email
+      const attachmentLinks = attachmentUrls.length > 0
+        ? `\n\nModel File:\n${attachmentUrls[0]}`
+        : '';
+
       // Send to Web3Forms
       const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
@@ -484,7 +510,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          access_key: 'a82cd435-98b5-4787-a9e9-1476be34ece4',
+          access_key: 'ad897559-e4df-411a-bcb7-086c366bf81f',
           subject: `New Quote Request #${quote.quoteId} - ${formData.name}`,
           from_name: 'Hexea Forge',
           name: formData.name,
@@ -495,7 +521,8 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
           timeline: formData.timeline || 'Not specified',
           finishing: formData.finishing || 'Standard',
           message: formData.message || 'No additional information',
-          model_info: modelInfo,
+          model_info: modelInfo + attachmentLinks,
+          attachments: attachmentUrls.join(', '),
         }),
       });
 
@@ -513,6 +540,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
+      setUploadingFiles(false);
     }
   };
 
@@ -798,10 +826,15 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || uploadingFiles}
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.01] disabled:scale-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                {isSubmitting ? (
+                {uploadingFiles ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    Uploading files...
+                  </>
+                ) : isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                     Sending...
