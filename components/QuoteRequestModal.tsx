@@ -465,18 +465,33 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
       let attachmentUrls: string[] = [];
       if (modelFile) {
         setUploadingFiles(true);
-        const uploadResults = await uploadMultipleFiles(
-          [modelFile],
-          'ATTACHMENTS',
-          `quotes/${quote.quoteId}`
-        );
+        try {
+          const uploadResults = await uploadMultipleFiles(
+            [modelFile],
+            'ATTACHMENTS',
+            `quotes/${quote.quoteId}`
+          );
 
-        // Filter successful uploads and get URLs
-        attachmentUrls = uploadResults
-          .filter(result => result.url && !result.error)
-          .map(result => result.url);
+          // Filter successful uploads and get URLs
+          attachmentUrls = uploadResults
+            .filter(result => result.url && !result.error)
+            .map(result => result.url);
 
-        setUploadingFiles(false);
+          // Log upload results for debugging
+          if (attachmentUrls.length > 0) {
+            console.log('Model file uploaded successfully:', attachmentUrls[0]);
+          } else {
+            console.warn('Model file upload failed:', uploadResults);
+          }
+
+          setUploadingFiles(false);
+        } catch (uploadError) {
+          console.error('Error uploading model file:', uploadError);
+          setUploadingFiles(false);
+          // Continue with quote submission even if upload fails
+        }
+      } else {
+        console.warn('No model file to upload with quote');
       }
 
       // Prepare model info for the email
