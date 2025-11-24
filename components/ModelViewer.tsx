@@ -500,6 +500,13 @@ export default function ModelViewer() {
         if (sceneRef.current) sceneRef.current.add(object);
         currentModelRef.current = object;
 
+        // Set pivot point to center of model (origin after centering)
+        if (controlsRef.current) {
+          controlsRef.current.target.set(0, 0, 0);
+          pivotHelperRef.current.position.set(0, 0, 0);
+          pivotHelperRef.current.visible = true;
+        }
+
         setModelInfo(`${file.name.split('.').pop()?.toUpperCase()} Model loaded: ${file.name}`);
         calculateModelStats(object, size);
 
@@ -680,6 +687,13 @@ export default function ModelViewer() {
 
     if (sceneRef.current) sceneRef.current.add(cube);
     currentModelRef.current = cube;
+
+    // Set pivot point to center of model
+    if (controlsRef.current) {
+      controlsRef.current.target.set(0, 0, 0);
+      pivotHelperRef.current.position.set(0, 0, 0);
+      pivotHelperRef.current.visible = true;
+    }
 
     setModelInfo('Sample model loaded: Cube');
     calculateModelStats(cube, size);
