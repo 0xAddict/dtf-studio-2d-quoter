@@ -537,7 +537,6 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
           finishing: formData.finishing || 'Standard',
           message: formData.message || 'No additional information',
           model_info: modelInfo + attachmentLinks,
-          model_file_url: attachmentUrls.length > 0 ? attachmentUrls[0] : 'No file uploaded',
         }),
       });
 
