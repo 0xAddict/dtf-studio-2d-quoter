@@ -128,8 +128,8 @@ class Forge_Dashboard {
      * Enqueue admin assets
      */
     public function enqueue_admin_assets($hook) {
-        // Only load on Forge Dashboard pages
-        if (strpos($hook, 'forge-dashboard') === false) {
+        // Only load on Forge pages (dashboard, quotes, settings, view-quote)
+        if (strpos($hook, 'forge') === false) {
             return;
         }
 

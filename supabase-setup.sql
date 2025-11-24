@@ -1,0 +1,221 @@
+-- Hexea Forge - Supabase Database Setup
+-- Run this in your Supabase SQL Editor
+
+-- ============================================
+-- 1. Create quote_requests table
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS quote_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id),
+    model_id UUID,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT,
+    company TEXT,
+    quantity INTEGER NOT NULL,
+    material TEXT NOT NULL,
+    timeline TEXT,
+    notes TEXT,
+    model_data JSONB,
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- 2. Create indexes for better performance
+-- ============================================
+
+CREATE INDEX IF NOT EXISTS idx_quote_requests_status
+    ON quote_requests(status);
+
+CREATE INDEX IF NOT EXISTS idx_quote_requests_created_at
+    ON quote_requests(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_quote_requests_email
+    ON quote_requests(email);
+
+CREATE INDEX IF NOT EXISTS idx_quote_requests_material
+    ON quote_requests(material);
+
+-- ============================================
+-- 3. Enable Row Level Security (RLS)
+-- ============================================
+
+ALTER TABLE quote_requests ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- 4. Drop existing policies (if any)
+-- ============================================
+
+DROP POLICY IF EXISTS "Allow anonymous inserts" ON quote_requests;
+DROP POLICY IF EXISTS "Service role has full access" ON quote_requests;
+DROP POLICY IF EXISTS "Allow read own submissions" ON quote_requests;
+
+-- ============================================
+-- 5. Create RLS Policies
+-- ============================================
+
+-- Policy 1: Allow anonymous users to INSERT quotes
+-- This allows the React app to submit quotes without authentication
+CREATE POLICY "Allow anonymous inserts" ON quote_requests
+    FOR INSERT
+    WITH CHECK (true);
+
+-- Policy 2: Allow service_role full access
+-- This allows the WordPress plugin (using service_role key) to manage all quotes
+CREATE POLICY "Service role has full access" ON quote_requests
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- Policy 3: Allow anyone to SELECT quotes (optional - for public viewing)
+-- Remove this if you want quotes to be admin-only
+CREATE POLICY "Allow read own submissions" ON quote_requests
+    FOR SELECT
+    USING (true);
+
+-- ============================================
+-- 6. Storage Bucket Setup
+-- ============================================
+
+-- Create attachments bucket (if not exists)
+-- Note: This must be done through the Supabase UI or Dashboard
+-- Go to Storage -> New Bucket -> Name: "attachments" -> Public: YES
+
+-- Storage policies for attachments bucket
+-- Run these after creating the bucket
+
+DO $$
+BEGIN
+    -- Check if policies exist before creating
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'storage'
+        AND tablename = 'objects'
+        AND policyname = 'Public read access attachments'
+    ) THEN
+        CREATE POLICY "Public read access attachments" ON storage.objects
+            FOR SELECT
+            USING (bucket_id = 'attachments');
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'storage'
+        AND tablename = 'objects'
+        AND policyname = 'Public insert attachments'
+    ) THEN
+        CREATE POLICY "Public insert attachments" ON storage.objects
+            FOR INSERT
+            WITH CHECK (bucket_id = 'attachments');
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'storage'
+        AND tablename = 'objects'
+        AND policyname = 'Service role full access attachments'
+    ) THEN
+        CREATE POLICY "Service role full access attachments" ON storage.objects
+            FOR ALL
+            TO service_role
+            USING (bucket_id = 'attachments')
+            WITH CHECK (bucket_id = 'attachments');
+    END IF;
+END$$;
+
+-- ============================================
+-- 7. Verify setup
+-- ============================================
+
+-- Check if table exists and has correct structure
+SELECT
+    column_name,
+    data_type,
+    is_nullable
+FROM information_schema.columns
+WHERE table_name = 'quote_requests'
+ORDER BY ordinal_position;
+
+-- Check if indexes exist
+SELECT
+    indexname,
+    indexdef
+FROM pg_indexes
+WHERE tablename = 'quote_requests';
+
+-- Check if RLS is enabled
+SELECT
+    tablename,
+    rowsecurity
+FROM pg_tables
+WHERE tablename = 'quote_requests';
+
+-- Check policies
+SELECT
+    policyname,
+    permissive,
+    roles,
+    cmd
+FROM pg_policies
+WHERE tablename = 'quote_requests';
+
+-- ============================================
+-- 8. Test data (optional - for testing)
+-- ============================================
+
+-- Insert a test quote to verify everything works
+INSERT INTO quote_requests (
+    name,
+    email,
+    phone,
+    company,
+    quantity,
+    material,
+    timeline,
+    notes,
+    model_data,
+    status
+) VALUES (
+    'Test User',
+    'test@example.com',
+    '+1234567890',
+    'Test Company',
+    5,
+    'PLA - Affordable',
+    'Normal (1-2 weeks)',
+    'This is a test quote',
+    '{"quoteId":"HF-TEST001","fileName":"test-model.stl","material":"PLA - Affordable","quantity":5,"pricing":{"baseCost":50,"materialCost":75,"finishingCost":0,"quantityDiscount":0,"total":125}}'::jsonb,
+    'pending'
+);
+
+-- Verify test data was inserted
+SELECT
+    id,
+    name,
+    email,
+    material,
+    quantity,
+    status,
+    created_at
+FROM quote_requests
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- ============================================
+-- Setup Complete!
+-- ============================================
+
+-- Next steps:
+-- 1. Create the 'attachments' storage bucket in the Supabase UI (if not exists)
+-- 2. Configure your React app .env file with Supabase URL and anon key
+-- 3. Configure WordPress plugin with Supabase URL and service_role key
+-- 4. Test quote submission from the React app
+-- 5. Verify quotes appear in WordPress dashboard
+
+-- For troubleshooting:
+-- - Check RLS policies: SELECT * FROM pg_policies WHERE tablename = 'quote_requests';
+-- - View recent quotes: SELECT * FROM quote_requests ORDER BY created_at DESC LIMIT 10;
+-- - Check storage policies: SELECT * FROM pg_policies WHERE schemaname = 'storage';
