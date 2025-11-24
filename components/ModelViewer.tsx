@@ -1013,15 +1013,16 @@ export default function ModelViewer() {
             </div>
 
             {/* Material Selection */}
-            <div className="mb-6 animate-fade-in">
+            <div className="mb-6 animate-fade-in relative">
               <label htmlFor="material-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Print Materials
+                Print Materials <span className="text-red-500">*</span>
               </label>
               <select
                 id="material-select"
                 value={selectedMaterial}
                 onChange={(e) => setSelectedMaterial(e.target.value)}
                 className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors"
+                required
               >
                 <option value="">Select material...</option>
                 <option value="asa">ASA - Durable and weather-resistant (outdoor use)</option>
