@@ -1238,6 +1238,7 @@ export default function ModelViewer() {
         isOpen={showWelcomeModal}
         onGetQuote={handleGetQuote}
         onTrySample={handleTrySample}
+        onClose={() => setShowWelcomeModal(false)}
       />
 
       <EmailVerificationModal
