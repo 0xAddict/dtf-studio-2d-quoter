@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Loader2, Download, CheckCircle } from 'lucide-react';
 import { uploadMultipleFiles } from '../services/supabase/storage';
+import { saveQuote } from '../services/supabase/quotes';
+import { useAuth } from '../contexts/AuthContext';
 
 interface QuoteRequestModalProps {
   isOpen: boolean;
@@ -94,9 +96,11 @@ const finishingPrices: Record<string, number> = {
 };
 
 export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, modelData, modelFile, userInfo }) => {
+  const { user } = useAuth();
+
   const [formData, setFormData] = useState<FormData>({
-    name: userInfo?.name || '',
-    email: userInfo?.email || '',
+    name: userInfo?.name || user?.name || '',
+    email: userInfo?.email || user?.email || '',
     phone: '',
     company: '',
     quantity: '1',
@@ -111,16 +115,17 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Pre-populate form with userInfo when it changes
+  // Pre-populate form with userInfo or authenticated user
   useEffect(() => {
-    if (userInfo) {
-      setFormData(prev => ({
-        ...prev,
-        name: userInfo.name,
-        email: userInfo.email,
-      }));
-    }
-  }, [userInfo]);
+    const name = userInfo?.name || user?.name || '';
+    const email = userInfo?.email || user?.email || '';
+
+    setFormData(prev => ({
+      ...prev,
+      name,
+      email,
+    }));
+  }, [userInfo, user]);
 
   // Focus trap implementation
   useEffect(() => {
@@ -492,6 +497,45 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
         }
       } else {
         console.warn('No model file to upload with quote');
+      }
+
+      // Save quote to database (if user is authenticated)
+      if (user && user.emailVerified && modelData) {
+        try {
+          const { data: savedQuote, error: saveError } = await saveQuote({
+            quote_id: quote.quoteId,
+            customer_name: formData.name,
+            customer_email: formData.email,
+            customer_phone: formData.phone,
+            customer_company: formData.company,
+            model_file_name: modelData.fileName,
+            model_file_url: attachmentUrls[0] || '',
+            material: modelData.material,
+            quantity: parseInt(formData.quantity),
+            timeline: formData.timeline,
+            finishing: formData.finishing,
+            scale: modelData.scale,
+            vertices: modelData.vertices,
+            triangles: modelData.triangles,
+            dimensions: modelData.dimensions,
+            base_cost: quote.pricing.baseCost,
+            material_cost: quote.pricing.materialCost,
+            finishing_cost: quote.pricing.finishingCost,
+            quantity_discount: quote.pricing.quantityDiscount,
+            total_cost: quote.pricing.total,
+            message: formData.message,
+          });
+
+          if (saveError) {
+            console.error('Failed to save quote to database:', saveError);
+            // Continue with email submission even if DB save fails
+          } else {
+            console.log('Quote saved to database successfully:', savedQuote?.id);
+          }
+        } catch (dbError) {
+          console.error('Database save error:', dbError);
+          // Continue with email submission
+        }
       }
 
       // Prepare model info for the email
