@@ -779,7 +779,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
                 </div>
                 <div>
                   <label htmlFor="timeline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Timeline
+                    Timeline <span className="text-red-500">*</span>
                   </label>
                   <select
                     id="timeline"
@@ -787,6 +787,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
                     value={formData.timeline}
                     onChange={handleChange}
                     className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
                   >
                     <option value="">Select...</option>
                     <option value="urgent">Urgent (1-3 days)</option>
@@ -798,7 +799,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
 
               <div>
                 <label htmlFor="finishing" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Finishing
+                  Finishing <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="finishing"
@@ -806,6 +807,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
                   value={formData.finishing}
                   onChange={handleChange}
                   className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
                 >
                   <option value="">Select...</option>
                   <option value="standard">Standard (No additional cost)</option>
@@ -840,7 +842,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
 
               <button
                 type="submit"
-                disabled={isSubmitting || uploadingFiles}
+                disabled={isSubmitting || uploadingFiles || !modelData?.material || !formData.timeline || !formData.finishing}
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.01] disabled:scale-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 {uploadingFiles ? (
