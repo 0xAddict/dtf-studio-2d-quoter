@@ -12,37 +12,63 @@ export const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        console.log('🔄 Auth callback triggered');
+        console.log('   Full URL:', window.location.href);
+        console.log('   Hash:', window.location.hash);
+
         // Get the URL hash (Supabase puts auth tokens in the hash)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const type = hashParams.get('type');
+        const accessToken = hashParams.get('access_token');
         const error = hashParams.get('error');
         const errorDescription = hashParams.get('error_description');
 
+        console.log('   Type:', type);
+        console.log('   Has access token:', !!accessToken);
+        console.log('   Error:', error);
+
         if (error) {
+          console.error('❌ Verification error:', errorDescription);
           setStatus('error');
           setMessage(errorDescription || 'Verification failed');
           setTimeout(() => navigate('/'), 3000);
           return;
         }
 
-        if (type === 'signup' || type === 'recovery') {
-          // Email verified successfully
+        if (!accessToken) {
+          console.warn('⚠️ No access token found in URL');
+          setStatus('error');
+          setMessage('Invalid verification link');
+          setTimeout(() => navigate('/'), 3000);
+          return;
+        }
+
+        if (type === 'signup' || type === 'recovery' || type === 'email') {
+          console.log('✅ Email verification type detected');
+
+          // Give Supabase a moment to process the session
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
           // Refresh the user session
           await refreshUser();
 
           setStatus('success');
-          setMessage('Email verified successfully!');
+          setMessage('Email verified successfully! You can now submit quotes.');
+
+          console.log('✅ User refreshed, redirecting to home');
 
           // Redirect to home after 2 seconds
           setTimeout(() => {
             navigate('/');
           }, 2000);
         } else {
-          // Unknown type, redirect to home
+          console.log('⚠️ Unknown verification type:', type);
+          // Still try to refresh user in case it's valid
+          await refreshUser();
           navigate('/');
         }
       } catch (err: any) {
-        console.error('Auth callback error:', err);
+        console.error('❌ Auth callback error:', err);
         setStatus('error');
         setMessage(err.message || 'Something went wrong');
         setTimeout(() => navigate('/'), 3000);
