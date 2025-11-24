@@ -116,6 +116,28 @@ $model_info = isset($model_data['model']) ? $model_data['model'] : array();
                                     <td><?php echo esc_html($model_info['fileName']); ?></td>
                                 </tr>
                             <?php endif; ?>
+                            <?php
+                            // Check for model file URL in model_data
+                            $model_url = null;
+                            if (isset($model_data['attachmentUrl']) && !empty($model_data['attachmentUrl'])) {
+                                $model_url = $model_data['attachmentUrl'];
+                            }
+                            if ($model_url) :
+                            ?>
+                                <tr>
+                                    <th><?php _e('3D Model File:', 'forge-dashboard'); ?></th>
+                                    <td>
+                                        <a href="<?php echo esc_url($model_url); ?>" target="_blank" class="button button-primary" style="margin-right: 10px;">
+                                            <span class="dashicons dashicons-download" style="margin-top: 3px;"></span>
+                                            <?php _e('Download Model', 'forge-dashboard'); ?>
+                                        </a>
+                                        <a href="<?php echo esc_url($model_url); ?>" target="_blank" class="button button-secondary">
+                                            <span class="dashicons dashicons-external" style="margin-top: 3px;"></span>
+                                            <?php _e('View in Browser', 'forge-dashboard'); ?>
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
                             <?php if (isset($model_info['vertices'])) : ?>
                                 <tr>
                                     <th><?php _e('Vertices:', 'forge-dashboard'); ?></th>
