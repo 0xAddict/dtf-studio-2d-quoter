@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { getSession } from '../services/supabase/auth';
 
 export const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -47,15 +48,29 @@ export const AuthCallback: React.FC = () => {
           console.log('✅ Email verification type detected');
 
           // Give Supabase a moment to process the session
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
 
-          // Refresh the user session
+          // Verify session was created
+          const { session: newSession } = await getSession();
+          console.log('   Session established:', !!newSession);
+          console.log('   User email:', newSession?.user?.email);
+          console.log('   Email verified:', !!newSession?.user?.email_confirmed_at);
+
+          if (!newSession) {
+            console.error('❌ Session not created after verification');
+            setStatus('error');
+            setMessage('Verification succeeded but session failed. Please try signing in manually.');
+            setTimeout(() => navigate('/'), 3000);
+            return;
+          }
+
+          // Refresh the user data in context (this will trigger auth state change)
           await refreshUser();
 
           setStatus('success');
-          setMessage('Email verified successfully! You can now submit quotes.');
+          setMessage('Email verified successfully! You are now signed in.');
 
-          console.log('✅ User refreshed, redirecting to home');
+          console.log('✅ User verified and signed in, redirecting to home');
 
           // Redirect to home after 2 seconds
           setTimeout(() => {

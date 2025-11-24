@@ -78,8 +78,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshUser = async () => {
-    const currentUser = await getCurrentUser();
-    setUser(currentUser);
+    // Refresh both session and user data
+    const { session: currentSession } = await getSession();
+    setSession(currentSession);
+
+    if (currentSession) {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+      console.log('✅ User and session refreshed');
+    } else {
+      setUser(null);
+      console.log('⚠️ No session found during refresh');
+    }
   };
 
   const handleSignUp = async (data: SignUpData) => {

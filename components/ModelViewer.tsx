@@ -68,7 +68,7 @@ export default function ModelViewer() {
   const [measurementInfo, setMeasurementInfo] = useState<{ points: THREE.Vector3[], distance: number | null }>({ points: [], distance: null });
 
   // Modal and flow states
-  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
@@ -91,8 +91,15 @@ export default function ModelViewer() {
 
   // Show welcome modal if user is not authenticated
   useEffect(() => {
-    if (!authLoading && !user) {
+    // Don't show welcome modal if we're processing an auth callback
+    const hasAuthCallback = window.location.hash.includes('access_token') ||
+                           window.location.hash.includes('type=');
+
+    if (!authLoading && !user && !hasAuthCallback) {
       setShowWelcomeModal(true);
+    } else if (user) {
+      // Close welcome modal when user is authenticated
+      setShowWelcomeModal(false);
     }
   }, [authLoading, user]);
 
