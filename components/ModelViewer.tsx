@@ -8,7 +8,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { WelcomeModal } from './WelcomeModal';
 import { EmailVerificationModal } from './EmailVerificationModal';
 import { QuoteRequestModal } from './QuoteRequestModal';
-import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Axis3d, Box, Send } from 'lucide-react';
+import { Upload, Rotate3d, Bookmark, RulerDimensionLine, Axis3d, Box, Send, RefreshCw } from 'lucide-react';
 
 type ActiveTool = 'none' | 'measure' | 'pivot';
 
@@ -607,6 +607,25 @@ export default function ModelViewer() {
     pivotHelperRef.current.visible = !(new THREE.Vector3().fromArray(view.target).equals(new THREE.Vector3(0,0,0)));
   }, [savedViews]);
 
+  const handleRefreshModel = useCallback(() => {
+    // Clear current model
+    removeCurrentModel();
+
+    // Reset model-related states (but keep user info)
+    setCurrentFileName('');
+    setCurrentFile(null);
+    setModelStats(null);
+    setSelectedMaterial('');
+    setModelScale(100);
+    setError('');
+    setModelInfo('');
+
+    // Reset camera
+    resetCamera();
+
+    // Note: userName and userEmail are preserved
+  }, [removeCurrentModel, resetCamera]);
+
   const handleToolSelect = (tool: ActiveTool) => {
     setActiveTool(prev => prev === tool ? 'none' : tool);
   };
@@ -1086,8 +1105,8 @@ export default function ModelViewer() {
                         </div>
                     </div>
 
-                    {/* Quote Request Button */}
-                    <div className="pt-4 mt-4 border-t border-gray-200 dark:border-slate-700">
+                    {/* Action Buttons */}
+                    <div className="pt-4 mt-4 border-t border-gray-200 dark:border-slate-700 space-y-3">
                       <button
                         onClick={() => setIsQuoteModalOpen(true)}
                         className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 dark:from-indigo-500 dark:to-purple-500 dark:hover:from-indigo-600 dark:hover:to-purple-600 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
@@ -1095,8 +1114,16 @@ export default function ModelViewer() {
                         <Send className="w-4 h-4" />
                         Request Quote
                       </button>
-                      <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
-                        You will receive the quote via email
+                      <button
+                        onClick={handleRefreshModel}
+                        className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02]"
+                        title="Upload a different model while keeping your information"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Upload Different Model
+                      </button>
+                      <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+                        Your email and info will be saved
                       </p>
                     </div>
                 </div>
