@@ -726,14 +726,14 @@ export default function ModelViewer() {
 
       removeCurrentModel();
 
-      const { centeredObject, size } = centerAndScaleModel(object);
+      const { size } = centerAndScaleModel(object);
       if (sceneRef.current) {
-        sceneRef.current.add(centeredObject);
+        sceneRef.current.add(object);
       }
-      currentModelRef.current = centeredObject;
+      currentModelRef.current = object;
 
       // Update material properties after loading
-      updateMaterialProperties();
+      updateMaterialProperties(object);
 
       // Set pivot point to center of model
       if (controlsRef.current) {
@@ -743,7 +743,7 @@ export default function ModelViewer() {
       }
 
       setModelInfo('Sample model loaded: Inner.STL');
-      calculateModelStats(centeredObject, size);
+      calculateModelStats(object, size);
 
     } catch (err: any) {
       setError(`Error loading sample model: ${err.message}`);
