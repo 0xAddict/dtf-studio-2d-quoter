@@ -3,6 +3,7 @@ import { Upload, Play, X } from 'lucide-react';
 import { SignUpModal } from './SignUpModal';
 import { SignInModal } from './SignInModal';
 import { EmailVerificationModal } from './EmailVerificationModal';
+import { useAuth } from '../contexts/AuthContext';
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -17,10 +18,20 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
   onTrySample,
   onClose,
 }) => {
+  const { user } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
   const [showAuthModal, setShowAuthModal] = useState<'signup' | 'signin' | null>(null);
   const [showVerification, setShowVerification] = useState(false);
   const [signupEmail, setSignupEmail] = useState('');
+
+  // Auto-close welcome modal when user signs in
+  useEffect(() => {
+    if (user && isOpen) {
+      console.log('✅ User signed in, closing welcome modal');
+      setShowAuthModal(null);
+      if (onClose) onClose();
+    }
+  }, [user, isOpen, onClose]);
 
   // Focus trap implementation
   useEffect(() => {

@@ -73,7 +73,13 @@ export const SignInModal: React.FC<SignInModalProps> = ({
         return;
       }
 
-      // Success
+      console.log('✅ Sign in successful, closing modal');
+
+      // Small delay to ensure auth state updates
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Success - close modal and proceed
+      setIsSubmitting(false);
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');

@@ -134,9 +134,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleSignOut = async () => {
-    await signOut();
+    console.log('🔄 Signing out...');
+    const { error } = await signOut();
+
+    if (error) {
+      console.error('❌ Sign out failed:', error.message);
+      return;
+    }
+
+    // Clear local state
     setUser(null);
     setSession(null);
+
+    console.log('✅ Signed out successfully');
   };
 
   const value: AuthContextType = {
