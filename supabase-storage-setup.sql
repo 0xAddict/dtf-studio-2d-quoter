@@ -23,14 +23,20 @@ VALUES (
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain'
-  ]
+    'text/plain',
+    'application/octet-stream'
+  ]::text[]
 )
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
 -- Storage Policies for Attachments Bucket
 -- ============================================
+
+-- Drop existing policies if they exist to avoid conflicts
+DROP POLICY IF EXISTS "Allow public uploads" ON storage.objects;
+DROP POLICY IF EXISTS "Allow public downloads" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can delete" ON storage.objects;
 
 -- Policy 1: Allow anyone to upload files
 -- This allows unauthenticated users to upload quote attachments
