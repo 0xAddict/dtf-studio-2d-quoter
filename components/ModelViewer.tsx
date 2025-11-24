@@ -1181,6 +1181,30 @@ export default function ModelViewer() {
           email: userEmail,
         } : undefined}
       />
+
+      {/* Footer Attribution */}
+      <footer className="fixed bottom-0 left-0 right-0 py-2 px-4 text-center text-xs text-gray-400 dark:text-gray-600 bg-transparent pointer-events-none z-10">
+        <p className="pointer-events-auto">
+          3D Model Viewer Built By{' '}
+          <a
+            href="https://am8.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-500 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors underline"
+          >
+            AM8
+          </a>
+          , powered by{' '}
+          <a
+            href="https://alpha-performance.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-500 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors underline"
+          >
+            Alpha Performance
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
