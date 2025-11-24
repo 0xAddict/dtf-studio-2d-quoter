@@ -514,14 +514,9 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
       `.trim() : 'No model loaded';
 
       // Prepare model file link for email
-      const attachmentSection = attachmentUrls.length > 0
-        ? `\n\n📎 MODEL FILE DOWNLOAD:\n${attachmentUrls[0]}`
-        : '\n\n⚠️ No model file was uploaded with this quote.';
-
-      // Combine everything into the message field
-      const fullMessage = `
-${formData.message ? `ADDITIONAL NOTES:\n${formData.message}\n\n` : ''}${modelInfo}${attachmentSection}
-      `.trim();
+      const attachmentLinks = attachmentUrls.length > 0
+        ? `\n\nModel File Download:\n${attachmentUrls[0]}`
+        : '';
 
       // Send to Web3Forms
       const response = await fetch('https://api.web3forms.com/submit', {
@@ -537,7 +532,12 @@ ${formData.message ? `ADDITIONAL NOTES:\n${formData.message}\n\n` : ''}${modelIn
           email: formData.email,
           phone: formData.phone || 'Not provided',
           company: formData.company || 'Not provided',
-          message: fullMessage,
+          quantity: formData.quantity,
+          timeline: formData.timeline || 'Not specified',
+          finishing: formData.finishing || 'Standard',
+          message: formData.message || 'No additional information',
+          model_info: modelInfo + attachmentLinks,
+          model_file_url: attachmentUrls.length > 0 ? attachmentUrls[0] : 'No file uploaded',
         }),
       });
 
