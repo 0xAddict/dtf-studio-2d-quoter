@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Loader2, Download, CheckCircle } from 'lucide-react';
 import { uploadMultipleFiles } from '../services/supabase/storage';
+import { useQuoteRequests } from '../services/supabase/hooks';
 
 interface QuoteRequestModalProps {
   isOpen: boolean;
@@ -110,6 +111,9 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
   const [generatedQuote, setGeneratedQuote] = useState<QuoteData | null>(null);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
+
+  // Supabase hook for saving quotes
+  const { submitQuote } = useQuoteRequests();
 
   // Pre-populate form with userInfo when it changes
   useEffect(() => {
@@ -543,6 +547,47 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
       const result = await response.json();
 
       if (result.success) {
+        // Save quote to Supabase database
+        try {
+          const quoteData = {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || null,
+            company: formData.company || null,
+            quantity: parseInt(formData.quantity),
+            material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
+            timeline: formData.timeline || null,
+            notes: formData.message || null,
+            model_data: JSON.stringify({
+              quoteId: quote.quoteId,
+              fileName: modelData?.fileName,
+              material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
+              scale: modelData?.scale,
+              quantity: parseInt(formData.quantity),
+              timeline: formData.timeline,
+              finishing: formData.finishing,
+              vertices: modelData?.vertices,
+              triangles: modelData?.triangles,
+              dimensions: modelData?.dimensions,
+              pricing: quote.pricing,
+              attachmentUrl: attachmentUrls[0] || null,
+            }),
+          };
+
+          const { data: savedQuote, error: dbError } = await submitQuote(quoteData);
+
+          if (dbError) {
+            console.error('Error saving quote to database:', dbError);
+            // Don't fail the entire submission if database save fails
+            // The email was sent successfully, which is the primary goal
+          } else {
+            console.log('Quote saved to database successfully:', savedQuote);
+          }
+        } catch (dbError) {
+          console.error('Error saving quote to database:', dbError);
+          // Continue with success flow even if database save fails
+        }
+
         setSubmitStatus('success');
         // Auto-download quote PDF
         downloadQuotePDF(quote);
