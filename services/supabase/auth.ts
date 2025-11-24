@@ -51,6 +51,18 @@ export async function signIn({ email, password }: SignInData) {
     return { data: null, error };
   }
 
+  // Force refresh session to get latest user data
+  const { data: { session: refreshedSession }, error: refreshError } =
+    await supabase.auth.refreshSession();
+
+  if (refreshError) {
+    console.warn('⚠️ Could not refresh session:', refreshError.message);
+    // Continue anyway with original data
+  } else if (refreshedSession) {
+    console.log('✅ Session refreshed with latest user data');
+    return { data: { ...data, session: refreshedSession }, error: null };
+  }
+
   return { data, error: null };
 }
 
@@ -73,11 +85,18 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     return null;
   }
 
+  const emailVerified = !!user.email_confirmed_at;
+
+  console.log('📧 Email verification status:');
+  console.log('   Email:', user.email);
+  console.log('   email_confirmed_at:', user.email_confirmed_at);
+  console.log('   emailVerified:', emailVerified);
+
   return {
     id: user.id,
     email: user.email || '',
     name: user.user_metadata?.name || 'User',
-    emailVerified: !!user.email_confirmed_at,
+    emailVerified,
   };
 }
 
