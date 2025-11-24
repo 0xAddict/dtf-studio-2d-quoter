@@ -32,17 +32,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     // Check active session on mount
-    getSession().then(({ session }) => {
-      setSession(session);
-      if (session) {
-        getCurrentUser().then(setUser);
-      }
-      setLoading(false);
-    });
+    getSession()
+      .then(({ session, error }) => {
+        if (error) {
+          console.error('❌ Failed to get session:', error.message);
+          console.error('   This usually means Supabase is not configured or unreachable.');
+          console.error('   Check: Environment variables, Supabase URL, Network connection');
+        }
+
+        setSession(session);
+        if (session) {
+          getCurrentUser().then(setUser);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('❌ Fatal error initializing auth:', err);
+        console.error('   Error details:', {
+          message: err.message,
+          name: err.name,
+          stack: err.stack?.split('\n')[0]
+        });
+        setLoading(false);
+      });
 
     // Listen for auth changes
     const subscription = onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
+      console.log('✅ Auth state changed:', event, session?.user?.email);
 
       setSession(session);
 
@@ -62,27 +78,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshUser = async () => {
-    const currentUser = await getCurrentUser();
-    setUser(currentUser);
+    // Refresh both session and user data
+    const { session: currentSession } = await getSession();
+    setSession(currentSession);
+
+    if (currentSession) {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+      console.log('✅ User and session refreshed');
+    } else {
+      setUser(null);
+      console.log('⚠️ No session found during refresh');
+    }
   };
 
   const handleSignUp = async (data: SignUpData) => {
-    const result = await signUp(data);
-    if (result.data && !result.error) {
-      // User created, but email not verified yet
-      // Session will be created after email verification
+    try {
+      const result = await signUp(data);
+      if (result.error) {
+        console.error('❌ Sign up failed:', result.error.message);
+        if (result.error.message?.includes('fetch')) {
+          console.error('   Network error - check Supabase configuration');
+          console.error('   Verify: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify');
+        }
+      }
+      if (result.data && !result.error) {
+        console.log('✅ Sign up successful - verification email sent');
+        // User created, but email not verified yet
+        // Session will be created after email verification
+      }
+      return result;
+    } catch (err: any) {
+      console.error('❌ Fatal sign up error:', err.message);
+      return { data: null, error: err };
     }
-    return result;
   };
 
   const handleSignIn = async (data: SignInData) => {
-    const result = await signIn(data);
-    if (result.data && !result.error) {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-      setSession(result.data.session);
+    try {
+      const result = await signIn(data);
+      if (result.error) {
+        console.error('❌ Sign in failed:', result.error.message);
+      }
+      if (result.data && !result.error) {
+        console.log('✅ Sign in successful');
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+        setSession(result.data.session);
+      }
+      return result;
+    } catch (err: any) {
+      console.error('❌ Fatal sign in error:', err.message);
+      return { data: null, error: err };
     }
-    return result;
   };
 
   const handleSignOut = async () => {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { getSession } from '../services/supabase/auth';
 
 export const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -12,37 +13,77 @@ export const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        console.log('🔄 Auth callback triggered');
+        console.log('   Full URL:', window.location.href);
+        console.log('   Hash:', window.location.hash);
+
         // Get the URL hash (Supabase puts auth tokens in the hash)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const type = hashParams.get('type');
+        const accessToken = hashParams.get('access_token');
         const error = hashParams.get('error');
         const errorDescription = hashParams.get('error_description');
 
+        console.log('   Type:', type);
+        console.log('   Has access token:', !!accessToken);
+        console.log('   Error:', error);
+
         if (error) {
+          console.error('❌ Verification error:', errorDescription);
           setStatus('error');
           setMessage(errorDescription || 'Verification failed');
           setTimeout(() => navigate('/'), 3000);
           return;
         }
 
-        if (type === 'signup' || type === 'recovery') {
-          // Email verified successfully
-          // Refresh the user session
+        if (!accessToken) {
+          console.warn('⚠️ No access token found in URL');
+          setStatus('error');
+          setMessage('Invalid verification link');
+          setTimeout(() => navigate('/'), 3000);
+          return;
+        }
+
+        if (type === 'signup' || type === 'recovery' || type === 'email') {
+          console.log('✅ Email verification type detected');
+
+          // Give Supabase a moment to process the session
+          await new Promise(resolve => setTimeout(resolve, 1500));
+
+          // Verify session was created
+          const { session: newSession } = await getSession();
+          console.log('   Session established:', !!newSession);
+          console.log('   User email:', newSession?.user?.email);
+          console.log('   Email verified:', !!newSession?.user?.email_confirmed_at);
+
+          if (!newSession) {
+            console.error('❌ Session not created after verification');
+            setStatus('error');
+            setMessage('Verification succeeded but session failed. Please try signing in manually.');
+            setTimeout(() => navigate('/'), 3000);
+            return;
+          }
+
+          // Refresh the user data in context (this will trigger auth state change)
           await refreshUser();
 
           setStatus('success');
-          setMessage('Email verified successfully!');
+          setMessage('Email verified successfully! You are now signed in.');
+
+          console.log('✅ User verified and signed in, redirecting to home');
 
           // Redirect to home after 2 seconds
           setTimeout(() => {
             navigate('/');
           }, 2000);
         } else {
-          // Unknown type, redirect to home
+          console.log('⚠️ Unknown verification type:', type);
+          // Still try to refresh user in case it's valid
+          await refreshUser();
           navigate('/');
         }
       } catch (err: any) {
-        console.error('Auth callback error:', err);
+        console.error('❌ Auth callback error:', err);
         setStatus('error');
         setMessage(err.message || 'Something went wrong');
         setTimeout(() => navigate('/'), 3000);
