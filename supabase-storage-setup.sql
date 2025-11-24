@@ -17,22 +17,8 @@ VALUES (
   'attachments',
   'attachments',
   true,
-  52428800,  -- 50MB limit for 3D models
-  ARRAY[
-    'application/octet-stream',  -- STL, FBX, OBJ files
-    'model/stl',                 -- STL (official MIME type)
-    'application/vnd.ms-pki.stl', -- STL (Windows)
-    'model/obj',                 -- OBJ (official MIME type)
-    'text/plain',                -- OBJ files and text
-    'image/jpeg',                -- Images
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/svg+xml',
-    'application/pdf',           -- Documents
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  ]::text[]
+  52428800,
+  '{"application/octet-stream","model/stl","application/vnd.ms-pki.stl","model/obj","text/plain","image/jpeg","image/png","image/gif","image/webp","image/svg+xml","application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document"}'::text[]
 )
 ON CONFLICT (id) DO NOTHING;
 

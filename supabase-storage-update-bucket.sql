@@ -8,23 +8,8 @@
 -- Update the bucket to allow 3D model file types
 UPDATE storage.buckets
 SET
-  file_size_limit = 52428800,  -- 50MB limit for 3D models
-  allowed_mime_types = ARRAY[
-    'application/octet-stream',  -- STL, FBX, OBJ files
-    'model/stl',                 -- STL (official MIME type)
-    'application/vnd.ms-pki.stl', -- STL (Windows)
-    'model/obj',                 -- OBJ (official MIME type)
-    'text/plain',                -- OBJ can be text/plain
-    'image/jpeg',                -- Images
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/svg+xml',
-    'application/pdf',           -- Documents
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain'
-  ]::text[]
+  file_size_limit = 52428800,
+  allowed_mime_types = '{"application/octet-stream","model/stl","application/vnd.ms-pki.stl","model/obj","text/plain","image/jpeg","image/png","image/gif","image/webp","image/svg+xml","application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document"}'::text[]
 WHERE id = 'attachments';
 
 -- Verify the update
