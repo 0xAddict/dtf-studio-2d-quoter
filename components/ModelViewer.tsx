@@ -4,7 +4,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
+import { UserMenu } from './UserMenu';
 import { WelcomeModal } from './WelcomeModal';
 import { EmailVerificationModal } from './EmailVerificationModal';
 import { QuoteRequestModal } from './QuoteRequestModal';
@@ -25,6 +27,7 @@ const createPivotHelper = () => {
 
 export default function ModelViewer() {
   const { isDark } = useTheme();
+  const { user, loading: authLoading } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -85,6 +88,13 @@ export default function ModelViewer() {
   useEffect(() => {
     setBackgroundColor(isDark ? '#0f172a' : '#f0f4f8');
   }, [isDark]);
+
+  // Show welcome modal if user is not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      setShowWelcomeModal(true);
+    }
+  }, [authLoading, user]);
 
   // Scene setup - only initialize after welcome modal is dismissed
   useEffect(() => {
@@ -832,8 +842,9 @@ export default function ModelViewer() {
                   </label>
                 )}
 
-                {/* Right: Theme & Panel Toggle */}
+                {/* Right: User Menu, Theme & Panel Toggle */}
                 <div className="flex items-center gap-2">
+                    {user && <UserMenu />}
                     <ThemeToggle />
                     <button
                       onClick={() => setIsPanelOpen(!isPanelOpen)}

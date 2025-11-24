@@ -1,14 +1,46 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
 import ModelViewer from './components/ModelViewer';
+import { MyQuotesPage } from './components/MyQuotesPage';
+import { AuthCallback } from './components/AuthCallback';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
   return (
-    <ThemeProvider>
-      <main className="w-full h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
-        <ModelViewer />
-      </main>
-    </ThemeProvider>
+    <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <Routes>
+            {/* Main model viewer */}
+            <Route
+              path="/"
+              element={
+                <main className="w-full h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
+                  <ModelViewer />
+                </main>
+              }
+            />
+
+            {/* My Quotes page (protected) */}
+            <Route
+              path="/my-quotes"
+              element={
+                <ProtectedRoute>
+                  <main className="w-full min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
+                    <MyQuotesPage />
+                  </main>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Auth callback for email verification */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
+          </Routes>
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 }
 
