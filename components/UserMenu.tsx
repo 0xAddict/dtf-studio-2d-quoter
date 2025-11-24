@@ -24,9 +24,15 @@ export const UserMenu: React.FC = () => {
   }, [isOpen]);
 
   const handleSignOut = async () => {
-    await signOut();
-    setIsOpen(false);
-    navigate('/');
+    console.log('🔄 UserMenu: Starting sign out...');
+    try {
+      await signOut();
+      console.log('✅ UserMenu: Sign out complete');
+      setIsOpen(false);
+      navigate('/');
+    } catch (err) {
+      console.error('❌ UserMenu: Sign out failed:', err);
+    }
   };
 
   const handleMyQuotes = () => {
