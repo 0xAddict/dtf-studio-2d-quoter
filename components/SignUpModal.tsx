@@ -94,9 +94,8 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
   };
 
   const handleBackdropClick = () => {
-    if (!isSubmitting) {
-      onClose();
-    }
+    // Don't allow closing by clicking backdrop
+    // User must either sign up, switch to sign in, or close with X button
   };
 
   const handleModalClick = (e: React.MouseEvent) => {
