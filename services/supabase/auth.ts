@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase, withTimeout } from './client';
 
 export interface SignUpData {
   email: string;
@@ -68,13 +68,26 @@ export async function signIn({ email, password }: SignInData) {
 
 // Sign out
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
+  console.log('🔄 Calling Supabase signOut...');
 
-  if (error) {
-    console.error('Sign out error:', error);
+  try {
+    const { error } = await withTimeout(
+      supabase.auth.signOut(),
+      5000,
+      'Sign out'
+    );
+
+    if (error) {
+      console.error('❌ Sign out error:', error);
+      return { error };
+    }
+
+    console.log('✅ Supabase signOut completed');
+    return { error: null };
+  } catch (err: any) {
+    console.error('❌ Sign out timeout/error:', err.message);
+    return { error: err };
   }
-
-  return { error };
 }
 
 // Get current user with formatted data

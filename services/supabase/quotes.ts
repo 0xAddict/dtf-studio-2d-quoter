@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase, withTimeout } from './client';
 import { getCurrentUser } from './auth';
 
 export interface QuoteData {
@@ -66,24 +66,38 @@ export async function saveQuote(quoteData: QuoteData) {
 
 // Get all quotes for current user
 export async function getUserQuotes() {
-  const user = await getCurrentUser();
+  console.log('📊 getUserQuotes: Starting...');
 
-  if (!user) {
-    return { data: null, error: new Error('User not authenticated') };
+  try {
+    const user = await withTimeout(getCurrentUser(), 5000, 'Get current user');
+
+    if (!user) {
+      console.log('❌ getUserQuotes: No user authenticated');
+      return { data: null, error: new Error('User not authenticated') };
+    }
+
+    console.log('📊 getUserQuotes: Fetching from database...');
+    const { data, error } = await withTimeout(
+      supabase
+        .from('quotes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false }),
+      10000,
+      'Fetch quotes from database'
+    );
+
+    if (error) {
+      console.error('❌ Get user quotes error:', error);
+      return { data: null, error };
+    }
+
+    console.log('✅ getUserQuotes: Success, got', data?.length || 0, 'quotes');
+    return { data: data as Quote[], error: null };
+  } catch (err: any) {
+    console.error('❌ getUserQuotes timeout/error:', err.message);
+    return { data: null, error: err };
   }
-
-  const { data, error } = await supabase
-    .from('quotes')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Get user quotes error:', error);
-    return { data: null, error };
-  }
-
-  return { data: data as Quote[], error: null };
 }
 
 // Get single quote by quote_id
