@@ -168,29 +168,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = async () => {
     console.log('🔄 Signing out...');
-    setLoading(true);
 
-    const { error } = await signOut();
-
-    const { session: postSignOutSession } = await getSession();
-    if (postSignOutSession) {
-      console.error('❌ Sign out failed - session still present');
-      setSession(postSignOutSession);
-      setUser(formatUser(postSignOutSession.user));
-      setLoading(false);
-      return;
-    }
-
+    // Immediately clear local state for responsive UI
     setUser(null);
     setSession(null);
+    setLoading(true);
 
-    if (error) {
-      console.error('❌ Sign out reported an error:', error.message);
-    } else {
-      console.log('✅ Signed out successfully from Supabase');
+    try {
+      // Call signOut (which now handles timeouts internally)
+      const { error } = await signOut();
+
+      if (error) {
+        console.warn('⚠️ Sign out warning:', error.message);
+      } else {
+        console.log('✅ Signed out successfully from Supabase');
+      }
+    } catch (err: any) {
+      console.error('❌ Sign out error:', err.message);
+      // Even on error, keep local state cleared
+    } finally {
+      // Ensure state is cleared regardless of outcome
+      setUser(null);
+      setSession(null);
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const value: AuthContextType = {
