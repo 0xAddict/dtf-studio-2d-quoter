@@ -501,9 +501,12 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
         console.warn('No model file to upload with quote');
       }
 
-      // Save quote to WordPress admin system (quote_requests table - for ALL quotes)
+      // Save quote to database (quote_requests table - for ALL quotes)
+      // Includes user_id for authenticated users, null for anonymous
       try {
         const quoteData = {
+          user_id: user?.id || null,
+          quote_id: quote.quoteId,
           name: formData.name,
           email: formData.email,
           phone: formData.phone || null,
@@ -511,7 +514,23 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           quantity: parseInt(formData.quantity),
           material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
           timeline: formData.timeline || null,
+          finishing: formData.finishing || null,
+          scale: modelData?.scale || 100,
           notes: formData.message || null,
+          // Model file info
+          model_file_name: modelData?.fileName || null,
+          model_file_url: attachmentUrls[0] || null,
+          // Model stats
+          vertices: modelData?.vertices || null,
+          triangles: modelData?.triangles || null,
+          dimensions: modelData?.dimensions ? JSON.stringify(modelData.dimensions) : null,
+          // Pricing breakdown
+          base_cost: quote.pricing.baseCost,
+          material_cost: quote.pricing.materialCost,
+          finishing_cost: quote.pricing.finishingCost,
+          quantity_discount: quote.pricing.quantityDiscount,
+          total_cost: quote.pricing.total,
+          // Keep model_data for backward compatibility with WordPress plugin
           model_data: JSON.stringify({
             quoteId: quote.quoteId,
             fileName: modelData?.fileName,
@@ -528,56 +547,17 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           }),
         };
 
-        const { data: wordpressQuote, error: wpError } = await submitQuote(quoteData);
+        const { data: savedQuote, error: saveError } = await submitQuote(quoteData);
 
-        if (wpError) {
-          console.error('Error saving quote to WordPress system:', wpError);
-          // Don't fail - WordPress sync is not critical
+        if (saveError) {
+          console.error('Error saving quote to database:', saveError);
+          // Don't fail - continue with email submission
         } else {
-          console.log('Quote saved to WordPress admin system successfully:', wordpressQuote);
+          console.log('Quote saved to database successfully:', savedQuote);
         }
-      } catch (wpError) {
-        console.error('Error saving quote to WordPress system:', wpError);
-        // Continue with other systems
-      }
-
-      // Save quote to user history (quotes table - only for authenticated users)
-      if (user && user.emailVerified && modelData) {
-        try {
-          const { data: savedQuote, error: saveError } = await saveQuote({
-            quote_id: quote.quoteId,
-            customer_name: formData.name,
-            customer_email: formData.email,
-            customer_phone: formData.phone,
-            customer_company: formData.company,
-            model_file_name: modelData.fileName,
-            model_file_url: attachmentUrls[0] || '',
-            material: modelData.material,
-            quantity: parseInt(formData.quantity),
-            timeline: formData.timeline,
-            finishing: formData.finishing,
-            scale: modelData.scale,
-            vertices: modelData.vertices,
-            triangles: modelData.triangles,
-            dimensions: modelData.dimensions,
-            base_cost: quote.pricing.baseCost,
-            material_cost: quote.pricing.materialCost,
-            finishing_cost: quote.pricing.finishingCost,
-            quantity_discount: quote.pricing.quantityDiscount,
-            total_cost: quote.pricing.total,
-            message: formData.message,
-          });
-
-          if (saveError) {
-            console.error('Failed to save quote to user history:', saveError);
-            // Continue with email submission even if DB save fails
-          } else {
-            console.log('Quote saved to user history successfully:', savedQuote?.id);
-          }
-        } catch (dbError) {
-          console.error('User history save error:', dbError);
-          // Continue with email submission
-        }
+      } catch (dbError) {
+        console.error('Database save error:', dbError);
+        // Continue with email submission
       }
 
       // Prepare model info for the email

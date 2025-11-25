@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS quote_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id),
     model_id UUID,
+    quote_id TEXT UNIQUE,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
     phone TEXT,
@@ -16,15 +17,38 @@ CREATE TABLE IF NOT EXISTS quote_requests (
     quantity INTEGER NOT NULL,
     material TEXT NOT NULL,
     timeline TEXT,
+    finishing TEXT,
+    scale INTEGER DEFAULT 100,
     notes TEXT,
     model_data JSONB,
+    -- Model file info
+    model_file_name TEXT,
+    model_file_url TEXT,
+    -- Model stats
+    vertices INTEGER,
+    triangles INTEGER,
+    dimensions JSONB,
+    -- Pricing breakdown
+    base_cost DECIMAL(10,2),
+    material_cost DECIMAL(10,2),
+    finishing_cost DECIMAL(10,2),
+    quantity_discount DECIMAL(10,2),
+    total_cost DECIMAL(10,2),
+    -- Status and notes
     status TEXT DEFAULT 'pending',
+    admin_notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ============================================
 -- 2. Create indexes for better performance
 -- ============================================
+
+CREATE INDEX IF NOT EXISTS idx_quote_requests_user_id
+    ON quote_requests(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_quote_requests_quote_id
+    ON quote_requests(quote_id);
 
 CREATE INDEX IF NOT EXISTS idx_quote_requests_status
     ON quote_requests(status);
@@ -51,6 +75,7 @@ ALTER TABLE quote_requests ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow anonymous inserts" ON quote_requests;
 DROP POLICY IF EXISTS "Service role has full access" ON quote_requests;
 DROP POLICY IF EXISTS "Allow read own submissions" ON quote_requests;
+DROP POLICY IF EXISTS "Users can view own quotes" ON quote_requests;
 
 -- ============================================
 -- 5. Create RLS Policies
@@ -70,11 +95,18 @@ CREATE POLICY "Service role has full access" ON quote_requests
     USING (true)
     WITH CHECK (true);
 
--- Policy 3: Allow anyone to SELECT quotes (optional - for public viewing)
+-- Policy 3: Allow authenticated users to view their own quotes
+-- Users can only see quotes where user_id matches their auth.uid()
+CREATE POLICY "Users can view own quotes" ON quote_requests
+    FOR SELECT
+    USING (auth.uid() = user_id);
+
+-- Policy 4: Allow anyone to SELECT quotes (optional - for public viewing)
 -- Remove this if you want quotes to be admin-only
+-- This is mainly for anonymous quote submissions to be viewable
 CREATE POLICY "Allow read own submissions" ON quote_requests
     FOR SELECT
-    USING (true);
+    USING (user_id IS NULL);
 
 -- ============================================
 -- 6. Storage Bucket Setup

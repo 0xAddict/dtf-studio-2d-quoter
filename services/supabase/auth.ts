@@ -71,11 +71,8 @@ export async function signOut() {
   console.log('🔄 Calling Supabase signOut...');
 
   try {
-    const { error } = await withTimeout(
-      supabase.auth.signOut(),
-      5000,
-      'Sign out'
-    );
+    // Remove timeout wrapper - let Supabase complete naturally
+    const { error } = await supabase.auth.signOut();
 
     if (error) {
       console.error('❌ Sign out error:', error);
@@ -85,7 +82,7 @@ export async function signOut() {
     console.log('✅ Supabase signOut completed');
     return { error: null };
   } catch (err: any) {
-    console.error('❌ Sign out timeout/error:', err.message);
+    console.error('❌ Sign out error:', err.message);
     return { error: err };
   }
 }

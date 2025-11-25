@@ -132,7 +132,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
           {/* Price */}
           <div className="text-right">
             <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-              €{quote.total_cost.toFixed(2)}
+              €{quote.total_cost?.toFixed(2) || '0.00'}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
               {quote.quantity} pcs
@@ -195,15 +195,19 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
             <div>
               <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Model Information</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Vertices:</span>
-                  <span className="text-gray-900 dark:text-white">{quote.vertices.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Triangles:</span>
-                  <span className="text-gray-900 dark:text-white">{quote.triangles.toLocaleString()}</span>
-                </div>
-                {quote.dimensions && (
+                {quote.vertices && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Vertices:</span>
+                    <span className="text-gray-900 dark:text-white">{quote.vertices.toLocaleString()}</span>
+                  </div>
+                )}
+                {quote.triangles && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Triangles:</span>
+                    <span className="text-gray-900 dark:text-white">{quote.triangles.toLocaleString()}</span>
+                  </div>
+                )}
+                {quote.dimensions && typeof quote.dimensions === 'object' && (
                   <>
                     <div className="flex justify-between">
                       <span className="text-gray-500 dark:text-gray-400">X:</span>
@@ -223,35 +227,43 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
             </div>
 
             {/* Pricing Breakdown */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Pricing Breakdown</h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Base Cost:</span>
-                  <span className="text-gray-900 dark:text-white">€{quote.base_cost.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Material Cost:</span>
-                  <span className="text-gray-900 dark:text-white">€{quote.material_cost.toFixed(2)}</span>
-                </div>
-                {quote.finishing_cost > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400">Finishing Cost:</span>
-                    <span className="text-gray-900 dark:text-white">€{quote.finishing_cost.toFixed(2)}</span>
-                  </div>
-                )}
-                {quote.quantity_discount > 0 && (
-                  <div className="flex justify-between text-green-600 dark:text-green-400">
-                    <span>Quantity Discount:</span>
-                    <span>-€{quote.quantity_discount.toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-semibold">
-                  <span className="text-gray-900 dark:text-white">Total:</span>
-                  <span className="text-indigo-600 dark:text-indigo-400">€{quote.total_cost.toFixed(2)}</span>
+            {(quote.base_cost !== null || quote.material_cost !== null) && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Pricing Breakdown</h4>
+                <div className="space-y-1 text-sm">
+                  {quote.base_cost !== null && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">Base Cost:</span>
+                      <span className="text-gray-900 dark:text-white">€{quote.base_cost.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {quote.material_cost !== null && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">Material Cost:</span>
+                      <span className="text-gray-900 dark:text-white">€{quote.material_cost.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {quote.finishing_cost !== null && quote.finishing_cost > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">Finishing Cost:</span>
+                      <span className="text-gray-900 dark:text-white">€{quote.finishing_cost.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {quote.quantity_discount !== null && quote.quantity_discount > 0 && (
+                    <div className="flex justify-between text-green-600 dark:text-green-400">
+                      <span>Quantity Discount:</span>
+                      <span>-€{quote.quantity_discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {quote.total_cost !== null && (
+                    <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-semibold">
+                      <span className="text-gray-900 dark:text-white">Total:</span>
+                      <span className="text-indigo-600 dark:text-indigo-400">€{quote.total_cost.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Contact Info */}
             <div>
@@ -259,28 +271,28 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
               <div className="text-sm space-y-1">
                 <div className="flex justify-between">
                   <span className="text-gray-500 dark:text-gray-400">Email:</span>
-                  <span className="text-gray-900 dark:text-white">{quote.customer_email}</span>
+                  <span className="text-gray-900 dark:text-white">{quote.email}</span>
                 </div>
-                {quote.customer_phone && (
+                {quote.phone && (
                   <div className="flex justify-between">
                     <span className="text-gray-500 dark:text-gray-400">Phone:</span>
-                    <span className="text-gray-900 dark:text-white">{quote.customer_phone}</span>
+                    <span className="text-gray-900 dark:text-white">{quote.phone}</span>
                   </div>
                 )}
-                {quote.customer_company && (
+                {quote.company && (
                   <div className="flex justify-between">
                     <span className="text-gray-500 dark:text-gray-400">Company:</span>
-                    <span className="text-gray-900 dark:text-white">{quote.customer_company}</span>
+                    <span className="text-gray-900 dark:text-white">{quote.company}</span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Message */}
-            {quote.message && (
+            {quote.notes && (
               <div>
                 <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Additional Information</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{quote.message}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{quote.notes}</p>
               </div>
             )}
 

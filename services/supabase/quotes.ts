@@ -1,6 +1,43 @@
 import { supabase, withTimeout } from './client';
 import { getCurrentUser } from './auth';
 
+// Quote interface matching the quote_requests table schema
+export interface Quote {
+  id: string;
+  user_id: string | null;
+  model_id: string | null;
+  quote_id: string | null;
+  name: string;
+  email: string;
+  phone: string | null;
+  company: string | null;
+  quantity: number;
+  material: string;
+  timeline: string | null;
+  finishing: string | null;
+  scale: number;
+  notes: string | null;
+  model_data: any;
+  // Model file info
+  model_file_name: string | null;
+  model_file_url: string | null;
+  // Model stats
+  vertices: number | null;
+  triangles: number | null;
+  dimensions: any;
+  // Pricing breakdown
+  base_cost: number | null;
+  material_cost: number | null;
+  finishing_cost: number | null;
+  quantity_discount: number | null;
+  total_cost: number | null;
+  // Status and notes
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+}
+
+// Legacy interface for backward compatibility
 export interface QuoteData {
   quote_id: string;
   customer_name: string;
@@ -23,14 +60,6 @@ export interface QuoteData {
   quantity_discount: number;
   total_cost: number;
   message?: string;
-}
-
-export interface Quote extends QuoteData {
-  id: string;
-  user_id: string;
-  created_at: string;
-  status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled';
-  admin_notes?: string;
 }
 
 // Save quote to database
@@ -69,23 +98,22 @@ export async function getUserQuotes() {
   console.log('📊 getUserQuotes: Starting...');
 
   try {
-    const user = await withTimeout(getCurrentUser(), 5000, 'Get current user');
+    // Get current user - no timeout wrapper
+    const user = await getCurrentUser();
 
     if (!user) {
       console.log('❌ getUserQuotes: No user authenticated');
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    console.log('📊 getUserQuotes: Fetching from database...');
-    const { data, error } = await withTimeout(
-      supabase
-        .from('quotes')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false }),
-      10000,
-      'Fetch quotes from database'
-    );
+    console.log('📊 getUserQuotes: Fetching from quote_requests table...');
+
+    // Fetch quotes from quote_requests table (consolidated table)
+    const { data, error } = await supabase
+      .from('quote_requests')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('❌ Get user quotes error:', error);
@@ -95,7 +123,7 @@ export async function getUserQuotes() {
     console.log('✅ getUserQuotes: Success, got', data?.length || 0, 'quotes');
     return { data: data as Quote[], error: null };
   } catch (err: any) {
-    console.error('❌ getUserQuotes timeout/error:', err.message);
+    console.error('❌ getUserQuotes error:', err.message);
     return { data: null, error: err };
   }
 }
@@ -109,7 +137,7 @@ export async function getQuoteByQuoteId(quoteId: string) {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_requests')
     .select('*')
     .eq('quote_id', quoteId)
     .eq('user_id', user.id)
@@ -132,7 +160,7 @@ export async function getQuote(id: string) {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_requests')
     .select('*')
     .eq('id', id)
     .eq('user_id', user.id)
