@@ -170,9 +170,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('🔄 Signing out...');
 
     // Immediately clear local state for responsive UI
+    // Don't set loading=true - we want the welcome modal to show immediately
     setUser(null);
     setSession(null);
-    setLoading(true);
 
     try {
       // Call signOut (which now handles timeouts internally)
@@ -186,12 +186,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err: any) {
       console.error('❌ Sign out error:', err.message);
       // Even on error, keep local state cleared
-    } finally {
-      // Ensure state is cleared regardless of outcome
-      setUser(null);
-      setSession(null);
-      setLoading(false);
     }
+    // No need for finally block - state is already cleared
   };
 
   const value: AuthContextType = {
