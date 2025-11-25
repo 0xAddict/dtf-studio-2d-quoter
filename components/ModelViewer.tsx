@@ -1252,7 +1252,8 @@ export default function ModelViewer() {
         isOpen={showWelcomeModal}
         onGetQuote={handleGetQuote}
         onTrySample={handleTrySample}
-        onClose={() => setShowWelcomeModal(false)}
+        // Prevent closing the welcome modal on the landing page until the user is authenticated
+        onClose={user ? () => setShowWelcomeModal(false) : undefined}
       />
 
       <EmailVerificationModal
