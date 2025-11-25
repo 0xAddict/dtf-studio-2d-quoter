@@ -69,8 +69,8 @@ export const MyQuotesPage: React.FC = () => {
         console.error('❌ Failed to load quotes:', fetchError);
 
         // Check if it's a table doesn't exist error
-        if (fetchError.message?.includes('relation "quotes" does not exist')) {
-          setError('Quotes table not set up yet. Please run the SQL migration in Supabase Dashboard.');
+        if (fetchError.message?.includes('relation') && fetchError.message?.includes('does not exist')) {
+          setError('Quote requests table not set up yet. Please run the SQL migration in Supabase Dashboard.');
         } else {
           setError(fetchError.message || 'Failed to load quotes');
         }
