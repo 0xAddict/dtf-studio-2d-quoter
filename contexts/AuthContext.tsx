@@ -197,21 +197,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleSignOut = async () => {
     console.log('🔄 Starting sign out...');
 
-    // Set signing out state to show loading UI
-    setSigningOut(true);
+    // Immediately clear local state for responsive UI
+    // Don't set loading=true - we want the welcome modal to show immediately
+    setUser(null);
+    setSession(null);
 
     // Call Supabase signOut - don't clear state yet
     const { error } = await signOut();
 
-    if (error) {
-      console.error('❌ Sign out failed:', error.message);
-      setSigningOut(false);
-      return;
+      if (error) {
+        console.warn('⚠️ Sign out warning:', error.message);
+      } else {
+        console.log('✅ Signed out successfully from Supabase');
+      }
+    } catch (err: any) {
+      console.error('❌ Sign out error:', err.message);
+      // Even on error, keep local state cleared
     }
-
-    // Don't manually clear state here - wait for SIGNED_OUT event
-    // The onAuthStateChange listener will handle it when Supabase confirms
-    console.log('⏳ Sign out called, waiting for SIGNED_OUT event...');
+    // No need for finally block - state is already cleared
   };
 
   const value: AuthContextType = {
