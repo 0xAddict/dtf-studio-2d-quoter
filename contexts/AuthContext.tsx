@@ -29,11 +29,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const formatUser = (supabaseUser: User | null | undefined): AuthUser | null => {
+    if (!supabaseUser) return null;
+
+    return {
+      id: supabaseUser.id,
+      email: supabaseUser.email || '',
+      name: supabaseUser.user_metadata?.name || 'User',
+      emailVerified: !!supabaseUser.email_confirmed_at,
+    };
+  };
+
   // Initialize auth state
   useEffect(() => {
-    // Check active session on mount
-    getSession()
-      .then(({ session, error }) => {
+    const init = async () => {
+      try {
+        const { session, error } = await getSession();
+
         if (error) {
           console.error('❌ Failed to get session:', error.message);
           console.error('   This usually means Supabase is not configured or unreachable.');
@@ -41,20 +53,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         setSession(session);
-        if (session) {
-          getCurrentUser().then(setUser);
+
+        // Populate user immediately from persisted session to avoid UI flicker
+        const initialUser = formatUser(session?.user);
+        if (initialUser) {
+          setUser(initialUser);
         }
-        setLoading(false);
-      })
-      .catch((err) => {
+
+        if (session) {
+          const currentUser = await getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+          }
+        }
+      } catch (err: any) {
         console.error('❌ Fatal error initializing auth:', err);
         console.error('   Error details:', {
           message: err.message,
           name: err.name,
           stack: err.stack?.split('\n')[0]
         });
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    init();
 
     // Listen for auth changes
     const subscription = onAuthStateChange(async (event, session) => {
@@ -62,11 +86,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setSession(session);
 
+      const immediateUser = formatUser(session?.user);
+      setUser(immediateUser);
+
       if (session) {
         console.log('🔍 Fetching current user...');
         const currentUser = await getCurrentUser();
         console.log('🔍 Current user result:', currentUser);
-        setUser(currentUser);
+        if (currentUser) {
+          setUser(currentUser);
+        }
         console.log('✅ User state updated');
       } else {
         console.log('❌ No session, clearing user');
