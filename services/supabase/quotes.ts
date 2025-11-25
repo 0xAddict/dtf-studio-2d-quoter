@@ -1,40 +1,63 @@
 import { supabase, withTimeout } from './client';
 import { getCurrentUser } from './auth';
 
-// Quote interface matching the quote_requests table schema
+// Quote interface matching the quotes table schema
 export interface Quote {
   id: string;
-  user_id: string | null;
-  model_id: string | null;
-  quote_id: string | null;
+  user_id: string;
+  quote_id: string;
+  created_at: string;
   name: string;
   email: string;
   phone: string | null;
   company: string | null;
-  quantity: number;
+  model_id: string | null;
+  model_file_name: string | null;
+  model_file_url: string | null;
+  model_data: any;
   material: string;
+  quantity: number;
   timeline: string | null;
   finishing: string | null;
   scale: number;
   notes: string | null;
-  model_data: any;
-  // Model file info
-  model_file_name: string | null;
-  model_file_url: string | null;
-  // Model stats
   vertices: number | null;
   triangles: number | null;
   dimensions: any;
-  // Pricing breakdown
   base_cost: number | null;
   material_cost: number | null;
   finishing_cost: number | null;
   quantity_discount: number | null;
   total_cost: number | null;
-  // Status and notes
-  status: string;
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled';
   admin_notes: string | null;
-  created_at: string;
+  quote_request_id: string | null;
+}
+
+// Data structure for submitting a new quote
+export interface QuoteSubmission {
+  quote_id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  model_file_name: string;
+  model_file_url?: string;
+  model_data?: any;
+  material: string;
+  quantity: number;
+  timeline?: string;
+  finishing?: string;
+  scale?: number;
+  notes?: string;
+  vertices?: number;
+  triangles?: number;
+  dimensions?: { x: string; y: string; z: string };
+  base_cost?: number;
+  material_cost?: number;
+  finishing_cost?: number;
+  quantity_discount?: number;
+  total_cost?: number;
 }
 
 // Legacy interface for backward compatibility
@@ -62,7 +85,10 @@ export interface QuoteData {
   message?: string;
 }
 
-// Save quote to database
+/**
+ * Save quote to database
+ * Inserts into quote_requests table - trigger will auto-copy to quotes table
+ */
 export async function saveQuote(quoteData: QuoteData) {
   const user = await getCurrentUser();
 
@@ -74,14 +100,37 @@ export async function saveQuote(quoteData: QuoteData) {
     return { data: null, error: new Error('Email not verified. Please verify your email before submitting quotes.') };
   }
 
+  // Map legacy QuoteData fields to quote_requests columns
+  const insertData = {
+    user_id: user.id,
+    quote_id: quoteData.quote_id,
+    name: quoteData.customer_name,
+    email: quoteData.customer_email,
+    phone: quoteData.customer_phone || null,
+    company: quoteData.customer_company || null,
+    model_file_name: quoteData.model_file_name,
+    model_file_url: quoteData.model_file_url || null,
+    material: quoteData.material,
+    quantity: quoteData.quantity,
+    timeline: quoteData.timeline || null,
+    finishing: quoteData.finishing || null,
+    scale: quoteData.scale || 100,
+    notes: quoteData.message || null,
+    vertices: quoteData.vertices || null,
+    triangles: quoteData.triangles || null,
+    dimensions: quoteData.dimensions || null,
+    base_cost: quoteData.base_cost || null,
+    material_cost: quoteData.material_cost || null,
+    finishing_cost: quoteData.finishing_cost || null,
+    quantity_discount: quoteData.quantity_discount || null,
+    total_cost: quoteData.total_cost || null,
+    status: 'pending',
+  };
+
+  // Insert into quote_requests - trigger will copy to quotes table
   const { data, error } = await supabase
     .from('quote_requests')
-    .insert([
-      {
-        user_id: user.id,
-        ...quoteData,
-      },
-    ])
+    .insert([insertData])
     .select()
     .single();
 
@@ -90,15 +139,18 @@ export async function saveQuote(quoteData: QuoteData) {
     return { data: null, error };
   }
 
+  console.log('✅ Quote saved to quote_requests, trigger will sync to quotes table');
   return { data: data as Quote, error: null };
 }
 
-// Get all quotes for current user
+/**
+ * Get all quotes for current user
+ * Reads from quotes table (user-scoped RLS)
+ */
 export async function getUserQuotes() {
   console.log('📊 getUserQuotes: Starting...');
 
   try {
-    // Get current user - no timeout wrapper
     const user = await getCurrentUser();
 
     if (!user) {
@@ -106,13 +158,12 @@ export async function getUserQuotes() {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    console.log('📊 getUserQuotes: Fetching from quote_requests table...');
+    console.log('📊 getUserQuotes: Fetching from quotes table...');
 
-    // Fetch quotes from quote_requests table (same table used for saving)
+    // Read from quotes table - RLS ensures user only sees their own
     const { data, error } = await supabase
-      .from('quote_requests')
+      .from('quotes')
       .select('*')
-      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -128,7 +179,10 @@ export async function getUserQuotes() {
   }
 }
 
-// Get single quote by quote_id
+/**
+ * Get single quote by quote_id
+ * Reads from quotes table (user-scoped RLS)
+ */
 export async function getQuoteByQuoteId(quoteId: string) {
   const user = await getCurrentUser();
 
@@ -137,10 +191,9 @@ export async function getQuoteByQuoteId(quoteId: string) {
   }
 
   const { data, error } = await supabase
-    .from('quote_requests')
+    .from('quotes')
     .select('*')
     .eq('quote_id', quoteId)
-    .eq('user_id', user.id)
     .single();
 
   if (error) {
@@ -151,7 +204,10 @@ export async function getQuoteByQuoteId(quoteId: string) {
   return { data: data as Quote, error: null };
 }
 
-// Get single quote by id (UUID)
+/**
+ * Get single quote by id (UUID)
+ * Reads from quotes table (user-scoped RLS)
+ */
 export async function getQuote(id: string) {
   const user = await getCurrentUser();
 
@@ -160,10 +216,9 @@ export async function getQuote(id: string) {
   }
 
   const { data, error } = await supabase
-    .from('quote_requests')
+    .from('quotes')
     .select('*')
     .eq('id', id)
-    .eq('user_id', user.id)
     .single();
 
   if (error) {
@@ -174,7 +229,10 @@ export async function getQuote(id: string) {
   return { data: data as Quote, error: null };
 }
 
-// Update quote status (user can cancel their own quotes)
+/**
+ * Update quote status (user can cancel their own quotes)
+ * Updates quotes table (user-scoped RLS)
+ */
 export async function updateQuoteStatus(quoteId: string, status: Quote['status']) {
   const user = await getCurrentUser();
 
@@ -188,10 +246,9 @@ export async function updateQuoteStatus(quoteId: string, status: Quote['status']
   }
 
   const { data, error } = await supabase
-    .from('quote_requests')
+    .from('quotes')
     .update({ status })
     .eq('quote_id', quoteId)
-    .eq('user_id', user.id)
     .select()
     .single();
 
@@ -203,7 +260,10 @@ export async function updateQuoteStatus(quoteId: string, status: Quote['status']
   return { data: data as Quote, error: null };
 }
 
-// Get quotes by status
+/**
+ * Get quotes by status
+ * Reads from quotes table (user-scoped RLS)
+ */
 export async function getQuotesByStatus(status: Quote['status']) {
   const user = await getCurrentUser();
 
@@ -212,9 +272,8 @@ export async function getQuotesByStatus(status: Quote['status']) {
   }
 
   const { data, error } = await supabase
-    .from('quote_requests')
+    .from('quotes')
     .select('*')
-    .eq('user_id', user.id)
     .eq('status', status)
     .order('created_at', { ascending: false });
 
@@ -226,7 +285,10 @@ export async function getQuotesByStatus(status: Quote['status']) {
   return { data: data as Quote[], error: null };
 }
 
-// Get quote statistics for user
+/**
+ * Get quote statistics for user
+ * Reads from quotes table (user-scoped RLS)
+ */
 export async function getUserQuoteStats() {
   const user = await getCurrentUser();
 
@@ -238,9 +300,8 @@ export async function getUserQuoteStats() {
   }
 
   const { data, error } = await supabase
-    .from('quote_requests')
-    .select('status, total_cost')
-    .eq('user_id', user.id);
+    .from('quotes')
+    .select('status, total_cost');
 
   if (error) {
     console.error('Get quote stats error:', error);
@@ -262,7 +323,10 @@ export async function getUserQuoteStats() {
   return { data: stats, error: null };
 }
 
-// Search quotes by text
+/**
+ * Search quotes by text
+ * Reads from quotes table (user-scoped RLS)
+ */
 export async function searchQuotes(searchTerm: string) {
   const user = await getCurrentUser();
 
@@ -271,9 +335,8 @@ export async function searchQuotes(searchTerm: string) {
   }
 
   const { data, error } = await supabase
-    .from('quote_requests')
+    .from('quotes')
     .select('*')
-    .eq('user_id', user.id)
     .or(`quote_id.ilike.%${searchTerm}%,model_file_name.ilike.%${searchTerm}%,material.ilike.%${searchTerm}%`)
     .order('created_at', { ascending: false });
 
