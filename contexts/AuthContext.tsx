@@ -210,7 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         console.log('✅ Signed out successfully from Supabase');
       }
-    } catch (err: any) {
+    } ;catch (err: any) {
       console.error('❌ Sign out error:', err.message);
       // Even on error, keep local state cleared
     }
