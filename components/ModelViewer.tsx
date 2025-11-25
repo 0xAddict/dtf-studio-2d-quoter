@@ -98,11 +98,18 @@ export default function ModelViewer() {
 
   // Show welcome modal if user is not authenticated
   useEffect(() => {
-    // Don't show welcome modal if we're processing an auth callback
-    const hasAuthCallback = window.location.hash.includes('access_token') ||
-                           window.location.hash.includes('type=');
+    // Don't show welcome modal while we're on the auth callback route
+    const isAuthCallbackRoute = window.location.pathname === '/auth/callback';
 
-    if (!authLoading && !user && !hasAuthCallback) {
+    // If auth hash params leak onto the landing page (e.g., after sign out),
+    // clear them so the welcome/login modal can appear normally.
+    const hasAuthHash = window.location.hash.includes('access_token') ||
+                        window.location.hash.includes('type=');
+    if (!isAuthCallbackRoute && hasAuthHash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+
+    if (!authLoading && !user && !isAuthCallbackRoute) {
       setShowWelcomeModal(true);
     } else if (user) {
       // Close welcome modal when user is authenticated
