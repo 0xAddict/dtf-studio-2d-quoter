@@ -75,7 +75,7 @@ export async function saveQuote(quoteData: QuoteData) {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_requests')
     .insert([
       {
         user_id: user.id,
@@ -108,7 +108,7 @@ export async function getUserQuotes() {
 
     console.log('📊 getUserQuotes: Fetching from quote_requests table...');
 
-    // Fetch quotes from quote_requests table (consolidated table)
+    // Fetch quotes from quote_requests table (primary table)
     const { data, error } = await supabase
       .from('quote_requests')
       .select('*')
@@ -188,7 +188,7 @@ export async function updateQuoteStatus(quoteId: string, status: Quote['status']
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_requests')
     .update({ status })
     .eq('quote_id', quoteId)
     .eq('user_id', user.id)
@@ -212,7 +212,7 @@ export async function getQuotesByStatus(status: Quote['status']) {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_requests')
     .select('*')
     .eq('user_id', user.id)
     .eq('status', status)
@@ -238,7 +238,7 @@ export async function getUserQuoteStats() {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_requests')
     .select('status, total_cost')
     .eq('user_id', user.id);
 
@@ -271,7 +271,7 @@ export async function searchQuotes(searchTerm: string) {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_requests')
     .select('*')
     .eq('user_id', user.id)
     .or(`quote_id.ilike.%${searchTerm}%,model_file_name.ilike.%${searchTerm}%,material.ilike.%${searchTerm}%`)

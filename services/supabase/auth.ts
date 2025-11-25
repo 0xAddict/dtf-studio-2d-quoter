@@ -71,16 +71,32 @@ export async function signOut() {
   console.log('🔄 Calling Supabase signOut...');
 
   try {
-    // Remove timeout wrapper - let Supabase complete naturally
-    const { error } = await supabase.auth.signOut();
+    const { error: globalError } = await supabase.auth.signOut({ scope: 'global' });
 
-    if (error) {
-      console.error('❌ Sign out error:', error);
-      return { error };
+    if (globalError) {
+      console.warn('⚠️ Global sign out failed, attempting local-only cleanup:', globalError.message);
     }
 
-    console.log('✅ Supabase signOut completed');
-    return { error: null };
+    // Even if the network request fails, make sure local auth state is cleared
+    const { data: { session: stillSignedIn } } = await supabase.auth.getSession();
+    if (stillSignedIn) {
+      console.log('🧹 Clearing local auth session');
+      const { error: localError } = await supabase.auth.signOut({ scope: 'local' });
+      if (localError) {
+        console.error('❌ Local sign out error:', localError);
+        return { error: localError };
+      }
+    }
+
+    const { data: { session: finalSession } } = await supabase.auth.getSession();
+    if (finalSession) {
+      const residualError = new Error('Sign out did not clear the local session');
+      console.error('❌', residualError.message);
+      return { error: residualError };
+    }
+
+    console.log('✅ Supabase signOut completed and local session cleared');
+    return { error: globalError ?? null };
   } catch (err: any) {
     console.error('❌ Sign out error:', err.message);
     return { error: err };
