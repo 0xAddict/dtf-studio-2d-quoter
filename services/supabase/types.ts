@@ -112,6 +112,7 @@ export interface Database {
           id: string;
           user_id: string | null;
           model_id: string | null;
+          quote_id: string | null;
           name: string;
           email: string;
           phone: string | null;
@@ -119,15 +120,33 @@ export interface Database {
           quantity: number;
           material: string;
           timeline: string | null;
+          finishing: string | null;
+          scale: number;
           notes: string | null;
-          model_data: Json;
+          model_data: Json | null;
+          // Model file info
+          model_file_name: string | null;
+          model_file_url: string | null;
+          // Model stats
+          vertices: number | null;
+          triangles: number | null;
+          dimensions: Json | null;
+          // Pricing breakdown
+          base_cost: number | null;
+          material_cost: number | null;
+          finishing_cost: number | null;
+          quantity_discount: number | null;
+          total_cost: number | null;
+          // Status and notes
           status: string;
+          admin_notes: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           user_id?: string | null;
           model_id?: string | null;
+          quote_id?: string | null;
           name: string;
           email: string;
           phone?: string | null;
@@ -135,14 +154,32 @@ export interface Database {
           quantity: number;
           material: string;
           timeline?: string | null;
+          finishing?: string | null;
+          scale?: number;
           notes?: string | null;
-          model_data: Json;
+          model_data?: Json | null;
+          // Model file info
+          model_file_name?: string | null;
+          model_file_url?: string | null;
+          // Model stats
+          vertices?: number | null;
+          triangles?: number | null;
+          dimensions?: Json | null;
+          // Pricing breakdown
+          base_cost?: number | null;
+          material_cost?: number | null;
+          finishing_cost?: number | null;
+          quantity_discount?: number | null;
+          total_cost?: number | null;
+          // Status and notes
           status?: string;
+          admin_notes?: string | null;
           created_at?: string;
         };
         Update: {
           status?: string;
           notes?: string | null;
+          admin_notes?: string | null;
         };
       };
     };
