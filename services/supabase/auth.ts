@@ -70,53 +70,32 @@ export async function signIn({ email, password }: SignInData) {
 export async function signOut() {
   console.log('🔄 Calling Supabase signOut...');
 
-  // First, immediately clear local session for fast UI response
   try {
-    console.log('🧹 Clearing local auth session first...');
-    const { error: localError } = await supabase.auth.signOut({ scope: 'local' });
-    if (localError) {
-      console.warn('⚠️ Local sign out warning:', localError.message);
-    }
-    console.log('✅ Local session cleared');
-  } catch (err: any) {
-    console.warn('⚠️ Local sign out error:', err.message);
-  }
+    // Attempt global sign out with a 3-second timeout
+    // We race the real signOut against a timeout promise
+    const { error } = await Promise.race([
+      supabase.auth.signOut(), // Defaults to global scope
+      new Promise<{ error: { message: string } }>((resolve) =>
+        setTimeout(() => resolve({ error: { message: 'Sign out request timed out' } }), 3000)
+      )
+    ]);
 
-  // Then attempt global sign out with timeout (fire-and-forget style)
-  // This invalidates tokens on the server but we don't wait forever for it
-  try {
-    const globalSignOutPromise = supabase.auth.signOut({ scope: 'global' });
-    const timeoutPromise = new Promise<{ error: Error }>((resolve) => {
-      setTimeout(() => {
-        resolve({ error: new Error('Global sign out timed out (this is OK, local session is cleared)') });
-      }, 3000); // 3 second timeout for global sign out
-    });
-
-    const result = await Promise.race([globalSignOutPromise, timeoutPromise]);
-
-    if (result.error) {
-      console.warn('⚠️ Global sign out:', result.error.message);
-    } else {
-      console.log('✅ Global sign out completed');
-    }
-  } catch (err: any) {
-    console.warn('⚠️ Global sign out failed (local session already cleared):', err.message);
-  }
-
-  // Verify local session is cleared
-  try {
-    const { data: { session: finalSession } } = await supabase.auth.getSession();
-    if (finalSession) {
-      console.warn('⚠️ Session still present after sign out, forcing clear...');
-      // Force clear by signing out locally again
+    if (error) {
+      console.warn('⚠️ Global sign out issue:', error.message);
+      // If global fails or times out, force local cleanup to ensure the user is logged out in the browser
+      console.log('🧹 Forcing local session cleanup...');
       await supabase.auth.signOut({ scope: 'local' });
+    } else {
+      console.log('✅ Global sign out completed successfully');
     }
-  } catch (err: any) {
-    console.warn('⚠️ Session verification error:', err.message);
-  }
 
-  console.log('✅ Sign out process completed');
-  return { error: null };
+    return { error: null };
+  } catch (err: any) {
+    console.error('❌ Sign out error:', err.message);
+    // Last resort: force clear local session
+    await supabase.auth.signOut({ scope: 'local' });
+    return { error: err };
+  }
 }
 
 // Get current user with formatted data
@@ -128,11 +107,6 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   }
 
   const emailVerified = !!user.email_confirmed_at;
-
-  console.log('📧 Email verification status:');
-  console.log('   Email:', user.email);
-  console.log('   email_confirmed_at:', user.email_confirmed_at);
-  console.log('   emailVerified:', emailVerified);
 
   return {
     id: user.id,
