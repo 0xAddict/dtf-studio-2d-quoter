@@ -56,22 +56,33 @@ ALTER TABLE quotes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view own quotes" ON quotes;
 DROP POLICY IF EXISTS "Users can insert own quotes" ON quotes;
 DROP POLICY IF EXISTS "Users can update own quotes" ON quotes;
+DROP POLICY IF EXISTS "Service role has full access" ON quotes;
 
 -- Policy: Users can view their own quotes
+-- Using (select auth.uid()) for performance optimization (prevents re-evaluation per row)
 CREATE POLICY "Users can view own quotes"
   ON quotes FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 -- Policy: Users can insert their own quotes
+-- Using (select auth.uid()) for performance optimization (prevents re-evaluation per row)
 CREATE POLICY "Users can insert own quotes"
   ON quotes FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((select auth.uid()) = user_id);
 
 -- Policy: Users can update their own quotes (for cancellations, etc.)
+-- Using (select auth.uid()) for performance optimization (prevents re-evaluation per row)
 CREATE POLICY "Users can update own quotes"
   ON quotes FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
+
+-- Policy: Service role has full access
+CREATE POLICY "Service role has full access"
+  ON quotes FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
 
 -- Optional: Add a policy for admins to view all quotes
 -- Uncomment if you want to set up an admin role later

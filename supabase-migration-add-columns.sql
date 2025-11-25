@@ -159,11 +159,19 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_quote_requests_user_id ON quote_requests(user_id);
 CREATE INDEX IF NOT EXISTS idx_quote_requests_quote_id ON quote_requests(quote_id);
 
--- Add RLS policy for users to view their own quotes
+-- Add RLS policy for authenticated users to view their own quotes
+-- Using (select auth.uid()) for performance optimization (prevents re-evaluation per row)
+-- NOTE: This policy is now replaced by the consolidated policy in supabase-setup.sql
+-- The new consolidated policy is "Authenticated users can view own quotes"
 DROP POLICY IF EXISTS "Users can view own quotes" ON quote_requests;
-CREATE POLICY "Users can view own quotes" ON quote_requests
+DROP POLICY IF EXISTS "Authenticated users can view own quotes" ON quote_requests;
+CREATE POLICY "Authenticated users can view own quotes" ON quote_requests
     FOR SELECT
-    USING (auth.uid() = user_id);
+    TO authenticated
+    USING (
+        (select auth.uid()) = user_id
+        OR user_id IS NULL
+    );
 
 -- Verify the migration
 SELECT
