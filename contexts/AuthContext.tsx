@@ -42,17 +42,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
-  const formatUser = (supabaseUser: User | null | undefined): AuthUser | null => {
-    if (!supabaseUser) return null;
-
-    return {
-      id: supabaseUser.id,
-      email: supabaseUser.email || '',
-      name: supabaseUser.user_metadata?.name || 'User',
-      emailVerified: !!supabaseUser.email_confirmed_at,
-    };
-  };
-
   // Initialize auth state
   useEffect(() => {
     const init = async () => {
@@ -123,17 +112,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         setLoading(false);
-      const immediateUser = formatUser(session?.user);
-      setUser(immediateUser);
-
-      if (session) {
-        console.log('🔍 Fetching current user...');
-        const currentUser = await getCurrentUser();
-        console.log('🔍 Current user result:', currentUser);
-        if (currentUser) {
-          setUser(currentUser);
-        }
-        console.log('✅ User state updated');
       } else {
         // Handle other events (INITIAL_SESSION, etc.)
         setSession(session);
@@ -234,29 +212,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Don't manually clear state here - wait for SIGNED_OUT event
     // The onAuthStateChange listener will handle it when Supabase confirms
     console.log('⏳ Sign out called, waiting for SIGNED_OUT event...');
-    // Immediately clear local state for responsive UI
-    setUser(null);
-    setSession(null);
-    setLoading(true);
-
-    try {
-      // Call signOut (which now handles timeouts internally)
-      const { error } = await signOut();
-
-      if (error) {
-        console.warn('⚠️ Sign out warning:', error.message);
-      } else {
-        console.log('✅ Signed out successfully from Supabase');
-      }
-    } catch (err: any) {
-      console.error('❌ Sign out error:', err.message);
-      // Even on error, keep local state cleared
-    } finally {
-      // Ensure state is cleared regardless of outcome
-      setUser(null);
-      setSession(null);
-      setLoading(false);
-    }
   };
 
   const value: AuthContextType = {
