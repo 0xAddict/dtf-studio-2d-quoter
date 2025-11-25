@@ -106,11 +106,11 @@ export async function getUserQuotes() {
       return { data: null, error: new Error('User not authenticated') };
     }
 
-    console.log('📊 getUserQuotes: Fetching from quotes table...');
+    console.log('📊 getUserQuotes: Fetching from quote_requests table...');
 
-    // Fetch quotes from quote_requests table (primary table)
+    // Fetch quotes from quote_requests table (same table used for saving)
     const { data, error } = await supabase
-      .from('quotes')
+      .from('quote_requests')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
@@ -137,7 +137,7 @@ export async function getQuoteByQuoteId(quoteId: string) {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_requests')
     .select('*')
     .eq('quote_id', quoteId)
     .eq('user_id', user.id)
@@ -160,7 +160,7 @@ export async function getQuote(id: string) {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_requests')
     .select('*')
     .eq('id', id)
     .eq('user_id', user.id)
