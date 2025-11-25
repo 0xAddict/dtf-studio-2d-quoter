@@ -31,11 +31,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
 
+  const formatUser = (supabaseUser: User | null | undefined): AuthUser | null => {
+    if (!supabaseUser) return null;
+
+    return {
+      id: supabaseUser.id,
+      email: supabaseUser.email || '',
+      name: supabaseUser.user_metadata?.name || 'User',
+      emailVerified: !!supabaseUser.email_confirmed_at,
+    };
+  };
+
   // Initialize auth state
   useEffect(() => {
-    // Check active session on mount
-    getSession()
-      .then(({ session, error }) => {
+    const init = async () => {
+      try {
+        const { session, error } = await getSession();
+
         if (error) {
           console.error('❌ Failed to get session:', error.message);
           console.error('   This usually means Supabase is not configured or unreachable.');
@@ -43,20 +55,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         setSession(session);
-        if (session) {
-          getCurrentUser().then(setUser);
+
+        // Populate user immediately from persisted session to avoid UI flicker
+        const initialUser = formatUser(session?.user);
+        if (initialUser) {
+          setUser(initialUser);
         }
-        setLoading(false);
-      })
-      .catch((err) => {
+
+        if (session) {
+          const currentUser = await getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+          }
+        }
+      } catch (err: any) {
         console.error('❌ Fatal error initializing auth:', err);
         console.error('   Error details:', {
           message: err.message,
           name: err.name,
           stack: err.stack?.split('\n')[0]
         });
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    init();
 
     // Listen for auth changes - this is the source of truth
     const subscription = onAuthStateChange(async (event, session) => {
@@ -73,18 +97,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         console.log('🔑 User authenticated, fetching user data...');
         setSession(session);
+
+        // Set immediate user to avoid flicker
+        const immediateUser = formatUser(session?.user);
+        if (immediateUser) {
+          setUser(immediateUser);
+        }
+
         if (session) {
           const currentUser = await getCurrentUser();
           console.log('🔍 Current user result:', currentUser);
-          setUser(currentUser);
+          if (currentUser) {
+            setUser(currentUser);
+          }
         }
         setLoading(false);
       } else {
         // Handle other events (INITIAL_SESSION, etc.)
         setSession(session);
+
+        const immediateUser = formatUser(session?.user);
+        if (immediateUser) {
+          setUser(immediateUser);
+        }
+
         if (session) {
           const currentUser = await getCurrentUser();
-          setUser(currentUser);
+          if (currentUser) {
+            setUser(currentUser);
+          }
         } else {
           setUser(null);
         }
