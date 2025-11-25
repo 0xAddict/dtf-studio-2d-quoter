@@ -5,13 +5,11 @@ import type { Database } from './types';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
-// Debug: Log configuration status (remove in production)
-if (import.meta.env.DEV) {
-  console.log('🔧 Supabase Configuration:');
-  console.log('  URL:', supabaseUrl === 'https://your-project.supabase.co' ? '❌ NOT CONFIGURED' : '✅ ' + supabaseUrl);
-  console.log('  Anon Key:', supabaseAnonKey === 'your-anon-key' ? '❌ NOT CONFIGURED' : '✅ Configured');
-  console.log('  Ready:', isSupabaseConfigured() ? '✅ Yes' : '❌ No - Please configure .env and restart dev server');
-}
+// Debug: Log configuration status
+console.log('🔧 Supabase Configuration:');
+console.log('  URL:', supabaseUrl === 'https://your-project.supabase.co' ? '❌ NOT CONFIGURED' : '✅ ' + supabaseUrl);
+console.log('  Anon Key:', supabaseAnonKey === 'your-anon-key' ? '❌ NOT CONFIGURED' : '✅ Configured');
+console.log('  Ready:', isSupabaseConfigured() ? '✅ Yes' : '❌ No - Please configure .env');
 
 // Create Supabase client
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -19,6 +17,11 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+  },
+  global: {
+    headers: {
+      'x-application-name': 'hexea-forge',
+    },
   },
 });
 
@@ -28,6 +31,21 @@ export function isSupabaseConfigured() {
     supabaseUrl !== 'https://your-project.supabase.co' &&
     supabaseAnonKey !== 'your-anon-key'
   );
+}
+
+// Timeout wrapper for async operations
+export async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number = 10000,
+  operationName: string = 'Operation'
+): Promise<T> {
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`${operationName} timed out after ${timeoutMs}ms. Check network connection and Supabase status.`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]);
 }
 
 // Storage bucket names
