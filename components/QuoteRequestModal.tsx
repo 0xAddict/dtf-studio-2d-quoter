@@ -523,7 +523,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           // Model stats
           vertices: modelData?.vertices || null,
           triangles: modelData?.triangles || null,
-          dimensions: modelData?.dimensions ? JSON.stringify(modelData.dimensions) : null,
+          dimensions: modelData?.dimensions || null,
           // Pricing breakdown
           base_cost: quote.pricing.baseCost,
           material_cost: quote.pricing.materialCost,
@@ -531,7 +531,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           quantity_discount: quote.pricing.quantityDiscount,
           total_cost: quote.pricing.total,
           // Keep model_data for backward compatibility with WordPress plugin
-          model_data: JSON.stringify({
+          model_data: {
             quoteId: quote.quoteId,
             fileName: modelData?.fileName,
             material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
@@ -544,10 +544,18 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
             dimensions: modelData?.dimensions,
             pricing: quote.pricing,
             attachmentUrl: attachmentUrls[0] || null,
-          }),
+          },
         };
 
-        const { data: savedQuote, error: saveError } = await submitQuote(quoteData);
+        // Add timeout for database save
+        const dbSavePromise = submitQuote(quoteData);
+        const dbTimeoutPromise = new Promise<{ data: null; error: Error }>((resolve) => {
+          setTimeout(() => {
+            resolve({ data: null, error: new Error('Database save timed out') });
+          }, 10000); // 10 second timeout
+        });
+
+        const { data: savedQuote, error: saveError } = await Promise.race([dbSavePromise, dbTimeoutPromise]);
 
         if (saveError) {
           console.error('Error saving quote to database:', saveError);
@@ -584,36 +592,54 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
         ? `\n\nModel File Download:\n${attachmentUrls[0]}`
         : '';
 
-      // Send to Web3Forms
-      const response = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          access_key: 'ad897559-e4df-411a-bcb7-086c366bf81f',
-          subject: `New Quote Request #${quote.quoteId} - ${formData.name}`,
-          from_name: 'Hexea Forge',
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || 'Not provided',
-          company: formData.company || 'Not provided',
-          quantity: formData.quantity,
-          timeline: formData.timeline || 'Not specified',
-          finishing: formData.finishing || 'Standard',
-          message: formData.message || 'No additional information',
-          model_info: modelInfo + attachmentLinks,
-        }),
-      });
+      // Send to Web3Forms with timeout
+      const web3formsKey = import.meta.env.VITE_WEB3FORMS_KEY || 'ad897559-e4df-411a-bcb7-086c366bf81f';
 
-      const result = await response.json();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-      if (result.success) {
-        setSubmitStatus('success');
-        // Auto-download quote PDF
-        downloadQuotePDF(quote);
-      } else {
-        throw new Error('Submission failed');
+      try {
+        const response = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            access_key: web3formsKey,
+            subject: `New Quote Request #${quote.quoteId} - ${formData.name}`,
+            from_name: 'Hexea Forge',
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || 'Not provided',
+            company: formData.company || 'Not provided',
+            quantity: formData.quantity,
+            timeline: formData.timeline || 'Not specified',
+            finishing: formData.finishing || 'Standard',
+            message: formData.message || 'No additional information',
+            model_info: modelInfo + attachmentLinks,
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        const result = await response.json();
+
+        if (result.success) {
+          setSubmitStatus('success');
+          // Auto-download quote PDF
+          downloadQuotePDF(quote);
+        } else {
+          console.error('Web3Forms error:', result);
+          throw new Error(result.message || 'Email submission failed');
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          console.error('Web3Forms request timed out');
+          throw new Error('Email service timed out. Quote was saved but email notification failed.');
+        }
+        throw fetchError;
       }
     } catch (error) {
       console.error('Form submission error:', error);
