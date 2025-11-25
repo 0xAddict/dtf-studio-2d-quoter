@@ -16,6 +16,7 @@ interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
   loading: boolean;
+  signingOut: boolean;
   signUp: (data: SignUpData) => Promise<{ data: any; error: any }>;
   signIn: (data: SignInData) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
 
   // Initialize auth state
   useEffect(() => {
@@ -56,24 +58,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       });
 
-    // Listen for auth changes
+    // Listen for auth changes - this is the source of truth
     const subscription = onAuthStateChange(async (event, session) => {
       console.log('✅ Auth state changed:', event, session?.user?.email);
 
-      setSession(session);
-
-      if (session) {
-        console.log('🔍 Fetching current user...');
-        const currentUser = await getCurrentUser();
-        console.log('🔍 Current user result:', currentUser);
-        setUser(currentUser);
-        console.log('✅ User state updated');
-      } else {
-        console.log('❌ No session, clearing user');
+      // Handle specific events
+      if (event === 'SIGNED_OUT') {
+        // This is the definitive sign-out event from Supabase
+        console.log('🚪 SIGNED_OUT event received - clearing state');
         setUser(null);
+        setSession(null);
+        setSigningOut(false);
+        setLoading(false);
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log('🔑 User authenticated, fetching user data...');
+        setSession(session);
+        if (session) {
+          const currentUser = await getCurrentUser();
+          console.log('🔍 Current user result:', currentUser);
+          setUser(currentUser);
+        }
+        setLoading(false);
+      } else {
+        // Handle other events (INITIAL_SESSION, etc.)
+        setSession(session);
+        if (session) {
+          const currentUser = await getCurrentUser();
+          setUser(currentUser);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
     return () => {
@@ -138,29 +154,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleSignOut = async () => {
-    console.log('🔄 Signing out...');
+    console.log('🔄 Starting sign out...');
 
-    // Clear local state immediately (optimistic update)
-    setUser(null);
-    setSession(null);
-    console.log('✅ Local state cleared (optimistic)');
+    // Set signing out state to show loading UI
+    setSigningOut(true);
 
-    // Then call Supabase in background
+    // Call Supabase signOut - don't clear state yet
     const { error } = await signOut();
 
     if (error) {
       console.error('❌ Sign out failed:', error.message);
-      // State already cleared, so UI shows as signed out
+      setSigningOut(false);
       return;
     }
 
-    console.log('✅ Signed out successfully from Supabase');
+    // Don't manually clear state here - wait for SIGNED_OUT event
+    // The onAuthStateChange listener will handle it when Supabase confirms
+    console.log('⏳ Sign out called, waiting for SIGNED_OUT event...');
   };
 
   const value: AuthContextType = {
     user,
     session,
     loading,
+    signingOut,
     signUp: handleSignUp,
     signIn: handleSignIn,
     signOut: handleSignOut,
