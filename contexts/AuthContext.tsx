@@ -63,9 +63,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
 
       if (session) {
+        console.log('🔍 Fetching current user...');
         const currentUser = await getCurrentUser();
+        console.log('🔍 Current user result:', currentUser);
         setUser(currentUser);
+        console.log('✅ User state updated');
       } else {
+        console.log('❌ No session, clearing user');
         setUser(null);
       }
 
@@ -135,18 +139,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = async () => {
     console.log('🔄 Signing out...');
+
+    // Clear local state immediately (optimistic update)
+    setUser(null);
+    setSession(null);
+    console.log('✅ Local state cleared (optimistic)');
+
+    // Then call Supabase in background
     const { error } = await signOut();
 
     if (error) {
       console.error('❌ Sign out failed:', error.message);
+      // State already cleared, so UI shows as signed out
       return;
     }
 
-    // Clear local state
-    setUser(null);
-    setSession(null);
-
-    console.log('✅ Signed out successfully');
+    console.log('✅ Signed out successfully from Supabase');
   };
 
   const value: AuthContextType = {

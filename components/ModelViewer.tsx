@@ -28,6 +28,13 @@ const createPivotHelper = () => {
 export default function ModelViewer() {
   const { isDark } = useTheme();
   const { user, loading: authLoading } = useAuth();
+
+  // Debug: Log user state
+  useEffect(() => {
+    console.log('🔍 ModelViewer: user =', user);
+    console.log('🔍 ModelViewer: authLoading =', authLoading);
+  }, [user, authLoading]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
