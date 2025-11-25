@@ -226,9 +226,9 @@ export function useSavedViews(modelId?: string) {
   };
 }
 
-// Quote requests hooks
+// Quote hooks - simplified
 export function useQuoteRequests() {
-  const submitQuote = async (quote: Omit<QuoteRequestInsert, 'id' | 'created_at' | 'status'>) => {
+  const submitQuote = async (quote: any) => {
     if (!isSupabaseConfigured()) {
       // Return mock success when not configured
       console.log('Supabase not configured. Mock quote submission:', quote);
@@ -238,9 +238,17 @@ export function useQuoteRequests() {
       };
     }
 
+    // Get current user (optional)
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Insert into quotes table directly
     const { data, error } = await supabase
-      .from('quote_requests')
-      .insert(quote)
+      .from('quotes')
+      .insert({
+        ...quote,
+        user_id: user?.id || null, // Optional user_id
+        status: 'pending',
+      })
       .select()
       .single();
 

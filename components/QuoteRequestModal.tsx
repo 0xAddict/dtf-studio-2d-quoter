@@ -501,24 +501,23 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
         console.warn('No model file to upload with quote');
       }
 
-      // Save quote to database (quote_requests table - for ALL quotes)
-      // Includes user_id for authenticated users, null for anonymous
+      // Save quote to database - SIMPLIFIED
+      // Single quotes table, user_id is optional
       try {
         const quoteData = {
-          user_id: user?.id || null,
           quote_id: quote.quoteId,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || null,
-          company: formData.company || null,
+          customer_name: formData.name,
+          customer_email: formData.email,
+          customer_phone: formData.phone || null,
+          customer_company: formData.company || null,
           quantity: parseInt(formData.quantity),
           material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
-          timeline: formData.timeline || null,
-          finishing: formData.finishing || null,
+          timeline: formData.timeline || 'Not specified',
+          finishing: formData.finishing || 'standard',
           scale: modelData?.scale || 100,
-          notes: formData.message || null,
+          message: formData.message || null,
           // Model file info
-          model_file_name: modelData?.fileName || null,
+          model_file_name: modelData?.fileName || 'Unknown',
           model_file_url: attachmentUrls[0] || null,
           // Model stats
           vertices: modelData?.vertices || null,
@@ -530,21 +529,6 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           finishing_cost: quote.pricing.finishingCost,
           quantity_discount: quote.pricing.quantityDiscount,
           total_cost: quote.pricing.total,
-          // Keep model_data for backward compatibility with WordPress plugin
-          model_data: {
-            quoteId: quote.quoteId,
-            fileName: modelData?.fileName,
-            material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
-            scale: modelData?.scale,
-            quantity: parseInt(formData.quantity),
-            timeline: formData.timeline,
-            finishing: formData.finishing,
-            vertices: modelData?.vertices,
-            triangles: modelData?.triangles,
-            dimensions: modelData?.dimensions,
-            pricing: quote.pricing,
-            attachmentUrl: attachmentUrls[0] || null,
-          },
         };
 
         // Add timeout for database save

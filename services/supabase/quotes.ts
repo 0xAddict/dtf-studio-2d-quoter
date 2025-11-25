@@ -1,26 +1,23 @@
-import { supabase, withTimeout } from './client';
-import { getCurrentUser } from './auth';
+import { supabase } from './client';
 
-// Quote interface matching the quotes table schema
+// Quote interface matching the simplified quotes table schema
 export interface Quote {
   id: string;
-  user_id: string;
+  user_id: string | null;
   quote_id: string;
   created_at: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  company: string | null;
-  model_id: string | null;
-  model_file_name: string | null;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  customer_company: string | null;
+  model_file_name: string;
   model_file_url: string | null;
-  model_data: any;
   material: string;
   quantity: number;
-  timeline: string | null;
-  finishing: string | null;
+  timeline: string;
+  finishing: string;
   scale: number;
-  notes: string | null;
+  message: string | null;
   vertices: number | null;
   triangles: number | null;
   dimensions: any;
@@ -31,33 +28,6 @@ export interface Quote {
   total_cost: number | null;
   status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled';
   admin_notes: string | null;
-  quote_request_id: string | null;
-}
-
-// Data structure for submitting a new quote
-export interface QuoteSubmission {
-  quote_id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  company?: string;
-  model_file_name: string;
-  model_file_url?: string;
-  model_data?: any;
-  material: string;
-  quantity: number;
-  timeline?: string;
-  finishing?: string;
-  scale?: number;
-  notes?: string;
-  vertices?: number;
-  triangles?: number;
-  dimensions?: { x: string; y: string; z: string };
-  base_cost?: number;
-  material_cost?: number;
-  finishing_cost?: number;
-  quantity_discount?: number;
-  total_cost?: number;
 }
 
 // Legacy interface for backward compatibility
@@ -86,84 +56,87 @@ export interface QuoteData {
 }
 
 /**
- * Save quote to database
- * Inserts into quote_requests table - trigger will auto-copy to quotes table
+ * Save quote to database - SIMPLIFIED
+ * No auth required - anyone can submit
+ * If user is logged in, we'll store their user_id for "My Quotes" view
  */
 export async function saveQuote(quoteData: QuoteData) {
-  const user = await getCurrentUser();
+  try {
+    // Get current user (if logged in)
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    return { data: null, error: new Error('User not authenticated') };
+    // Prepare insert data
+    const insertData = {
+      user_id: user?.id || null, // Optional - null for anonymous
+      quote_id: quoteData.quote_id,
+      customer_name: quoteData.customer_name,
+      customer_email: quoteData.customer_email,
+      customer_phone: quoteData.customer_phone || null,
+      customer_company: quoteData.customer_company || null,
+      model_file_name: quoteData.model_file_name,
+      model_file_url: quoteData.model_file_url || null,
+      material: quoteData.material,
+      quantity: quoteData.quantity,
+      timeline: quoteData.timeline,
+      finishing: quoteData.finishing,
+      scale: quoteData.scale || 100,
+      message: quoteData.message || null,
+      vertices: quoteData.vertices || null,
+      triangles: quoteData.triangles || null,
+      dimensions: quoteData.dimensions || null,
+      base_cost: quoteData.base_cost || null,
+      material_cost: quoteData.material_cost || null,
+      finishing_cost: quoteData.finishing_cost || null,
+      quantity_discount: quoteData.quantity_discount || null,
+      total_cost: quoteData.total_cost || null,
+      status: 'pending' as const,
+    };
+
+    console.log('💾 Saving quote to database...', { quote_id: insertData.quote_id, user_id: insertData.user_id });
+
+    // Insert directly into quotes table
+    const { data, error } = await supabase
+      .from('quotes')
+      .insert([insertData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Save quote error:', error);
+      return { data: null, error };
+    }
+
+    console.log('✅ Quote saved successfully:', data.quote_id);
+    return { data: data as Quote, error: null };
+  } catch (err: any) {
+    console.error('❌ Exception saving quote:', err);
+    return { data: null, error: err };
   }
-
-  if (!user.emailVerified) {
-    return { data: null, error: new Error('Email not verified. Please verify your email before submitting quotes.') };
-  }
-
-  // Map legacy QuoteData fields to quote_requests columns
-  const insertData = {
-    user_id: user.id,
-    quote_id: quoteData.quote_id,
-    name: quoteData.customer_name,
-    email: quoteData.customer_email,
-    phone: quoteData.customer_phone || null,
-    company: quoteData.customer_company || null,
-    model_file_name: quoteData.model_file_name,
-    model_file_url: quoteData.model_file_url || null,
-    material: quoteData.material,
-    quantity: quoteData.quantity,
-    timeline: quoteData.timeline || null,
-    finishing: quoteData.finishing || null,
-    scale: quoteData.scale || 100,
-    notes: quoteData.message || null,
-    vertices: quoteData.vertices || null,
-    triangles: quoteData.triangles || null,
-    dimensions: quoteData.dimensions || null,
-    base_cost: quoteData.base_cost || null,
-    material_cost: quoteData.material_cost || null,
-    finishing_cost: quoteData.finishing_cost || null,
-    quantity_discount: quoteData.quantity_discount || null,
-    total_cost: quoteData.total_cost || null,
-    status: 'pending',
-  };
-
-  // Insert into quote_requests - trigger will copy to quotes table
-  const { data, error } = await supabase
-    .from('quote_requests')
-    .insert([insertData])
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Save quote error:', error);
-    return { data: null, error };
-  }
-
-  console.log('✅ Quote saved to quote_requests, trigger will sync to quotes table');
-  return { data: data as Quote, error: null };
 }
 
 /**
  * Get all quotes for current user
- * Reads from quotes table (user-scoped RLS)
+ * Works for both authenticated and anonymous users
  */
 export async function getUserQuotes() {
   console.log('📊 getUserQuotes: Starting...');
 
   try {
-    const user = await getCurrentUser();
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       console.log('❌ getUserQuotes: No user authenticated');
-      return { data: null, error: new Error('User not authenticated') };
+      return { data: [], error: null }; // Return empty array instead of error
     }
 
-    console.log('📊 getUserQuotes: Fetching from quotes table...');
+    console.log('📊 getUserQuotes: Fetching quotes for user:', user.id);
 
-    // Read from quotes table - RLS ensures user only sees their own
+    // Fetch quotes for this user
     const { data, error } = await supabase
       .from('quotes')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -181,15 +154,8 @@ export async function getUserQuotes() {
 
 /**
  * Get single quote by quote_id
- * Reads from quotes table (user-scoped RLS)
  */
 export async function getQuoteByQuoteId(quoteId: string) {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    return { data: null, error: new Error('User not authenticated') };
-  }
-
   const { data, error } = await supabase
     .from('quotes')
     .select('*')
@@ -206,15 +172,8 @@ export async function getQuoteByQuoteId(quoteId: string) {
 
 /**
  * Get single quote by id (UUID)
- * Reads from quotes table (user-scoped RLS)
  */
 export async function getQuote(id: string) {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    return { data: null, error: new Error('User not authenticated') };
-  }
-
   const { data, error } = await supabase
     .from('quotes')
     .select('*')
@@ -231,10 +190,9 @@ export async function getQuote(id: string) {
 
 /**
  * Update quote status (user can cancel their own quotes)
- * Updates quotes table (user-scoped RLS)
  */
 export async function updateQuoteStatus(quoteId: string, status: Quote['status']) {
-  const user = await getCurrentUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return { data: null, error: new Error('User not authenticated') };
@@ -249,6 +207,7 @@ export async function updateQuoteStatus(quoteId: string, status: Quote['status']
     .from('quotes')
     .update({ status })
     .eq('quote_id', quoteId)
+    .eq('user_id', user.id)
     .select()
     .single();
 
@@ -262,10 +221,9 @@ export async function updateQuoteStatus(quoteId: string, status: Quote['status']
 
 /**
  * Get quotes by status
- * Reads from quotes table (user-scoped RLS)
  */
 export async function getQuotesByStatus(status: Quote['status']) {
-  const user = await getCurrentUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return { data: null, error: new Error('User not authenticated') };
@@ -274,6 +232,7 @@ export async function getQuotesByStatus(status: Quote['status']) {
   const { data, error } = await supabase
     .from('quotes')
     .select('*')
+    .eq('user_id', user.id)
     .eq('status', status)
     .order('created_at', { ascending: false });
 
@@ -287,10 +246,9 @@ export async function getQuotesByStatus(status: Quote['status']) {
 
 /**
  * Get quote statistics for user
- * Reads from quotes table (user-scoped RLS)
  */
 export async function getUserQuoteStats() {
-  const user = await getCurrentUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return {
@@ -301,7 +259,8 @@ export async function getUserQuoteStats() {
 
   const { data, error } = await supabase
     .from('quotes')
-    .select('status, total_cost');
+    .select('status, total_cost')
+    .eq('user_id', user.id);
 
   if (error) {
     console.error('Get quote stats error:', error);
@@ -325,10 +284,9 @@ export async function getUserQuoteStats() {
 
 /**
  * Search quotes by text
- * Reads from quotes table (user-scoped RLS)
  */
 export async function searchQuotes(searchTerm: string) {
-  const user = await getCurrentUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return { data: null, error: new Error('User not authenticated') };
@@ -337,6 +295,7 @@ export async function searchQuotes(searchTerm: string) {
   const { data, error } = await supabase
     .from('quotes')
     .select('*')
+    .eq('user_id', user.id)
     .or(`quote_id.ilike.%${searchTerm}%,model_file_name.ilike.%${searchTerm}%,material.ilike.%${searchTerm}%`)
     .order('created_at', { ascending: false });
 
