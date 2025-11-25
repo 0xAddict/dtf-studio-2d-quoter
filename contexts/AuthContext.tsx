@@ -16,6 +16,7 @@ interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
   loading: boolean;
+  signingOut: boolean;
   signUp: (data: SignUpData) => Promise<{ data: any; error: any }>;
   signIn: (data: SignInData) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
 
   const formatUser = (supabaseUser: User | null | undefined): AuthUser | null => {
     if (!supabaseUser) return null;
@@ -80,29 +82,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     init();
 
-    // Listen for auth changes
+    // Listen for auth changes - this is the source of truth
     const subscription = onAuthStateChange(async (event, session) => {
       console.log('✅ Auth state changed:', event, session?.user?.email);
 
-      setSession(session);
-
-      const immediateUser = formatUser(session?.user);
-      setUser(immediateUser);
-
-      if (session) {
-        console.log('🔍 Fetching current user...');
-        const currentUser = await getCurrentUser();
-        console.log('🔍 Current user result:', currentUser);
-        if (currentUser) {
-          setUser(currentUser);
-        }
-        console.log('✅ User state updated');
-      } else {
-        console.log('❌ No session, clearing user');
+      // Handle specific events
+      if (event === 'SIGNED_OUT') {
+        // This is the definitive sign-out event from Supabase
+        console.log('🚪 SIGNED_OUT event received - clearing state');
         setUser(null);
-      }
+        setSession(null);
+        setSigningOut(false);
+        setLoading(false);
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log('🔑 User authenticated, fetching user data...');
+        setSession(session);
 
-      setLoading(false);
+        // Set immediate user to avoid flicker
+        const immediateUser = formatUser(session?.user);
+        if (immediateUser) {
+          setUser(immediateUser);
+        }
+
+        if (session) {
+          const currentUser = await getCurrentUser();
+          console.log('🔍 Current user result:', currentUser);
+          if (currentUser) {
+            setUser(currentUser);
+          }
+        }
+        setLoading(false);
+      } else {
+        // Handle other events (INITIAL_SESSION, etc.)
+        setSession(session);
+
+        const immediateUser = formatUser(session?.user);
+        if (immediateUser) {
+          setUser(immediateUser);
+        }
+
+        if (session) {
+          const currentUser = await getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+          }
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      }
     });
 
     return () => {
@@ -167,16 +195,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleSignOut = async () => {
-    console.log('🔄 Signing out...');
+    console.log('🔄 Starting sign out...');
 
     // Immediately clear local state for responsive UI
     // Don't set loading=true - we want the welcome modal to show immediately
     setUser(null);
     setSession(null);
 
-    try {
-      // Call signOut (which now handles timeouts internally)
-      const { error } = await signOut();
+    // Call Supabase signOut - don't clear state yet
+    const { error } = await signOut();
 
       if (error) {
         console.warn('⚠️ Sign out warning:', error.message);
@@ -194,6 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    signingOut,
     signUp: handleSignUp,
     signIn: handleSignIn,
     signOut: handleSignOut,

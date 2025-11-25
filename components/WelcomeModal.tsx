@@ -18,7 +18,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
   onTrySample,
   onClose,
 }) => {
-  const { user } = useAuth();
+  const { user, signingOut } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
   const [showAuthModal, setShowAuthModal] = useState<'signup' | 'signin' | null>(null);
   const [showVerification, setShowVerification] = useState(false);
@@ -120,6 +120,14 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
         className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-8 animate-scale-in border border-gray-200 dark:border-slate-700"
         onClick={handleModalClick}
       >
+        {/* Signing Out Overlay */}
+        {signingOut && (
+          <div className="absolute inset-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-2xl z-50 flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent dark:border-indigo-400 dark:border-t-transparent mb-4"></div>
+            <p className="text-gray-700 dark:text-gray-300 font-medium">Signing out...</p>
+          </div>
+        )}
+
         {/* Close Button (if onClose provided) */}
         {onClose && (
           <button

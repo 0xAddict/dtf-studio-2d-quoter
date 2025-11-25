@@ -109,10 +109,19 @@ export default function ModelViewer() {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
 
+    console.log('🔍 Welcome Modal Logic:', {
+      authLoading,
+      user,
+      isAuthCallbackRoute,
+      shouldShow: !authLoading && !user && !isAuthCallbackRoute
+    });
+
     if (!authLoading && !user && !isAuthCallbackRoute) {
+      console.log('✅ Setting welcome modal to TRUE');
       setShowWelcomeModal(true);
     } else if (user) {
       // Close welcome modal when user is authenticated
+      console.log('❌ Closing welcome modal - user is authenticated');
       setShowWelcomeModal(false);
     }
   }, [authLoading, user]);
