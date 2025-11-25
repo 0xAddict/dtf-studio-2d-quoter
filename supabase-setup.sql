@@ -76,37 +76,63 @@ DROP POLICY IF EXISTS "Allow anonymous inserts" ON quote_requests;
 DROP POLICY IF EXISTS "Service role has full access" ON quote_requests;
 DROP POLICY IF EXISTS "Allow read own submissions" ON quote_requests;
 DROP POLICY IF EXISTS "Users can view own quotes" ON quote_requests;
+DROP POLICY IF EXISTS "Allow public reads" ON quote_requests;
+DROP POLICY IF EXISTS "Anonymous can view anonymous submissions" ON quote_requests;
+DROP POLICY IF EXISTS "Authenticated users can insert" ON quote_requests;
+DROP POLICY IF EXISTS "Authenticated users can view own quotes" ON quote_requests;
 
 -- ============================================
--- 5. Create RLS Policies
+-- 5. Create RLS Policies (Optimized & Consolidated)
 -- ============================================
+-- NOTE: Using (select auth.uid()) instead of auth.uid() for performance
+-- This prevents PostgreSQL from re-evaluating auth.uid() for each row
+--
+-- Policies are explicitly assigned to specific roles to avoid
+-- multiple permissive policies for the same role/action combination
 
--- Policy 1: Allow anonymous users to INSERT quotes
--- This allows the React app to submit quotes without authentication
-CREATE POLICY "Allow anonymous inserts" ON quote_requests
-    FOR INSERT
-    WITH CHECK (true);
-
--- Policy 2: Allow service_role full access
+-- Policy 1: Allow service_role full access
 -- This allows the WordPress plugin (using service_role key) to manage all quotes
+-- Explicitly restricted to service_role only
 CREATE POLICY "Service role has full access" ON quote_requests
     FOR ALL
     TO service_role
     USING (true)
     WITH CHECK (true);
 
--- Policy 3: Allow authenticated users to view their own quotes
--- Users can only see quotes where user_id matches their auth.uid()
-CREATE POLICY "Users can view own quotes" ON quote_requests
-    FOR SELECT
-    USING (auth.uid() = user_id);
+-- Policy 2: Allow anonymous users to INSERT quotes
+-- This allows the React app to submit quotes without authentication
+-- Explicitly restricted to anon role only
+CREATE POLICY "Allow anonymous inserts" ON quote_requests
+    FOR INSERT
+    TO anon
+    WITH CHECK (true);
 
--- Policy 4: Allow anyone to SELECT quotes (optional - for public viewing)
--- Remove this if you want quotes to be admin-only
--- This is mainly for anonymous quote submissions to be viewable
-CREATE POLICY "Allow read own submissions" ON quote_requests
+-- Policy 3: Allow authenticated users to INSERT quotes
+-- Explicitly restricted to authenticated role only
+CREATE POLICY "Authenticated users can insert" ON quote_requests
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (true);
+
+-- Policy 4: Allow anonymous users to view anonymous submissions
+-- Anonymous users can only see submissions where user_id IS NULL
+-- Explicitly restricted to anon role only (single SELECT policy for anon)
+CREATE POLICY "Anonymous can view anonymous submissions" ON quote_requests
     FOR SELECT
+    TO anon
     USING (user_id IS NULL);
+
+-- Policy 5: Allow authenticated users to view their own quotes
+-- Users can see quotes where user_id matches their auth.uid() OR anonymous submissions
+-- Using (select auth.uid()) for performance optimization
+-- Explicitly restricted to authenticated role only (single SELECT policy for authenticated)
+CREATE POLICY "Authenticated users can view own quotes" ON quote_requests
+    FOR SELECT
+    TO authenticated
+    USING (
+        (select auth.uid()) = user_id
+        OR user_id IS NULL
+    );
 
 -- ============================================
 -- 6. Storage Bucket Setup
