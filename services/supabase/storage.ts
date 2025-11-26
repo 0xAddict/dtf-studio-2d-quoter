@@ -1,4 +1,16 @@
-import { supabase, STORAGE_BUCKETS } from './client';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from './types';
+import { STORAGE_BUCKETS } from './client';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const storageClient = createClient<Database>(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+});
 
 export interface UploadResult {
   url: string;
@@ -40,7 +52,7 @@ export async function uploadFile(
 
     // Upload file directly - no bucket check, no timeout wrapper
     console.log(`⏱️ [Storage] Uploading to '${bucketName}'...`);
-    const { data, error } = await supabase.storage
+    const { data, error } = await storageClient.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
@@ -59,7 +71,7 @@ export async function uploadFile(
     console.log(`✅ [Storage] File uploaded successfully to: ${data.path}`);
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { publicUrl } } = storageClient.storage
       .from(bucketName)
       .getPublicUrl(data.path);
 
@@ -118,7 +130,7 @@ export async function deleteFile(
   bucket: keyof typeof STORAGE_BUCKETS = 'ATTACHMENTS'
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase.storage
+    const { error } = await storageClient.storage
       .from(STORAGE_BUCKETS[bucket])
       .remove([path]);
 
