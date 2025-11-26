@@ -324,13 +324,38 @@ $quote_display_id = isset($quote['quote_id']) ? $quote['quote_id'] : 'N/A';
 
 <script>
 jQuery(document).ready(function($) {
+    // Store original status value
+    var originalStatus = $('#forge-status-select').val();
+    var originalStatusText = $('#forge-status-select option:selected').text();
+
     // Status update
     $('#forge-status-form').on('submit', function(e) {
         e.preventDefault();
 
         var $form = $(this);
         var $button = $form.find('button[type="submit"]');
+        var $select = $form.find('select[name="status"]');
         var originalText = $button.text();
+
+        var newStatus = $select.val();
+        var newStatusText = $select.find('option:selected').text();
+
+        // Check if status actually changed
+        if (newStatus === originalStatus) {
+            alert('<?php _e('Status has not been changed.', 'forge-dashboard'); ?>');
+            return;
+        }
+
+        // Confirmation dialog
+        var confirmMessage = '<?php _e('Are you sure you want to change the status?', 'forge-dashboard'); ?>\n\n' +
+                           '<?php _e('From:', 'forge-dashboard'); ?> ' + originalStatusText + '\n' +
+                           '<?php _e('To:', 'forge-dashboard'); ?> ' + newStatusText;
+
+        if (!confirm(confirmMessage)) {
+            // Reset to original status if cancelled
+            $select.val(originalStatus);
+            return;
+        }
 
         $button.prop('disabled', true).text('<?php _e('Updating...', 'forge-dashboard'); ?>');
 
@@ -341,19 +366,26 @@ jQuery(document).ready(function($) {
                 action: 'forge_update_status',
                 nonce: forgeAjax.nonce,
                 quote_id: $form.find('input[name="quote_id"]').val(),
-                status: $form.find('select[name="status"]').val()
+                status: newStatus
             },
             success: function(response) {
                 if (response.success) {
+                    // Update the original status after successful update
+                    originalStatus = newStatus;
+                    originalStatusText = newStatusText;
                     location.reload();
                 } else {
                     alert(response.data.message);
                     $button.prop('disabled', false).text(originalText);
+                    // Reset to original status on error
+                    $select.val(originalStatus);
                 }
             },
             error: function() {
                 alert('<?php _e('An error occurred. Please try again.', 'forge-dashboard'); ?>');
                 $button.prop('disabled', false).text(originalText);
+                // Reset to original status on error
+                $select.val(originalStatus);
             }
         });
     });
