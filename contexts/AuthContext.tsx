@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import {
   signUp,
@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     // Refresh both session and user data
     const { session: currentSession } = await getSession();
     setSession(currentSession);
@@ -151,9 +151,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       console.log('⚠️ No session found during refresh');
     }
-  };
+  }, []);
 
-  const handleSignUp = async (data: SignUpData) => {
+  const handleSignUp = useCallback(async (data: SignUpData) => {
     try {
       const result = await signUp(data);
       if (result.error) {
@@ -173,9 +173,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('❌ Fatal sign up error:', err.message);
       return { data: null, error: err };
     }
-  };
+  }, []);
 
-  const handleSignIn = async (data: SignInData) => {
+  const handleSignIn = useCallback(async (data: SignInData) => {
     try {
       const result = await signIn(data);
       if (result.error) {
@@ -192,9 +192,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('❌ Fatal sign in error:', err.message);
       return { data: null, error: err };
     }
-  };
+  }, []);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     console.log('🔄 Sign out: Instant local clear (best practice)');
 
     // INSTANT: Clear local state immediately (don't wait for anything)
@@ -211,9 +211,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // User is now signed out - auth listener will trigger if needed
-  };
+  }, []);
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     user,
     session,
     loading,
@@ -222,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn: handleSignIn,
     signOut: handleSignOut,
     refreshUser,
-  };
+  }), [user, session, loading, signingOut, handleSignUp, handleSignIn, handleSignOut, refreshUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
