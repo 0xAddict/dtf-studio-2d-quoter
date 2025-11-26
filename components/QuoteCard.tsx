@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
-import { Download, Calendar, Package, Clock, CheckCircle, XCircle, AlertCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, Calendar, Package, Clock, CheckCircle, XCircle, AlertCircle, Loader2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { Quote } from '../services/supabase/quotes';
+import { SlideToConfirm } from './ui/SlideToConfirm';
 
 interface QuoteCardProps {
   quote: Quote;
   onCancel?: (quoteId: string) => void;
+  onDelete?: (quoteId: string) => Promise<void>;
   onDownload?: (quoteId: string) => void;
   layout?: 'grid' | 'list';
   isCancelling?: boolean;
+  isDeleting?: boolean;
 }
 
-export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownload, layout = 'grid', isCancelling }) => {
+export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete, onDownload, layout = 'grid', isCancelling, isDeleting }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleCancel = () => {
     if (!onCancel) return;
@@ -21,6 +25,12 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
   const handleDownload = () => {
     if (onDownload) {
       onDownload(quote.quote_id);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (onDelete) {
+      await onDelete(quote.quote_id);
     }
   };
 
@@ -345,34 +355,77 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
         }`}
       >
         {/* Buttons - horizontal on mobile, stacked on larger screens */}
-        <div className="flex flex-row sm:flex-col gap-2 sm:gap-2.5">
-          <button
-            onClick={handleDownload}
-            className="flex-1 sm:w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 glass dark:glass border border-gray-200/60 dark:border-slate-600/60 hover:border-indigo-300 dark:hover:border-indigo-600 text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 min-h-[40px] sm:min-h-[48px] group"
-          >
-            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
-            <span className="hidden xs:inline sm:inline">Download</span> PDF
-          </button>
-
-          {statusConfig.canCancel && onCancel && (
+        <div className="flex flex-col gap-2 sm:gap-2.5">
+          <div className="flex flex-row gap-2 sm:gap-2.5">
             <button
-              onClick={handleCancel}
-              disabled={isCancelling}
-              className="flex-1 sm:w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-200/60 dark:border-slate-700/60 hover:border-red-300 dark:hover:border-red-700 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-900/20 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px] sm:min-h-[44px]"
+              onClick={handleDownload}
+              className="flex-1 sm:w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 glass dark:glass border border-gray-200/60 dark:border-slate-600/60 hover:border-indigo-300 dark:hover:border-indigo-600 text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 min-h-[40px] sm:min-h-[48px] group"
             >
-              {isCancelling ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                  <span className="hidden xs:inline sm:inline">Cancelling...</span>
-                  <span className="xs:hidden sm:hidden">...</span>
-                </>
-              ) : (
-                <>
-                  <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  Cancel
-                </>
-              )}
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
+              <span className="hidden xs:inline sm:inline">Download</span> PDF
             </button>
+
+            {statusConfig.canCancel && onCancel && (
+              <button
+                onClick={handleCancel}
+                disabled={isCancelling}
+                className="flex-1 sm:w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-200/60 dark:border-slate-700/60 hover:border-red-300 dark:hover:border-red-700 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-900/20 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px] sm:min-h-[44px]"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                    <span className="hidden xs:inline sm:inline">Cancelling...</span>
+                    <span className="xs:hidden sm:hidden">...</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    Cancel
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Delete button for cancelled quotes */}
+          {quote.status === 'cancelled' && onDelete && (
+            <div className="mt-1">
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={isDeleting}
+                  className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border border-red-200/60 dark:border-red-800/60 bg-red-50/50 dark:bg-red-900/20 hover:bg-red-100/80 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px] sm:min-h-[44px]"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span>Delete Quote</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <SlideToConfirm
+                    onConfirm={handleDelete}
+                    label="Slide to delete"
+                    confirmLabel="Deleting..."
+                    variant="danger"
+                    isLoading={isDeleting}
+                  />
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="w-full py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

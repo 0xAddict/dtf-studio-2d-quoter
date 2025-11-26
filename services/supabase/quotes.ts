@@ -330,6 +330,54 @@ export async function searchQuotes(searchTerm: string) {
 }
 
 /**
+ * Delete a cancelled quote permanently
+ * Users can only delete their own cancelled quotes
+ */
+export async function deleteQuote(quoteId: string) {
+  const { data: { user } } = await quotesClient.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: new Error('User not authenticated') };
+  }
+
+  // First check if the quote is cancelled
+  const { data: quote, error: fetchError } = await quotesClient
+    .from('quote_request')
+    .select('status')
+    .eq('quote_id', quoteId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error('Delete quote - fetch error:', fetchError);
+    return { data: null, error: fetchError };
+  }
+
+  if (!quote) {
+    return { data: null, error: new Error('Quote not found') };
+  }
+
+  if (quote.status !== 'cancelled') {
+    return { data: null, error: new Error('Only cancelled quotes can be deleted') };
+  }
+
+  // Delete the quote
+  const { error } = await quotesClient
+    .from('quote_request')
+    .delete()
+    .eq('quote_id', quoteId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Delete quote error:', error);
+    return { data: null, error };
+  }
+
+  console.log('✅ Quote deleted successfully:', quoteId);
+  return { data: { deleted: true }, error: null };
+}
+
+/**
  * Update quote attachment URL after file upload
  * Used when attachment is uploaded after initial quote submission
  */

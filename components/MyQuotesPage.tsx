@@ -15,8 +15,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { getUserQuotes, updateQuoteStatus, Quote, getUserQuoteStats } from '../services/supabase/quotes';
+import { getUserQuotes, updateQuoteStatus, deleteQuote, Quote, getUserQuoteStats } from '../services/supabase/quotes';
 import { SwipeableQuoteCard } from './SwipeableQuoteCard';
+import { MobileQuoteListItem } from './MobileQuoteListItem';
 import { ConfirmationDialog } from './ui/ConfirmationDialog';
 
 type FilterType = 'all' | 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled';
@@ -40,6 +41,7 @@ export const MyQuotesPage: React.FC = () => {
 
   const [confirmQuoteId, setConfirmQuoteId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [deletingQuoteId, setDeletingQuoteId] = useState<string | null>(null);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -191,6 +193,26 @@ export const MyQuotesPage: React.FC = () => {
   const handleDownloadPDF = (quoteId: string) => {
     console.log('Download PDF requested for', quoteId);
     toast.info('PDF download will be available soon.');
+  };
+
+  const handleDeleteQuote = async (quoteId: string) => {
+    setDeletingQuoteId(quoteId);
+    try {
+      const { error: deleteError } = await deleteQuote(quoteId);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      await loadQuotes();
+      await loadStats();
+      toast.success('Quote deleted successfully.');
+    } catch (err: any) {
+      console.error('Failed to delete quote:', err);
+      toast.error(err.message || 'Failed to delete quote. Please try again.');
+    } finally {
+      setDeletingQuoteId(null);
+    }
   };
 
   const renderViewToggle = () => (
@@ -363,8 +385,10 @@ export const MyQuotesPage: React.FC = () => {
                 {filteredQuotes.length} of {quotes.length} quotes
               </div>
 
-              {/* View Toggle */}
-              {renderViewToggle()}
+              {/* View Toggle - hidden on mobile since we use compact list */}
+              <div className="hidden sm:block">
+                {renderViewToggle()}
+              </div>
             </div>
           </div>
         </div>
@@ -433,19 +457,33 @@ export const MyQuotesPage: React.FC = () => {
 
         {/* Quotes Layout */}
         {!loading && !error && filteredQuotes.length > 0 && (
-          <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5' : 'space-y-3 sm:space-y-4'}>
-            {filteredQuotes.map((quote) => (
-              <SwipeableQuoteCard
-                key={quote.id}
-                quote={quote}
-                onCancel={() => setConfirmQuoteId(quote.quote_id)}
-                onSwipeCancel={handleSwipeCancel}
-                onDownload={handleDownloadPDF}
-                layout={viewMode}
-                isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
-              />
-            ))}
-          </div>
+          <>
+            {/* Mobile Compact List View */}
+            <div className="sm:hidden space-y-2">
+              {filteredQuotes.map((quote) => (
+                <MobileQuoteListItem key={quote.id} quote={quote} />
+              ))}
+            </div>
+
+            {/* Desktop/Tablet View */}
+            <div className={`hidden sm:block ${viewMode === 'grid' ? '' : ''}`}>
+              <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5' : 'space-y-3 sm:space-y-4'}>
+                {filteredQuotes.map((quote) => (
+                  <SwipeableQuoteCard
+                    key={quote.id}
+                    quote={quote}
+                    onCancel={() => setConfirmQuoteId(quote.quote_id)}
+                    onSwipeCancel={handleSwipeCancel}
+                    onDelete={handleDeleteQuote}
+                    onDownload={handleDownloadPDF}
+                    layout={viewMode}
+                    isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
+                    isDeleting={deletingQuoteId === quote.quote_id}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
         )}
       </main>
 
