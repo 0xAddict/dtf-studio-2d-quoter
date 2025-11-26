@@ -887,10 +887,10 @@ export default function ModelViewer() {
                   </label>
                 )}
 
-                {/* Right: User Menu, Theme & Panel Toggle */}
+                {/* Right: Theme, User Menu & Panel Toggle */}
                 <div className="flex items-center gap-2">
-                    {user && <UserMenu />}
                     <ThemeToggle />
+                    {user && <UserMenu />}
                     <button
                       onClick={() => setIsPanelOpen(!isPanelOpen)}
                       className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
