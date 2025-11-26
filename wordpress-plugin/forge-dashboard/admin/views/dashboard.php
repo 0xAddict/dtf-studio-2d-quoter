@@ -94,10 +94,7 @@ if (!defined('ABSPATH')) {
                             </thead>
                             <tbody>
                                 <?php foreach ($stats['recent'] as $quote) :
-                                    $model_data = isset($quote['model_data']) && is_string($quote['model_data'])
-                                        ? json_decode($quote['model_data'], true)
-                                        : array();
-                                    $quote_id = isset($model_data['quoteId']) ? $model_data['quoteId'] : 'N/A';
+                                    $quote_id = isset($quote['quote_id']) ? $quote['quote_id'] : 'N/A';
                                     $view_url = add_query_arg(array(
                                         'page' => 'forge-view-quote',
                                         'id'   => $quote['id']
@@ -109,7 +106,7 @@ if (!defined('ABSPATH')) {
                                                 <strong><?php echo esc_html($quote_id); ?></strong>
                                             </a>
                                         </td>
-                                        <td><?php echo esc_html($quote['name']); ?></td>
+                                        <td><?php echo esc_html($quote['customer_name']); ?></td>
                                         <td><?php echo esc_html($quote['material']); ?></td>
                                         <td>
                                             <?php

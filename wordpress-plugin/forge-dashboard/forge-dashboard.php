@@ -3,7 +3,7 @@
  * Plugin Name: Forge Dashboard
  * Plugin URI: https://github.com/0xAddict/Hexea---3D-Viewer
  * Description: Professional dashboard for managing 3D printing quotes from Hexea Forge. Integrates with Supabase for quote management, file handling, and customer communications.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Hexea Forge
  * Author URI: https://hexea.io
  * License: MIT
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('FORGE_VERSION', '1.1.0');
+define('FORGE_VERSION', '1.2.0');
 define('FORGE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('FORGE_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('FORGE_PLUGIN_BASENAME', plugin_basename(__FILE__));

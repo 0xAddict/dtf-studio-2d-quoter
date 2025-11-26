@@ -7,9 +7,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$quote_display_id = isset($model_data['quoteId']) ? $model_data['quoteId'] : 'N/A';
-$pricing = isset($model_data['pricing']) ? $model_data['pricing'] : array();
-$model_info = isset($model_data['model']) ? $model_data['model'] : array();
+$quote_display_id = isset($quote['quote_id']) ? $quote['quote_id'] : 'N/A';
 ?>
 
 <div class="wrap forge-quote-details">
@@ -35,30 +33,30 @@ $model_info = isset($model_data['model']) ? $model_data['model'] : array();
                     <table class="forge-detail-table">
                         <tr>
                             <th><?php _e('Name:', 'forge-dashboard'); ?></th>
-                            <td><?php echo esc_html($quote['name']); ?></td>
+                            <td><?php echo esc_html($quote['customer_name']); ?></td>
                         </tr>
                         <tr>
                             <th><?php _e('Email:', 'forge-dashboard'); ?></th>
                             <td>
-                                <a href="mailto:<?php echo esc_attr($quote['email']); ?>">
-                                    <?php echo esc_html($quote['email']); ?>
+                                <a href="mailto:<?php echo esc_attr($quote['customer_email']); ?>">
+                                    <?php echo esc_html($quote['customer_email']); ?>
                                 </a>
                             </td>
                         </tr>
-                        <?php if (!empty($quote['phone'])) : ?>
+                        <?php if (!empty($quote['customer_phone'])) : ?>
                             <tr>
                                 <th><?php _e('Phone:', 'forge-dashboard'); ?></th>
                                 <td>
-                                    <a href="tel:<?php echo esc_attr($quote['phone']); ?>">
-                                        <?php echo esc_html($quote['phone']); ?>
+                                    <a href="tel:<?php echo esc_attr($quote['customer_phone']); ?>">
+                                        <?php echo esc_html($quote['customer_phone']); ?>
                                     </a>
                                 </td>
                             </tr>
                         <?php endif; ?>
-                        <?php if (!empty($quote['company'])) : ?>
+                        <?php if (!empty($quote['customer_company'])) : ?>
                             <tr>
                                 <th><?php _e('Company:', 'forge-dashboard'); ?></th>
-                                <td><?php echo esc_html($quote['company']); ?></td>
+                                <td><?php echo esc_html($quote['customer_company']); ?></td>
                             </tr>
                         <?php endif; ?>
                     </table>
@@ -86,16 +84,16 @@ $model_info = isset($model_data['model']) ? $model_data['model'] : array();
                                 <td><?php echo esc_html($quote['timeline']); ?></td>
                             </tr>
                         <?php endif; ?>
-                        <?php if (!empty($model_data['finishing'])) : ?>
+                        <?php if (!empty($quote['finishing'])) : ?>
                             <tr>
                                 <th><?php _e('Finishing:', 'forge-dashboard'); ?></th>
-                                <td><?php echo esc_html($model_data['finishing']); ?></td>
+                                <td><?php echo esc_html($quote['finishing']); ?></td>
                             </tr>
                         <?php endif; ?>
-                        <?php if (!empty($quote['notes'])) : ?>
+                        <?php if (!empty($quote['message'])) : ?>
                             <tr>
                                 <th><?php _e('Notes:', 'forge-dashboard'); ?></th>
-                                <td><?php echo nl2br(esc_html($quote['notes'])); ?></td>
+                                <td><?php echo nl2br(esc_html($quote['message'])); ?></td>
                             </tr>
                         <?php endif; ?>
                     </table>
@@ -103,62 +101,60 @@ $model_info = isset($model_data['model']) ? $model_data['model'] : array();
             </div>
 
             <!-- Model Information -->
-            <?php if (!empty($model_info)) : ?>
+            <?php if (!empty($quote['model_file_name']) || !empty($quote['vertices'])) : ?>
                 <div class="forge-card" style="margin-top: 20px;">
                     <div class="forge-card-header">
                         <h2><?php _e('Model Information', 'forge-dashboard'); ?></h2>
                     </div>
                     <div class="forge-card-body">
                         <table class="forge-detail-table">
-                            <?php if (isset($model_info['fileName'])) : ?>
+                            <?php if (!empty($quote['model_file_name'])) : ?>
                                 <tr>
                                     <th><?php _e('File Name:', 'forge-dashboard'); ?></th>
-                                    <td><?php echo esc_html($model_info['fileName']); ?></td>
+                                    <td><?php echo esc_html($quote['model_file_name']); ?></td>
                                 </tr>
                             <?php endif; ?>
-                            <?php
-                            // Check for model file URL in model_data
-                            $model_url = null;
-                            if (isset($model_data['attachmentUrl']) && !empty($model_data['attachmentUrl'])) {
-                                $model_url = $model_data['attachmentUrl'];
-                            }
-                            if ($model_url) :
-                            ?>
+                            <?php if (!empty($quote['model_file_url'])) : ?>
                                 <tr>
                                     <th><?php _e('3D Model File:', 'forge-dashboard'); ?></th>
                                     <td>
-                                        <a href="<?php echo esc_url($model_url); ?>" target="_blank" class="button button-primary" style="margin-right: 10px;">
+                                        <a href="<?php echo esc_url($quote['model_file_url']); ?>" target="_blank" class="button button-primary" style="margin-right: 10px;">
                                             <span class="dashicons dashicons-download" style="margin-top: 3px;"></span>
                                             <?php _e('Download Model', 'forge-dashboard'); ?>
                                         </a>
-                                        <a href="<?php echo esc_url($model_url); ?>" target="_blank" class="button button-secondary">
+                                        <a href="<?php echo esc_url($quote['model_file_url']); ?>" target="_blank" class="button button-secondary">
                                             <span class="dashicons dashicons-external" style="margin-top: 3px;"></span>
                                             <?php _e('View in Browser', 'forge-dashboard'); ?>
                                         </a>
                                     </td>
                                 </tr>
                             <?php endif; ?>
-                            <?php if (isset($model_info['vertices'])) : ?>
+                            <?php if (!empty($quote['vertices'])) : ?>
                                 <tr>
                                     <th><?php _e('Vertices:', 'forge-dashboard'); ?></th>
-                                    <td><?php echo number_format($model_info['vertices']); ?></td>
+                                    <td><?php echo number_format($quote['vertices']); ?></td>
                                 </tr>
                             <?php endif; ?>
-                            <?php if (isset($model_info['triangles'])) : ?>
+                            <?php if (!empty($quote['triangles'])) : ?>
                                 <tr>
                                     <th><?php _e('Triangles:', 'forge-dashboard'); ?></th>
-                                    <td><?php echo number_format($model_info['triangles']); ?></td>
+                                    <td><?php echo number_format($quote['triangles']); ?></td>
                                 </tr>
                             <?php endif; ?>
-                            <?php if (isset($model_info['dimensions'])) : ?>
+                            <?php if (!empty($quote['dimensions'])) : ?>
+                                <?php
+                                $dimensions = is_string($quote['dimensions']) ? json_decode($quote['dimensions'], true) : $quote['dimensions'];
+                                if ($dimensions) :
+                                ?>
                                 <tr>
                                     <th><?php _e('Dimensions:', 'forge-dashboard'); ?></th>
                                     <td>
-                                        X: <?php echo esc_html($model_info['dimensions']['x']); ?>cm,
-                                        Y: <?php echo esc_html($model_info['dimensions']['y']); ?>cm,
-                                        Z: <?php echo esc_html($model_info['dimensions']['z']); ?>cm
+                                        X: <?php echo esc_html($dimensions['x']); ?>cm,
+                                        Y: <?php echo esc_html($dimensions['y']); ?>cm,
+                                        Z: <?php echo esc_html($dimensions['z']); ?>cm
                                     </td>
                                 </tr>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </table>
                     </div>
@@ -240,41 +236,41 @@ $model_info = isset($model_data['model']) ? $model_data['model'] : array();
             </div>
 
             <!-- Pricing Card -->
-            <?php if (!empty($pricing)) : ?>
+            <?php if (!empty($quote['total_cost'])) : ?>
                 <div class="forge-card" style="margin-top: 20px;">
                     <div class="forge-card-header">
                         <h2><?php _e('Pricing', 'forge-dashboard'); ?></h2>
                     </div>
                     <div class="forge-card-body">
                         <table class="forge-pricing-table">
-                            <?php if (isset($pricing['baseCost'])) : ?>
+                            <?php if (!empty($quote['base_cost'])) : ?>
                                 <tr>
                                     <td><?php _e('Base Cost:', 'forge-dashboard'); ?></td>
-                                    <td class="forge-price">€<?php echo number_format($pricing['baseCost'], 2); ?></td>
+                                    <td class="forge-price">€<?php echo number_format($quote['base_cost'], 2); ?></td>
                                 </tr>
                             <?php endif; ?>
-                            <?php if (isset($pricing['materialCost'])) : ?>
+                            <?php if (!empty($quote['material_cost'])) : ?>
                                 <tr>
                                     <td><?php _e('Material Cost:', 'forge-dashboard'); ?></td>
-                                    <td class="forge-price">€<?php echo number_format($pricing['materialCost'], 2); ?></td>
+                                    <td class="forge-price">€<?php echo number_format($quote['material_cost'], 2); ?></td>
                                 </tr>
                             <?php endif; ?>
-                            <?php if (isset($pricing['finishingCost']) && $pricing['finishingCost'] > 0) : ?>
+                            <?php if (!empty($quote['finishing_cost']) && $quote['finishing_cost'] > 0) : ?>
                                 <tr>
                                     <td><?php _e('Finishing Cost:', 'forge-dashboard'); ?></td>
-                                    <td class="forge-price">€<?php echo number_format($pricing['finishingCost'], 2); ?></td>
+                                    <td class="forge-price">€<?php echo number_format($quote['finishing_cost'], 2); ?></td>
                                 </tr>
                             <?php endif; ?>
-                            <?php if (isset($pricing['quantityDiscount']) && $pricing['quantityDiscount'] > 0) : ?>
+                            <?php if (!empty($quote['quantity_discount']) && $quote['quantity_discount'] > 0) : ?>
                                 <tr>
                                     <td><?php _e('Quantity Discount:', 'forge-dashboard'); ?></td>
-                                    <td class="forge-price forge-discount">-€<?php echo number_format($pricing['quantityDiscount'], 2); ?></td>
+                                    <td class="forge-price forge-discount">-€<?php echo number_format($quote['quantity_discount'], 2); ?></td>
                                 </tr>
                             <?php endif; ?>
                             <tr class="forge-total-row">
                                 <td><strong><?php _e('Total:', 'forge-dashboard'); ?></strong></td>
                                 <td class="forge-price">
-                                    <strong>€<?php echo number_format($pricing['total'], 2); ?></strong>
+                                    <strong>€<?php echo number_format($quote['total_cost'], 2); ?></strong>
                                 </td>
                             </tr>
                         </table>
@@ -311,7 +307,7 @@ $model_info = isset($model_data['model']) ? $model_data['model'] : array();
                     <h2><?php _e('Actions', 'forge-dashboard'); ?></h2>
                 </div>
                 <div class="forge-card-body">
-                    <a href="mailto:<?php echo esc_attr($quote['email']); ?>?subject=<?php echo esc_attr('Re: Quote Request #' . $quote_display_id); ?>" class="button button-large button-secondary" style="width: 100%; margin-bottom: 10px; text-decoration: none; text-align: center; display: block;">
+                    <a href="mailto:<?php echo esc_attr($quote['customer_email']); ?>?subject=<?php echo esc_attr('Re: Quote Request #' . $quote_display_id); ?>" class="button button-large button-secondary" style="width: 100%; margin-bottom: 10px; text-decoration: none; text-align: center; display: block;">
                         <span class="dashicons dashicons-email" style="margin-top: 3px;"></span>
                         <?php _e('Email Customer', 'forge-dashboard'); ?>
                     </a>

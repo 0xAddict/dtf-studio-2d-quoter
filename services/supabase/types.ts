@@ -107,7 +107,7 @@ export interface Database {
           camera_target?: Json;
         };
       };
-      quote_requests: {
+      quote_request: {
         Row: {
           id: string;
           user_id: string | null;
@@ -199,10 +199,10 @@ export interface Database {
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Model = Database['public']['Tables']['models']['Row'];
 export type SavedView = Database['public']['Tables']['saved_views']['Row'];
-export type QuoteRequest = Database['public']['Tables']['quote_requests']['Row'];
+export type QuoteRequest = Database['public']['Tables']['quote_request']['Row'];
 
 // Insert types
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 export type ModelInsert = Database['public']['Tables']['models']['Insert'];
 export type SavedViewInsert = Database['public']['Tables']['saved_views']['Insert'];
-export type QuoteRequestInsert = Database['public']['Tables']['quote_requests']['Insert'];
+export type QuoteRequestInsert = Database['public']['Tables']['quote_request']['Insert'];

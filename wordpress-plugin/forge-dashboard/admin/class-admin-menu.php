@@ -181,15 +181,10 @@ class Forge_Admin_Menu {
 
         $quote = $result['quote'];
 
-        // Get model data
-        $model_data = isset($quote['model_data']) && is_string($quote['model_data'])
-            ? json_decode($quote['model_data'], true)
-            : array();
-
-        // Get files
+        // Get files using quote_id
         $files = array();
-        if (isset($model_data['quoteId'])) {
-            $files_result = $this->file_manager->get_quote_files($model_data['quoteId']);
+        if (isset($quote['quote_id'])) {
+            $files_result = $this->file_manager->get_quote_files($quote['quote_id']);
             if ($files_result['success']) {
                 $files = $files_result['files'];
             }
