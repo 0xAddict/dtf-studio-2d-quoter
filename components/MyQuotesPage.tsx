@@ -157,28 +157,30 @@ export const MyQuotesPage: React.FC = () => {
   };
 
   const renderViewToggle = () => (
-    <div className="inline-flex items-center gap-1 p-1 rounded-full bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-inner" role="group" aria-label="View toggle">
+    <div className="inline-flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-full bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-inner flex-shrink-0" role="group" aria-label="View toggle">
       <button
         onClick={() => setViewMode('grid')}
-        className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold transition-colors ${
+        className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-full text-sm font-semibold transition-colors ${
           viewMode === 'grid'
             ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-200 shadow-sm'
             : 'text-gray-600 dark:text-gray-300 hover:text-indigo-700 dark:hover:text-indigo-200'
         }`}
+        aria-label="Grid view"
       >
         <LayoutGrid className="w-4 h-4" />
-        Grid
+        <span className="hidden sm:inline">Grid</span>
       </button>
       <button
         onClick={() => setViewMode('list')}
-        className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold transition-colors ${
+        className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-full text-sm font-semibold transition-colors ${
           viewMode === 'list'
             ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-200 shadow-sm'
             : 'text-gray-600 dark:text-gray-300 hover:text-indigo-700 dark:hover:text-indigo-200'
         }`}
+        aria-label="List view"
       >
         <List className="w-4 h-4" />
-        List
+        <span className="hidden sm:inline">List</span>
       </button>
     </div>
   );
@@ -219,20 +221,21 @@ export const MyQuotesPage: React.FC = () => {
     <div className="min-h-screen h-screen overflow-y-auto bg-gradient-to-b from-gray-50 via-white to-gray-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
       {/* Header */}
       <header className="glass border-b border-gray-200/50 dark:border-slate-700/50 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <button
                 onClick={() => navigate('/')}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700 flex-shrink-0"
                 aria-label="Back to viewer"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Quotes</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {user?.name} • {user?.email}
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">My Quotes</h1>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                  <span className="hidden sm:inline">{user?.name} • </span>
+                  <span className="truncate">{user?.email}</span>
                 </p>
               </div>
             </div>
@@ -240,25 +243,25 @@ export const MyQuotesPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8">
           {statsCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div
                 key={index}
-                className="glass rounded-2xl border border-gray-200/50 dark:border-slate-700/50 p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
+                className="glass rounded-xl sm:rounded-2xl border border-gray-200/50 dark:border-slate-700/50 p-3 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`p-2.5 rounded-xl ${stat.bgColor}`}>
-                    <Icon className={`w-5 h-5 ${stat.color}`} />
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <div className={`p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl ${stat.bgColor}`}>
+                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-1 truncate">
                   {stat.value}
                 </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                   {stat.label}
                 </div>
               </div>
@@ -267,30 +270,30 @@ export const MyQuotesPage: React.FC = () => {
         </div>
 
         {/* Filters & Search */}
-        <div className="glass rounded-2xl border border-gray-200/50 dark:border-slate-700/50 p-5 mb-6 shadow-sm">
-          <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+        <div className="glass rounded-xl sm:rounded-2xl border border-gray-200/50 dark:border-slate-700/50 p-3 sm:p-5 mb-4 sm:mb-6 shadow-sm">
+          <div className="flex flex-col gap-3 sm:gap-4">
             {/* Search */}
             <div className="flex-1 relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by quote ID, model name, or material..."
+                placeholder="Search quotes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-gray-50/80 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-200"
+                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-2 bg-gray-50/80 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-200"
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-end">
+            <div className="flex items-center gap-2 justify-between">
               {/* Filter */}
-              <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-gray-400" />
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                 <select
                   value={filter}
                   onChange={(e) => setFilter(e.target.value as FilterType)}
-                  className="px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 min-w-0 px-2 sm:px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="all">All Statuses</option>
+                  <option value="all">All</option>
                   <option value="pending">Pending</option>
                   <option value="reviewed">Reviewed</option>
                   <option value="accepted">Accepted</option>
@@ -305,8 +308,8 @@ export const MyQuotesPage: React.FC = () => {
           </div>
 
           {/* Results count */}
-          <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-            Showing {filteredQuotes.length} of {quotes.length} quotes
+          <div className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+            {filteredQuotes.length} of {quotes.length} quotes
           </div>
         </div>
 
@@ -374,7 +377,7 @@ export const MyQuotesPage: React.FC = () => {
 
         {/* Quotes Layout */}
         {!loading && !error && filteredQuotes.length > 0 && (
-          <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-5' : 'space-y-4'}>
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5' : 'space-y-3 sm:space-y-4'}>
             {filteredQuotes.map((quote) => (
               <QuoteCard
                 key={quote.id}
