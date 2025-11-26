@@ -129,15 +129,15 @@ export default function ModelViewer() {
     }
   }, [authLoading, user]);
 
-  // Scene setup - only initialize after welcome modal is dismissed
+  // Scene setup - only initialize when user is authenticated
   useEffect(() => {
-    // Don't initialize while welcome modal is open
-    if (showWelcomeModal) {
-      console.log('[SCENE INIT] Welcome modal is open, waiting to initialize');
+    // AUTH GATE: Don't initialize scene unless user is authenticated
+    if (!user) {
+      console.log('[SCENE INIT] No authenticated user, waiting to initialize');
       return;
     }
 
-    console.log('[SCENE INIT] Effect triggered. sceneInitialized:', sceneInitializedRef.current);
+    console.log('[SCENE INIT] Effect triggered. User authenticated, sceneInitialized:', sceneInitializedRef.current);
 
     if (!containerRef.current) {
       console.warn('[SCENE INIT] No container ref, aborting');
@@ -269,7 +269,7 @@ export default function ModelViewer() {
       console.log('[SCENE INIT] Cleanup called');
       cancelAnimationFrame(rafId);
     };
-  }, [showWelcomeModal, backgroundColor, isDark]); // Re-run when modal closes, theme or background changes
+  }, [user, backgroundColor, isDark]); // Re-run when user authenticates, theme or background changes
 
   // Update lights and grid when theme changes (without recreating scene)
   useEffect(() => {
