@@ -4,6 +4,7 @@ import { SignUpModal } from './SignUpModal';
 import { SignInModal } from './SignInModal';
 import { EmailVerificationModal } from './EmailVerificationModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -33,69 +34,12 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
     }
   }, [user, isOpen, onClose]);
 
-  // Focus trap implementation
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const modalElement = modalRef.current;
-    if (!modalElement) return;
-
-    // Store the previously focused element
-    const previouslyFocused = document.activeElement as HTMLElement;
-
-    // Get all focusable elements within the modal
-    const getFocusableElements = () => {
-      return modalElement.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-    };
-
-    // Focus first element
-    const focusableElements = getFocusableElements();
-    if (focusableElements.length > 0) {
-      focusableElements[0].focus();
-    }
-
-    // Handle tab key to trap focus
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // ESC key handler
-      if (e.key === 'Escape' && onClose) {
-        onClose();
-        return;
-      }
-
-      // Tab key handler
-      if (e.key === 'Tab') {
-        const focusableElements = getFocusableElements();
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
-
-        if (e.shiftKey) {
-          // Shift + Tab
-          if (document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement.focus();
-          }
-        } else {
-          // Tab
-          if (document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    // Cleanup: restore focus
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      if (previouslyFocused) {
-        previouslyFocused.focus();
-      }
-    };
-  }, [isOpen, onClose]);
+  // Use the custom focus trap hook for accessible keyboard navigation
+  useFocusTrap(modalRef, {
+    isActive: isOpen && !showAuthModal && !showVerification,
+    onEscape: onClose,
+    restoreFocus: true,
+  });
 
   if (!isOpen) return null;
 

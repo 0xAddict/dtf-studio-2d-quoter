@@ -5,6 +5,7 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { ThemeToggle } from './ThemeToggle';
 import { UserMenu } from './UserMenu';
 import { WelcomeModal } from './WelcomeModal';
@@ -28,6 +29,7 @@ const createPivotHelper = () => {
 export default function ModelViewer() {
   const { isDark } = useTheme();
   const { user, loading: authLoading } = useAuth();
+  const toast = useToast();
 
   // Debug: Log user state
   useEffect(() => {
@@ -716,7 +718,7 @@ export default function ModelViewer() {
     // AUTH GATE: User must be authenticated to try sample
     if (!user) {
       console.log('🚪 AUTH GATE: Cannot try sample - user must sign in first');
-      alert('Please sign in to try the sample model');
+      toast.warning('Please sign in to try the sample model');
       return;
     }
 

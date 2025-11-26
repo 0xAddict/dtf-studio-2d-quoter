@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 import ModelViewer from './components/ModelViewer';
 import { MyQuotesPage } from './components/MyQuotesPage';
 import { AuthCallback } from './components/AuthCallback';
@@ -12,6 +13,7 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
+          <ToastProvider>
           <Routes>
             {/* Main model viewer */}
             <Route
@@ -38,6 +40,7 @@ function App() {
             {/* Auth callback for email verification */}
             <Route path="/auth/callback" element={<AuthCallback />} />
           </Routes>
+          </ToastProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
