@@ -502,6 +502,7 @@ export const MyQuotesPage: React.FC = () => {
                     layout={viewMode}
                     isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
                     isDeleting={deletingQuoteId === quote.quote_id}
+                    showInlineConfirmation={viewMode === 'list'}
                   />
                 ))}
               </div>

@@ -12,15 +12,28 @@ interface QuoteCardProps {
   layout?: 'grid' | 'list';
   isCancelling?: boolean;
   isDeleting?: boolean;
+  showInlineConfirmation?: boolean;
 }
 
-export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete, onDownload, layout = 'grid', isCancelling, isDeleting }) => {
+export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete, onDownload, layout = 'grid', isCancelling, isDeleting, showInlineConfirmation = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const handleCancel = () => {
     if (!onCancel) return;
-    onCancel(quote.quote_id);
+    if (showInlineConfirmation && layout === 'list') {
+      setShowCancelConfirm(true);
+    } else {
+      onCancel(quote.quote_id);
+    }
+  };
+
+  const handleCancelConfirm = () => {
+    if (onCancel) {
+      onCancel(quote.quote_id);
+    }
+    setShowCancelConfirm(false);
   };
 
   const handleDownload = () => {
@@ -31,8 +44,19 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete,
 
   const handleDelete = async () => {
     if (onDelete) {
+      if (showInlineConfirmation && layout === 'list') {
+        setShowDeleteConfirm(true);
+      } else {
+        await onDelete(quote.quote_id);
+      }
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (onDelete) {
       await onDelete(quote.quote_id);
     }
+    setShowDeleteConfirm(false);
   };
 
   // Status badge styling
@@ -355,6 +379,54 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete,
             : ''
         }`}
       >
+        {/* Inline Cancel Confirmation - Desktop List View */}
+        {showCancelConfirm && showInlineConfirmation && layout === 'list' && (
+          <div className="mb-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+            <p className="text-sm text-amber-900 dark:text-amber-100 mb-3 font-medium">
+              Cancel this quote?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancelConfirm}
+                disabled={isCancelling}
+                className="flex-1 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                {isCancelling ? 'Cancelling...' : 'Confirm'}
+              </button>
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Inline Delete Confirmation - Desktop List View */}
+        {showDeleteConfirm && showInlineConfirmation && layout === 'list' && quote.status === 'cancelled' && (
+          <div className="mb-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+            <p className="text-sm text-red-900 dark:text-red-100 mb-3 font-medium">
+              Permanently delete this quote?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Buttons - horizontal on mobile, stacked on larger screens */}
         <div className="flex flex-col gap-2 sm:gap-2.5">
           <div className="flex flex-row gap-2 sm:gap-2.5">
@@ -366,11 +438,11 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete,
               <span className="hidden xs:inline sm:inline">Download</span> PDF
             </button>
 
-            {statusConfig.canCancel && onCancel && (
+            {statusConfig.canCancel && onCancel && !showCancelConfirm && (
               <button
                 onClick={handleCancel}
                 disabled={isCancelling}
-                className="flex-1 sm:w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-200/60 dark:border-slate-700/60 hover:border-red-300 dark:hover:border-red-700 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-900/20 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px] sm:min-h-[44px]"
+                className="flex-1 sm:w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-200/60 dark:border-slate-700/60 hover:border-amber-300 dark:hover:border-amber-700 text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px] sm:min-h-[44px]"
               >
                 {isCancelling ? (
                   <>
@@ -389,61 +461,60 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete,
           </div>
 
           {/* Delete button for cancelled quotes */}
-          {quote.status === 'cancelled' && onDelete && (
+          {quote.status === 'cancelled' && onDelete && !showDeleteConfirm && (
             <div className="mt-1">
-              {!showDeleteConfirm ? (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={isDeleting}
-                  className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border border-red-200/60 dark:border-red-800/60 bg-red-50/50 dark:bg-red-900/20 hover:bg-red-100/80 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px] sm:min-h-[44px]"
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                      <span>Deleting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span>Delete Quote</span>
-                    </>
-                  )}
-                </button>
-              ) : (
-                <>
-                  {/* Mobile: Slide to confirm */}
-                  <div className="sm:hidden space-y-2">
-                    <SlideToConfirm
-                      onConfirm={handleDelete}
-                      label="Slide to delete"
-                      confirmLabel="Deleting..."
-                      variant="danger"
-                      isLoading={isDeleting}
-                    />
-                    <button
-                      onClick={() => setShowDeleteConfirm(false)}
-                      className="w-full py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                  {/* Desktop: Confirmation dialog */}
-                  <div className="hidden sm:block">
-                    <ConfirmationDialog
-                      isOpen={showDeleteConfirm}
-                      onClose={() => setShowDeleteConfirm(false)}
-                      onConfirm={handleDelete}
-                      title="Delete Quote"
-                      message={`Are you sure you want to permanently delete quote ${quote.quote_id}? This action cannot be undone.`}
-                      confirmLabel="Delete Quote"
-                      cancelLabel="Keep Quote"
-                      variant="danger"
-                      isLoading={isDeleting}
-                    />
-                  </div>
-                </>
-              )}
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border border-red-200/60 dark:border-red-800/60 bg-red-50/50 dark:bg-red-900/20 hover:bg-red-100/80 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px] sm:min-h-[44px]"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span>Delete Quote</span>
+                  </>
+                )}
+              </button>
             </div>
+          )}
+
+          {/* Mobile Delete Confirmation (Slide to Confirm) */}
+          {quote.status === 'cancelled' && onDelete && showDeleteConfirm && !showInlineConfirmation && (
+            <div className="mt-1 space-y-2">
+              <SlideToConfirm
+                onConfirm={handleDeleteConfirm}
+                label="Slide to delete"
+                confirmLabel="Deleting..."
+                variant="danger"
+                isLoading={isDeleting}
+              />
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="w-full py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Desktop Grid View: Confirmation Dialog */}
+          {showDeleteConfirm && !showInlineConfirmation && layout === 'grid' && (
+            <ConfirmationDialog
+              isOpen={showDeleteConfirm}
+              onClose={() => setShowDeleteConfirm(false)}
+              onConfirm={handleDeleteConfirm}
+              title="Delete Quote"
+              message={`Are you sure you want to permanently delete quote ${quote.quote_id}? This action cannot be undone.`}
+              confirmLabel="Delete Quote"
+              cancelLabel="Keep Quote"
+              variant="danger"
+              isLoading={isDeleting}
+            />
           )}
         </div>
       </div>
