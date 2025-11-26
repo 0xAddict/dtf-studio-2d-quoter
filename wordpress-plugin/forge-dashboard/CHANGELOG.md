@@ -5,6 +5,17 @@ All notable changes to the Forge Dashboard WordPress Plugin will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-11-26
+
+### Fixed
+- TypeScript types file now correctly references `quote_request` (singular) table name
+- Fixed inconsistency where `services/supabase/types.ts` used `quote_requests` (plural) but all other code used `quote_request` (singular)
+- Updated QuoteRequest and QuoteRequestInsert type exports to match actual table name
+
+### Documentation
+- Added SCHEMA_COMPARISON.md to document expected database schema, WordPress plugin expectations, and React app data structure
+- Added comprehensive schema verification tools (verify-schema.sql and verify-schema.js)
+
 ## [1.1.0] - 2025-11-24
 
 ### Changed
