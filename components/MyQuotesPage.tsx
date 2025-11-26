@@ -13,16 +13,18 @@ import {
   List,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { getUserQuotes, updateQuoteStatus, Quote, getUserQuoteStats } from '../services/supabase/quotes';
 import { QuoteCard } from './QuoteCard';
+import { ConfirmationDialog } from './ui/ConfirmationDialog';
 
 type FilterType = 'all' | 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled';
 type ViewMode = 'grid' | 'list';
-type ToastVariant = 'success' | 'error';
 
 export const MyQuotesPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const toast = useToast();
 
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([]);
@@ -35,8 +37,6 @@ export const MyQuotesPage: React.FC = () => {
 
   const [confirmQuoteId, setConfirmQuoteId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
-
-  const [toast, setToast] = useState<{ message: string; variant: ToastVariant } | null>(null);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -141,21 +141,19 @@ export const MyQuotesPage: React.FC = () => {
 
       await loadQuotes();
       await loadStats();
-      setToast({ message: 'Quote cancelled successfully.', variant: 'success' });
+      toast.success('Quote cancelled successfully.');
     } catch (err: any) {
       console.error('❌ Failed to cancel quote:', err);
-      setToast({ message: 'Failed to cancel quote. Please try again.', variant: 'error' });
+      toast.error('Failed to cancel quote. Please try again.');
     } finally {
       setIsCancelling(false);
       setConfirmQuoteId(null);
-      setTimeout(() => setToast(null), 3500);
     }
   };
 
   const handleDownloadPDF = (quoteId: string) => {
     console.log('Download PDF requested for', quoteId);
-    setToast({ message: 'PDF download will be available soon.', variant: 'error' });
-    setTimeout(() => setToast(null), 3500);
+    toast.info('PDF download will be available soon.');
   };
 
   const renderViewToggle = () => (
@@ -218,9 +216,9 @@ export const MyQuotesPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen h-screen overflow-y-auto bg-gradient-to-b from-gray-50 via-white to-gray-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
       {/* Header */}
-      <header className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl border-b border-gray-200/80 dark:border-slate-800 sticky top-0 z-10">
+      <header className="glass border-b border-gray-200/50 dark:border-slate-700/50 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -242,7 +240,7 @@ export const MyQuotesPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {statsCards.map((stat, index) => {
@@ -250,10 +248,10 @@ export const MyQuotesPage: React.FC = () => {
             return (
               <div
                 key={index}
-                className="bg-white/90 dark:bg-slate-800/90 rounded-2xl border border-gray-200/70 dark:border-slate-700/80 p-6 shadow-sm"
+                className="glass rounded-2xl border border-gray-200/50 dark:border-slate-700/50 p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className={`p-2 rounded-xl ${stat.bgColor}`}>
+                  <div className={`p-2.5 rounded-xl ${stat.bgColor}`}>
                     <Icon className={`w-5 h-5 ${stat.color}`} />
                   </div>
                 </div>
@@ -269,7 +267,7 @@ export const MyQuotesPage: React.FC = () => {
         </div>
 
         {/* Filters & Search */}
-        <div className="bg-white/90 dark:bg-slate-800/90 rounded-2xl border border-gray-200/80 dark:border-slate-700/80 p-5 mb-6 shadow-sm">
+        <div className="glass rounded-2xl border border-gray-200/50 dark:border-slate-700/50 p-5 mb-6 shadow-sm">
           <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
             {/* Search */}
             <div className="flex-1 relative w-full">
@@ -338,10 +336,10 @@ export const MyQuotesPage: React.FC = () => {
 
         {/* Empty State */}
         {!loading && !error && quotes.length === 0 && (
-          <div className="bg-white/90 dark:bg-slate-800/90 border border-gray-200/80 dark:border-slate-700/80 rounded-2xl p-12 text-center shadow-sm">
+          <div className="glass border border-gray-200/50 dark:border-slate-700/50 rounded-2xl p-12 text-center shadow-sm">
             <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-8 h-8 text-gray-400" />
+              <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <TrendingUp className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 No Quotes Yet
@@ -351,7 +349,7 @@ export const MyQuotesPage: React.FC = () => {
               </p>
               <button
                 onClick={() => navigate('/')}
-                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg font-medium transition-all"
+                className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl font-medium transition-all min-h-[48px] shadow-sm hover:shadow-md"
               >
                 Upload Model
               </button>
@@ -361,8 +359,10 @@ export const MyQuotesPage: React.FC = () => {
 
         {/* No Results State */}
         {!loading && !error && quotes.length > 0 && filteredQuotes.length === 0 && (
-          <div className="bg-white/90 dark:bg-slate-800/90 border border-gray-200/80 dark:border-slate-700/80 rounded-2xl p-12 text-center shadow-sm">
-            <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <div className="glass border border-gray-200/50 dark:border-slate-700/50 rounded-2xl p-12 text-center shadow-sm">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-gray-400" />
+            </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               No Quotes Found
             </h3>
@@ -389,66 +389,18 @@ export const MyQuotesPage: React.FC = () => {
         )}
       </main>
 
-      {/* Cancel Confirmation Modal */}
-      {confirmQuoteId && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-white/95 dark:bg-slate-900/90 rounded-2xl shadow-2xl border border-gray-200/80 dark:border-slate-700 max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-red-50 dark:bg-red-900/30">
-                  <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Cancel quote?</h3>
-              </div>
-              <button
-                onClick={() => setConfirmQuoteId(null)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                aria-label="Close confirmation dialog"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-              Are you sure you want to cancel quote <span className="font-semibold text-gray-900 dark:text-white">{confirmQuoteId}</span>? This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setConfirmQuoteId(null)}
-                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800"
-              >
-                Keep Quote
-              </button>
-              <button
-                onClick={handleCancelQuote}
-                disabled={isCancelling}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {isCancelling && <Loader2 className="w-4 h-4 animate-spin" />}
-                Confirm Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Toast Notification */}
-      {toast && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <div
-            className={`rounded-xl shadow-lg px-4 py-3 text-sm font-semibold border flex items-center gap-2 backdrop-blur-sm ${
-              toast.variant === 'success'
-                ? 'bg-white/90 dark:bg-slate-900/90 text-green-700 dark:text-green-200 border-green-200/70 dark:border-green-800'
-                : 'bg-white/90 dark:bg-slate-900/90 text-rose-700 dark:text-rose-200 border-rose-200/70 dark:border-rose-800'
-            }`}
-          >
-            <div
-              className={`w-2 h-2 rounded-full ${toast.variant === 'success' ? 'bg-green-500' : 'bg-red-500'}`}
-              aria-hidden
-            />
-            {toast.message}
-          </div>
-        </div>
-      )}
+      {/* Cancel Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={!!confirmQuoteId}
+        onClose={() => setConfirmQuoteId(null)}
+        onConfirm={handleCancelQuote}
+        title="Cancel Quote"
+        message={`Are you sure you want to cancel quote ${confirmQuoteId}? This action cannot be undone.`}
+        confirmLabel="Cancel Quote"
+        cancelLabel="Keep Quote"
+        variant="danger"
+        isLoading={isCancelling}
+      />
     </div>
   );
 };

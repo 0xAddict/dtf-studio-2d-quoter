@@ -93,7 +93,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
     });
   };
 
-  const containerClasses = `bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/80 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-all duration-200 ${
+  const containerClasses = `glass rounded-2xl border border-gray-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden ${
     layout === 'list' ? 'md:flex md:items-stretch' : ''
   }`;
 
@@ -320,33 +320,42 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
 
       {/* Actions */}
       <div
-        className={`p-5 pt-0 flex gap-3 ${
+        className={`p-5 pt-0 ${
           layout === 'list'
-            ? 'md:flex-col md:justify-center md:min-w-[220px] md:border-l md:border-gray-200/80 dark:md:border-slate-700/80'
+            ? 'md:flex md:flex-col md:justify-center md:gap-3 md:min-w-[200px] md:border-l md:border-gray-200/80 dark:md:border-slate-700/80 md:pt-5'
             : ''
         }`}
       >
-        <button
-          onClick={handleDownload}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg font-semibold transition-all shadow-sm hover:shadow-md"
-        >
-          <Download className="w-4 h-4" />
-          Download PDF
-        </button>
-
-        {quote.status === 'pending' && onCancel && (
+        {/* Stacked buttons for both grid and list view */}
+        <div className="flex flex-col gap-2.5">
           <button
-            onClick={handleCancel}
-            disabled={isCancelling}
-            className="px-4 py-2.5 border border-red-200/80 dark:border-red-700/80 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleDownload}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 glass dark:glass border border-gray-200/60 dark:border-slate-600/60 hover:border-indigo-300 dark:hover:border-indigo-600 text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl font-medium transition-all duration-200 min-h-[48px] group"
           >
-            {isCancelling ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              'Cancel'
-            )}
+            <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            Download PDF
           </button>
-        )}
+
+          {quote.status === 'pending' && onCancel && (
+            <button
+              onClick={handleCancel}
+              disabled={isCancelling}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-gray-200/60 dark:border-slate-700/60 hover:border-red-300 dark:hover:border-red-700 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-900/20 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4" />
+                  Cancel Quote
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
