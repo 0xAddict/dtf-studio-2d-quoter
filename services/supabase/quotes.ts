@@ -1,9 +1,9 @@
 import { supabase } from './client';
 
-// Quote interface matching the simplified quotes table schema
+// Quote interface matching the quote_request table schema
 export interface Quote {
   id: string;
-  user_id: string | null;
+  user_id: string; // Required - authenticated users only
   quote_id: string;
   created_at: string;
   customer_name: string;
@@ -56,18 +56,26 @@ export interface QuoteData {
 }
 
 /**
- * Save quote to database - SIMPLIFIED
- * No auth required - anyone can submit
- * If user is logged in, we'll store their user_id for "My Quotes" view
+ * Save quote to database
+ * REQUIRES authentication - user must be signed in
+ * Saves to quote_request table (WordPress plugin compatibility)
  */
 export async function saveQuote(quoteData: QuoteData) {
   try {
-    // Get current user (if logged in)
+    // Get current user - REQUIRED
     const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      console.error('❌ User not authenticated');
+      return {
+        data: null,
+        error: new Error('You must be signed in to submit a quote request')
+      };
+    }
 
     // Prepare insert data
     const insertData = {
-      user_id: user?.id || null, // Optional - null for anonymous
+      user_id: user.id, // Required - authenticated user only
       quote_id: quoteData.quote_id,
       customer_name: quoteData.customer_name,
       customer_email: quoteData.customer_email,
@@ -92,11 +100,11 @@ export async function saveQuote(quoteData: QuoteData) {
       status: 'pending' as const,
     };
 
-    console.log('💾 Saving quote to database...', { quote_id: insertData.quote_id, user_id: insertData.user_id });
+    console.log('💾 Saving quote to quote_request table...', { quote_id: insertData.quote_id, user_id: insertData.user_id });
 
-    // Insert directly into quotes table
+    // Insert into quote_request table
     const { data, error } = await supabase
-      .from('quotes')
+      .from('quote_request')
       .insert([insertData])
       .select()
       .single();
@@ -115,8 +123,8 @@ export async function saveQuote(quoteData: QuoteData) {
 }
 
 /**
- * Get all quotes for current user
- * Works for both authenticated and anonymous users
+ * Get all quotes for current user from quote_request table
+ * Requires authentication
  */
 export async function getUserQuotes() {
   console.log('📊 getUserQuotes: Starting...');
@@ -132,9 +140,9 @@ export async function getUserQuotes() {
 
     console.log('📊 getUserQuotes: Fetching quotes for user:', user.id);
 
-    // Fetch quotes for this user
+    // Fetch quotes from quote_request table for this user
     const { data, error } = await supabase
-      .from('quotes')
+      .from('quote_request')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
@@ -157,17 +165,17 @@ export async function getUserQuotes() {
  */
 export async function getQuoteByQuoteId(quoteId: string) {
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_request')
     .select('*')
     .eq('quote_id', quoteId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Get quote error:', error);
     return { data: null, error };
   }
 
-  return { data: data as Quote, error: null };
+  return { data: data as Quote | null, error: null };
 }
 
 /**
@@ -175,17 +183,17 @@ export async function getQuoteByQuoteId(quoteId: string) {
  */
 export async function getQuote(id: string) {
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_request')
     .select('*')
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Get quote error:', error);
     return { data: null, error };
   }
 
-  return { data: data as Quote, error: null };
+  return { data: data as Quote | null, error: null };
 }
 
 /**
@@ -204,19 +212,19 @@ export async function updateQuoteStatus(quoteId: string, status: Quote['status']
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_request')
     .update({ status })
     .eq('quote_id', quoteId)
     .eq('user_id', user.id)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Update quote status error:', error);
     return { data: null, error };
   }
 
-  return { data: data as Quote, error: null };
+  return { data: data as Quote | null, error: null };
 }
 
 /**
@@ -230,7 +238,7 @@ export async function getQuotesByStatus(status: Quote['status']) {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_request')
     .select('*')
     .eq('user_id', user.id)
     .eq('status', status)
@@ -258,7 +266,7 @@ export async function getUserQuoteStats() {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_request')
     .select('status, total_cost')
     .eq('user_id', user.id);
 
@@ -293,7 +301,7 @@ export async function searchQuotes(searchTerm: string) {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('quote_request')
     .select('*')
     .eq('user_id', user.id)
     .or(`quote_id.ilike.%${searchTerm}%,model_file_name.ilike.%${searchTerm}%,material.ilike.%${searchTerm}%`)

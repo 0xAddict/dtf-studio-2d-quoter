@@ -197,6 +197,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleSignOut = async () => {
     console.log('🔄 Starting sign out...');
 
+    // Set signing out state for UI feedback
+    setSigningOut(true);
+
     // Immediately clear local state for responsive UI (optimistic update)
     setUser(null);
     setSession(null);
@@ -212,6 +215,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err: any) {
       console.error('❌ Sign out error:', err.message);
+    } finally {
+      // Clear signing out state
+      setSigningOut(false);
+      console.log('✅ Sign out process completed');
     }
   };
 

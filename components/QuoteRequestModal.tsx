@@ -460,6 +460,13 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
 
     if (!validateForm()) return;
 
+    // CHECK: User must be authenticated to submit quote
+    if (!user) {
+      setSubmitStatus('error');
+      alert('You must be signed in to submit a quote request. Please sign in or create an account.');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitStatus('idle');
 
@@ -542,17 +549,53 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
         const { data: savedQuote, error: saveError } = await Promise.race([dbSavePromise, dbTimeoutPromise]);
 
         if (saveError) {
-          console.error('Error saving quote to database:', saveError);
-          // Don't fail - continue with email submission
-        } else {
-          console.log('Quote saved to database successfully:', savedQuote);
+          console.error('❌ Error saving quote to database:', saveError);
+          // FAIL IMMEDIATELY - database save is critical
+          setSubmitStatus('error');
+          setIsSubmitting(false);
+          setUploadingFiles(false);
+          alert(`Failed to save quote: ${saveError.message || 'Unknown error'}. Please try again.`);
+          return;
         }
-      } catch (dbError) {
-        console.error('Database save error:', dbError);
-        // Continue with email submission
-      }
 
-      // Prepare model info for the email
+        console.log('✅ Quote saved to database successfully:', savedQuote);
+
+        // Show success IMMEDIATELY after database save
+        setSubmitStatus('success');
+        downloadQuotePDF(quote);
+
+        // Send email notification in background (non-blocking)
+        // Email failure won't affect user experience
+        sendEmailNotification(quote, formData, modelData, attachmentUrls).catch(err => {
+          console.warn('⚠️ Email notification failed (non-critical):', err);
+        });
+
+        return; // Exit early after successful save
+      } catch (dbError) {
+        console.error('❌ Database save exception:', dbError);
+        setSubmitStatus('error');
+        setIsSubmitting(false);
+        setUploadingFiles(false);
+        alert('Failed to save quote. Please try again.');
+        return;
+      }
+    } catch (error) {
+      console.error('❌ Form submission error:', error);
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+      setUploadingFiles(false);
+    }
+  };
+
+  // Email notification helper (non-blocking)
+  const sendEmailNotification = async (
+    quote: QuoteData,
+    formData: FormData,
+    modelData: any,
+    attachmentUrls: string[]
+  ) => {
+    try {
       const modelInfo = modelData ? `
 Model Details:
 - File: ${modelData.fileName}
@@ -571,66 +614,52 @@ Pricing:
 ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishingCost.toFixed(2)} €\n` : ''}${quote.pricing.quantityDiscount > 0 ? `- Quantity Discount: -${quote.pricing.quantityDiscount.toFixed(2)} €\n` : ''}- Total: ${quote.pricing.total.toFixed(2)} €
       `.trim() : 'No model loaded';
 
-      // Prepare model file link for email
       const attachmentLinks = attachmentUrls.length > 0
         ? `\n\nModel File Download:\n${attachmentUrls[0]}`
         : '';
 
-      // Send to Web3Forms with timeout
       const web3formsKey = import.meta.env.VITE_WEB3FORMS_KEY || 'ad897559-e4df-411a-bcb7-086c366bf81f';
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      try {
-        const response = await fetch('https://api.web3forms.com/submit', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            access_key: web3formsKey,
-            subject: `New Quote Request #${quote.quoteId} - ${formData.name}`,
-            from_name: 'Hexea Forge',
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone || 'Not provided',
-            company: formData.company || 'Not provided',
-            quantity: formData.quantity,
-            timeline: formData.timeline || 'Not specified',
-            finishing: formData.finishing || 'Standard',
-            message: formData.message || 'No additional information',
-            model_info: modelInfo + attachmentLinks,
-          }),
-          signal: controller.signal,
-        });
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          access_key: web3formsKey,
+          subject: `New Quote Request #${quote.quoteId} - ${formData.name}`,
+          from_name: 'Hexea Forge',
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || 'Not provided',
+          company: formData.company || 'Not provided',
+          quantity: formData.quantity,
+          timeline: formData.timeline || 'Not specified',
+          finishing: formData.finishing || 'Standard',
+          message: formData.message || 'No additional information',
+          model_info: modelInfo + attachmentLinks,
+        }),
+        signal: controller.signal,
+      });
 
-        clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
 
-        const result = await response.json();
+      const result = await response.json();
 
-        if (result.success) {
-          setSubmitStatus('success');
-          // Auto-download quote PDF
-          downloadQuotePDF(quote);
-        } else {
-          console.error('Web3Forms error:', result);
-          throw new Error(result.message || 'Email submission failed');
-        }
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        if (fetchError.name === 'AbortError') {
-          console.error('Web3Forms request timed out');
-          throw new Error('Email service timed out. Quote was saved but email notification failed.');
-        }
-        throw fetchError;
+      if (result.success) {
+        console.log('✅ Email notification sent successfully');
+      } else {
+        console.warn('⚠️ Email notification failed:', result);
       }
-    } catch (error) {
-      console.error('Form submission error:', error);
-      setSubmitStatus('error');
-    } finally {
-      setIsSubmitting(false);
-      setUploadingFiles(false);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.warn('⚠️ Email notification timed out');
+      } else {
+        console.warn('⚠️ Email notification error:', err);
+      }
     }
   };
 

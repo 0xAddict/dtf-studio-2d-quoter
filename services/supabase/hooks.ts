@@ -226,7 +226,7 @@ export function useSavedViews(modelId?: string) {
   };
 }
 
-// Quote hooks - simplified
+// Quote hooks - for quote_request table
 export function useQuoteRequests() {
   const submitQuote = async (quote: any) => {
     if (!isSupabaseConfigured()) {
@@ -238,19 +238,35 @@ export function useQuoteRequests() {
       };
     }
 
-    // Get current user (optional)
+    // Get current user - REQUIRED for authentication
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Insert into quotes table directly
+    if (!user) {
+      console.error('❌ User not authenticated - cannot submit quote');
+      return {
+        data: null,
+        error: { message: 'You must be signed in to submit a quote request' }
+      };
+    }
+
+    console.log('💾 Submitting quote to quote_request table for user:', user.id);
+
+    // Insert into quote_request table with authenticated user_id
     const { data, error } = await supabase
-      .from('quotes')
+      .from('quote_request')
       .insert({
         ...quote,
-        user_id: user?.id || null, // Optional user_id
+        user_id: user.id, // Always use authenticated user ID
         status: 'pending',
       })
       .select()
       .single();
+
+    if (error) {
+      console.error('❌ Quote submission error:', error);
+    } else {
+      console.log('✅ Quote submitted successfully:', data?.quote_id);
+    }
 
     return { data, error };
   };
