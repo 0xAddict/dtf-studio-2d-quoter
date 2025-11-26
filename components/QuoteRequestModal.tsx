@@ -523,8 +523,8 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           total_cost: quote.pricing.total,
         };
 
-        console.log('🔄 Calling submitQuote...');
-        const { data: savedQuote, error: saveError } = await submitQuote(quoteData);
+        console.log('🔄 Calling submitQuote with userId:', user.id);
+        const { data: savedQuote, error: saveError } = await submitQuote(quoteData, user.id);
         console.log('🔄 Database save result:', { savedQuote: !!savedQuote, error: !!saveError });
 
         if (saveError) {
@@ -570,7 +570,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
 
               // Update quote with attachment URL
               import('../services/supabase/quotes').then(({ updateQuoteAttachment }) => {
-                updateQuoteAttachment(quote.quoteId, attachmentUrls[0]).catch(err => {
+                updateQuoteAttachment(quote.quoteId, attachmentUrls[0], user.id).catch(err => {
                   console.warn('⚠️ Failed to update quote with attachment URL:', err);
                 });
               });

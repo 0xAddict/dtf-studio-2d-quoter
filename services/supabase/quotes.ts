@@ -57,25 +57,27 @@ export interface QuoteData {
 
 /**
  * Save quote to database
- * REQUIRES authentication - user must be signed in
+ * REQUIRES authentication - userId must be provided by caller
  * Saves to quote_request table (WordPress plugin compatibility)
  */
-export async function saveQuote(quoteData: QuoteData) {
-  try {
-    // Get current user - REQUIRED
-    const { data: { user } } = await supabase.auth.getUser();
+export async function saveQuote(quoteData: QuoteData, userId: string) {
+  console.log('💾 Inside saveQuote, userId:', userId);
 
-    if (!user) {
-      console.error('❌ User not authenticated');
+  try {
+    // User is already authenticated - userId provided by caller
+    // REMOVED: getUser() call to prevent auth lock
+
+    if (!userId) {
+      console.error('❌ No user ID provided');
       return {
         data: null,
-        error: new Error('You must be signed in to submit a quote request')
+        error: new Error('User ID is required')
       };
     }
 
     // Prepare insert data
     const insertData = {
-      user_id: user.id, // Required - authenticated user only
+      user_id: userId, // Use passed userId instead of calling getUser()
       quote_id: quoteData.quote_id,
       customer_name: quoteData.customer_name,
       customer_email: quoteData.customer_email,
@@ -100,7 +102,7 @@ export async function saveQuote(quoteData: QuoteData) {
       status: 'pending' as const,
     };
 
-    console.log('💾 Saving quote to quote_request table...', { quote_id: insertData.quote_id, user_id: insertData.user_id });
+    console.log('💾 Inserting into quote_request...', { quote_id: insertData.quote_id, user_id: insertData.user_id });
 
     // Insert into quote_request table
     const { data, error } = await supabase
@@ -110,14 +112,14 @@ export async function saveQuote(quoteData: QuoteData) {
       .single();
 
     if (error) {
-      console.error('❌ Save quote error:', error);
+      console.error('❌ Database error:', error);
       return { data: null, error };
     }
 
-    console.log('✅ Quote saved successfully:', data.quote_id);
+    console.log('✅ Quote saved:', data.quote_id);
     return { data: data as Quote, error: null };
   } catch (err: any) {
-    console.error('❌ Exception saving quote:', err);
+    console.error('❌ Exception:', err);
     return { data: null, error: err };
   }
 }
@@ -319,20 +321,18 @@ export async function searchQuotes(searchTerm: string) {
  * Update quote attachment URL after file upload
  * Used when attachment is uploaded after initial quote submission
  */
-export async function updateQuoteAttachment(quoteId: string, fileUrl: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { data: null, error: new Error('User not authenticated') };
+export async function updateQuoteAttachment(quoteId: string, fileUrl: string, userId: string) {
+  if (!userId) {
+    return { data: null, error: new Error('User ID is required') };
   }
 
-  console.log('📎 Updating quote attachment:', { quoteId, fileUrl });
+  console.log('📎 Updating quote attachment:', { quoteId, fileUrl, userId });
 
   const { data, error } = await supabase
     .from('quote_request')
     .update({ model_file_url: fileUrl })
     .eq('quote_id', quoteId)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .select()
     .maybeSingle();
 

@@ -228,7 +228,7 @@ export function useSavedViews(modelId?: string) {
 
 // Quote hooks - for quote_request table
 export function useQuoteRequests() {
-  const submitQuote = async (quote: any) => {
+  const submitQuote = async (quote: any, userId: string) => {
     if (!isSupabaseConfigured()) {
       // Return mock success when not configured
       console.log('Supabase not configured. Mock quote submission:', quote);
@@ -238,25 +238,25 @@ export function useQuoteRequests() {
       };
     }
 
-    // Get current user - REQUIRED for authentication
-    const { data: { user } } = await supabase.auth.getUser();
+    // User is already authenticated - userId provided by caller
+    // REMOVED: getUser() call to prevent auth lock
 
-    if (!user) {
-      console.error('❌ User not authenticated - cannot submit quote');
+    if (!userId) {
+      console.error('❌ No user ID provided - cannot submit quote');
       return {
         data: null,
-        error: { message: 'You must be signed in to submit a quote request' }
+        error: { message: 'User ID is required to submit a quote request' }
       };
     }
 
-    console.log('💾 Submitting quote to quote_request table for user:', user.id);
+    console.log('💾 Submitting quote to quote_request table for user:', userId);
 
     // Insert into quote_request table with authenticated user_id
     const { data, error } = await supabase
       .from('quote_request')
       .insert({
         ...quote,
-        user_id: user.id, // Always use authenticated user ID
+        user_id: userId, // Use passed userId instead of calling getUser()
         status: 'pending',
       })
       .select()
