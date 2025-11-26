@@ -13,7 +13,6 @@ import {
   List,
   ArrowUpDown,
 } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { getUserQuotes, updateQuoteStatus, Quote, getUserQuoteStats } from '../services/supabase/quotes';
@@ -435,19 +434,17 @@ export const MyQuotesPage: React.FC = () => {
         {/* Quotes Layout */}
         {!loading && !error && filteredQuotes.length > 0 && (
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5' : 'space-y-3 sm:space-y-4'}>
-            <AnimatePresence mode="popLayout">
-              {filteredQuotes.map((quote) => (
-                <SwipeableQuoteCard
-                  key={quote.id}
-                  quote={quote}
-                  onCancel={() => setConfirmQuoteId(quote.quote_id)}
-                  onSwipeCancel={handleSwipeCancel}
-                  onDownload={handleDownloadPDF}
-                  layout={viewMode}
-                  isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
-                />
-              ))}
-            </AnimatePresence>
+            {filteredQuotes.map((quote) => (
+              <SwipeableQuoteCard
+                key={quote.id}
+                quote={quote}
+                onCancel={() => setConfirmQuoteId(quote.quote_id)}
+                onSwipeCancel={handleSwipeCancel}
+                onDownload={handleDownloadPDF}
+                layout={viewMode}
+                isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
+              />
+            ))}
           </div>
         )}
       </main>
