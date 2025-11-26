@@ -1,4 +1,16 @@
-import { supabase, STORAGE_BUCKETS } from './client';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from './types';
+import { STORAGE_BUCKETS } from './client';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const storageClient = createClient<Database>(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+});
 
 export interface UploadResult {
   url: string;
@@ -18,6 +30,15 @@ export async function uploadFile(
   bucket: keyof typeof STORAGE_BUCKETS = 'ATTACHMENTS',
   folder?: string
 ): Promise<UploadResult> {
+  const bucketName = STORAGE_BUCKETS[bucket];
+
+  console.log(`📤 [Storage] Starting upload:`, {
+    fileName: file.name,
+    fileSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+    bucket: bucketName,
+    folder: folder || 'root'
+  });
+
   try {
     // Generate unique filename
     const timestamp = Date.now();
@@ -27,17 +48,19 @@ export async function uploadFile(
 
     // Construct the full path
     const filePath = folder ? `${folder}/${fileName}` : fileName;
+    console.log(`📂 [Storage] Upload path: ${filePath}`);
 
-    // Upload file to Supabase storage
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKETS[bucket])
+    // Upload file directly - no bucket check, no timeout wrapper
+    console.log(`⏱️ [Storage] Uploading to '${bucketName}'...`);
+    const { data, error } = await storageClient.storage
+      .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false,
       });
 
     if (error) {
-      console.error('Upload error:', error);
+      console.error('❌ [Storage] Upload error:', error);
       return {
         url: '',
         path: '',
@@ -45,17 +68,21 @@ export async function uploadFile(
       };
     }
 
+    console.log(`✅ [Storage] File uploaded successfully to: ${data.path}`);
+
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from(STORAGE_BUCKETS[bucket])
+    const { data: { publicUrl } } = storageClient.storage
+      .from(bucketName)
       .getPublicUrl(data.path);
+
+    console.log(`✅ [Storage] Public URL: ${publicUrl}`);
 
     return {
       url: publicUrl,
       path: data.path,
     };
   } catch (err) {
-    console.error('Unexpected upload error:', err);
+    console.error('❌ [Storage] Unexpected error:', err);
     return {
       url: '',
       path: '',
@@ -76,8 +103,21 @@ export async function uploadMultipleFiles(
   bucket: keyof typeof STORAGE_BUCKETS = 'ATTACHMENTS',
   folder?: string
 ): Promise<UploadResult[]> {
-  const uploadPromises = files.map(file => uploadFile(file, bucket, folder));
-  return Promise.all(uploadPromises);
+  console.log(`📤 [Storage] Uploading ${files.length} file(s)...`);
+
+  const uploadPromises = files.map((file, index) => {
+    console.log(`📄 [Storage] File ${index + 1}/${files.length}: ${file.name}`);
+    return uploadFile(file, bucket, folder);
+  });
+
+  const results = await Promise.all(uploadPromises);
+
+  const successCount = results.filter(r => !r.error).length;
+  const failCount = results.filter(r => r.error).length;
+
+  console.log(`✅ [Storage] Upload complete: ${successCount} succeeded, ${failCount} failed`);
+
+  return results;
 }
 
 /**
@@ -90,7 +130,7 @@ export async function deleteFile(
   bucket: keyof typeof STORAGE_BUCKETS = 'ATTACHMENTS'
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase.storage
+    const { error } = await storageClient.storage
       .from(STORAGE_BUCKETS[bucket])
       .remove([path]);
 

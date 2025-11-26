@@ -1,5 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Upload, Play, X } from 'lucide-react';
+import { SignUpModal } from './SignUpModal';
+import { SignInModal } from './SignInModal';
+import { EmailVerificationModal } from './EmailVerificationModal';
+import { useAuth } from '../contexts/AuthContext';
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -14,7 +18,20 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
   onTrySample,
   onClose,
 }) => {
+  const { user, loading: authLoading } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
+  const [showAuthModal, setShowAuthModal] = useState<'signup' | 'signin' | null>(null);
+  const [showVerification, setShowVerification] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
+
+  // Auto-close welcome modal when user signs in
+  useEffect(() => {
+    if (user && isOpen) {
+      console.log('✅ User signed in, closing welcome modal');
+      setShowAuthModal(null);
+      if (onClose) onClose();
+    }
+  }, [user, isOpen, onClose]);
 
   // Focus trap implementation
   useEffect(() => {
@@ -103,6 +120,14 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
         className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-8 animate-scale-in border border-gray-200 dark:border-slate-700"
         onClick={handleModalClick}
       >
+        {/* Loading Overlay - Show while checking auth or after sign out */}
+        {authLoading && (
+          <div className="absolute inset-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-2xl z-50 flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent dark:border-indigo-400 dark:border-t-transparent mb-4"></div>
+            <p className="text-gray-700 dark:text-gray-300 font-medium">Loading...</p>
+          </div>
+        )}
+
         {/* Close Button (if onClose provided) */}
         {onClose && (
           <button
@@ -148,11 +173,14 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
         {/* Buttons */}
         <div className="space-y-3">
           <button
-            onClick={onGetQuote}
+            onClick={() => {
+              setShowAuthModal('signup');
+              // Don't close welcome modal yet, user might cancel
+            }}
             className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-[1.02] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-slate-900"
           >
             <Upload className="w-5 h-5" />
-            Get a Quote
+            Sign Up / Sign In
           </button>
 
           <button
@@ -164,6 +192,39 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Auth Modals */}
+      <SignUpModal
+        isOpen={showAuthModal === 'signup'}
+        onClose={() => setShowAuthModal(null)}
+        onSwitchToSignIn={() => setShowAuthModal('signin')}
+        onSuccess={() => {
+          // Store email for verification modal
+          const emailInput = document.querySelector<HTMLInputElement>('input[type="email"]');
+          if (emailInput) {
+            setSignupEmail(emailInput.value);
+          }
+          setShowAuthModal(null);
+          setShowVerification(true);
+        }}
+      />
+
+      <SignInModal
+        isOpen={showAuthModal === 'signin'}
+        onClose={() => setShowAuthModal(null)}
+        onSwitchToSignUp={() => setShowAuthModal('signup')}
+        onSuccess={() => {
+          setShowAuthModal(null);
+          if (onClose) onClose(); // Close welcome modal after sign in
+          onGetQuote(); // Proceed to main app
+        }}
+      />
+
+      <EmailVerificationModal
+        isOpen={showVerification}
+        onClose={() => setShowVerification(false)}
+        email={signupEmail}
+      />
     </div>
   );
 };

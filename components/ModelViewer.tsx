@@ -4,7 +4,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
+import { UserMenu } from './UserMenu';
 import { WelcomeModal } from './WelcomeModal';
 import { EmailVerificationModal } from './EmailVerificationModal';
 import { QuoteRequestModal } from './QuoteRequestModal';
@@ -25,6 +27,14 @@ const createPivotHelper = () => {
 
 export default function ModelViewer() {
   const { isDark } = useTheme();
+  const { user, loading: authLoading } = useAuth();
+
+  // Debug: Log user state
+  useEffect(() => {
+    console.log('🔍 ModelViewer: user =', user);
+    console.log('🔍 ModelViewer: authLoading =', authLoading);
+  }, [user, authLoading]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -65,7 +75,7 @@ export default function ModelViewer() {
   const [measurementInfo, setMeasurementInfo] = useState<{ points: THREE.Vector3[], distance: number | null }>({ points: [], distance: null });
 
   // Modal and flow states
-  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
@@ -86,15 +96,48 @@ export default function ModelViewer() {
     setBackgroundColor(isDark ? '#0f172a' : '#f0f4f8');
   }, [isDark]);
 
-  // Scene setup - only initialize after welcome modal is dismissed
+  // ALWAYS show welcome modal if user is not authenticated
+  // This is the auth gate - no access to viewer without signing in
   useEffect(() => {
-    // Don't initialize while welcome modal is open
-    if (showWelcomeModal) {
-      console.log('[SCENE INIT] Welcome modal is open, waiting to initialize');
+    // Don't show welcome modal while we're on the auth callback route
+    const isAuthCallbackRoute = window.location.pathname === '/auth/callback';
+
+    // If auth hash params leak onto the landing page (e.g., after sign out),
+    // clear them so the welcome/login modal can appear normally.
+    const hasAuthHash = window.location.hash.includes('access_token') ||
+                        window.location.hash.includes('type=');
+    if (!isAuthCallbackRoute && hasAuthHash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+
+    console.log('🔍 Welcome Modal Logic (Auth Gate):', {
+      authLoading,
+      user: user ? 'authenticated' : 'null',
+      emailVerified: user?.emailVerified,
+      isAuthCallbackRoute,
+      shouldShow: !authLoading && !user && !isAuthCallbackRoute
+    });
+
+    // AUTH GATE: If no user, ALWAYS show welcome modal (force login)
+    if (!authLoading && !user && !isAuthCallbackRoute) {
+      console.log('🚪 AUTH GATE: No user - showing welcome modal (login required)');
+      setShowWelcomeModal(true);
+    } else if (user) {
+      // User is authenticated - close welcome modal and allow access
+      console.log('✅ AUTH GATE: User authenticated - granting access to viewer');
+      setShowWelcomeModal(false);
+    }
+  }, [authLoading, user]);
+
+  // Scene setup - only initialize when user is authenticated
+  useEffect(() => {
+    // AUTH GATE: Don't initialize scene unless user is authenticated
+    if (!user) {
+      console.log('[SCENE INIT] No authenticated user, waiting to initialize');
       return;
     }
 
-    console.log('[SCENE INIT] Effect triggered. sceneInitialized:', sceneInitializedRef.current);
+    console.log('[SCENE INIT] Effect triggered. User authenticated, sceneInitialized:', sceneInitializedRef.current);
 
     if (!containerRef.current) {
       console.warn('[SCENE INIT] No container ref, aborting');
@@ -226,7 +269,7 @@ export default function ModelViewer() {
       console.log('[SCENE INIT] Cleanup called');
       cancelAnimationFrame(rafId);
     };
-  }, [showWelcomeModal, backgroundColor, isDark]); // Re-run when modal closes, theme or background changes
+  }, [user, backgroundColor, isDark]); // Re-run when user authenticates, theme or background changes
 
   // Update lights and grid when theme changes (without recreating scene)
   useEffect(() => {
@@ -654,7 +697,29 @@ export default function ModelViewer() {
     setShowEmailModal(true);
   };
 
+  const handleRequestQuote = () => {
+    if (!selectedMaterial) {
+      setError('Please select a material type before requesting a quote.');
+      // Scroll to material selection if on mobile
+      const materialSelect = document.getElementById('material-select');
+      if (materialSelect) {
+        materialSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        materialSelect.focus();
+      }
+      return;
+    }
+    setError('');
+    setIsQuoteModalOpen(true);
+  };
+
   const handleTrySample = () => {
+    // AUTH GATE: User must be authenticated to try sample
+    if (!user) {
+      console.log('🚪 AUTH GATE: Cannot try sample - user must sign in first');
+      alert('Please sign in to try the sample model');
+      return;
+    }
+
     setShowWelcomeModal(false);
     setIsSampleMode(true);
     loadSampleModel();
@@ -667,36 +732,75 @@ export default function ModelViewer() {
     // User is now verified and can use the full interface
   };
 
-  const loadSampleModel = () => {
-    // Create a simple sample STL cube programmatically
-    const geometry = new THREE.BoxGeometry(2, 2, 2);
-    const material = new THREE.MeshPhongMaterial({
-      color: modelColor,
-      specular: 0x111111,
-      shininess: 200,
-      wireframe: isWireframe,
-    });
-    const cube = new THREE.Mesh(geometry, material);
-    cube.castShadow = true;
-    cube.receiveShadow = true;
+  const loadSampleModel = async () => {
+    const sampleUrl = 'https://jqfudagohdkdtnplgtob.supabase.co/storage/v1/object/public/attachments/Inner.STL';
 
-    removeCurrentModel();
+    setLoading(true);
+    setError('');
 
-    const box = new THREE.Box3().setFromObject(cube);
-    const size = box.getSize(new THREE.Vector3());
+    try {
+      const response = await fetch(sampleUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch sample model: ${response.statusText}`);
+      }
 
-    if (sceneRef.current) sceneRef.current.add(cube);
-    currentModelRef.current = cube;
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+      const file = new File([blob], 'Inner.STL', { type: 'application/octet-stream' });
 
-    // Set pivot point to center of model
-    if (controlsRef.current) {
-      controlsRef.current.target.set(0, 0, 0);
-      pivotHelperRef.current.position.set(0, 0, 0);
-      pivotHelperRef.current.visible = true;
+      // Set the file state for quote submission
+      setCurrentFileName('Inner.STL');
+      setCurrentFile(file);
+
+      // Load the model using existing loader
+      const loader = new STLLoader();
+      const geometry = loader.parse(arrayBuffer);
+      geometry.computeVertexNormals();
+
+      const material = new THREE.MeshPhongMaterial({
+        color: modelColor,
+        specular: 0x111111,
+        shininess: 200,
+        wireframe: isWireframe,
+      });
+
+      let object: THREE.Object3D;
+      if (geometry instanceof THREE.BufferGeometry) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        object = mesh;
+      } else {
+        object = geometry;
+      }
+
+      removeCurrentModel();
+
+      const { size } = centerAndScaleModel(object);
+      if (sceneRef.current) {
+        sceneRef.current.add(object);
+      }
+      currentModelRef.current = object;
+
+      // Update material properties after loading
+      updateMaterialProperties(object);
+
+      // Set pivot point to center of model
+      if (controlsRef.current) {
+        controlsRef.current.target.set(0, 0, 0);
+        pivotHelperRef.current.position.set(0, 0, 0);
+        pivotHelperRef.current.visible = true;
+      }
+
+      setModelInfo('Sample model loaded: Inner.STL');
+      calculateModelStats(object, size);
+
+    } catch (err: any) {
+      setError(`Error loading sample model: ${err.message}`);
+      console.error('Sample model loading error:', err);
+    } finally {
+      setLoading(false);
     }
-
-    setModelInfo('Sample model loaded: Cube');
-    calculateModelStats(cube, size);
   };
 
   // Keyboard shortcuts
@@ -731,23 +835,26 @@ export default function ModelViewer() {
   return (
     <div
       className="w-full h-screen flex bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300"
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      onDragOver={user ? handleDragOver : undefined}
+      onDragLeave={user ? handleDragLeave : undefined}
+      onDrop={user ? handleDrop : undefined}
     >
-      {/* Drag and Drop Overlay */}
-      {isDragOver && (
-        <div className="absolute inset-0 z-50 bg-indigo-600/20 dark:bg-indigo-500/20 backdrop-blur-sm flex items-center justify-center pointer-events-none animate-fade-in">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-2xl border-2 border-dashed border-indigo-500 dark:border-indigo-400">
-            <div className="text-center">
-              <Upload className="w-16 h-16 mx-auto mb-4 text-indigo-600 dark:text-indigo-400" />
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">Drop your 3D model here</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">STL or FBX files</p>
+      {/* AUTH GATE: Only show viewer UI when user is authenticated */}
+      {user ? (
+        <>
+          {/* Drag and Drop Overlay */}
+          {isDragOver && (
+            <div className="absolute inset-0 z-50 bg-indigo-600/20 dark:bg-indigo-500/20 backdrop-blur-sm flex items-center justify-center pointer-events-none animate-fade-in">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-2xl border-2 border-dashed border-indigo-500 dark:border-indigo-400">
+                <div className="text-center">
+                  <Upload className="w-16 h-16 mx-auto mb-4 text-indigo-600 dark:text-indigo-400" />
+                  <p className="text-xl font-semibold text-gray-900 dark:text-white">Drop your 3D model here</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">STL or FBX files</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-      <main className="flex-1 flex flex-col relative overflow-hidden">
+          )}
+          <main className="flex-1 flex flex-col relative overflow-hidden">
         {/* Clean Minimal Header */}
         <header className="glass border-b border-gray-200 dark:border-slate-700 z-20 animate-fade-in">
             <div className="flex justify-between items-center px-4 md:px-6 py-3">
@@ -778,8 +885,9 @@ export default function ModelViewer() {
                   </label>
                 )}
 
-                {/* Right: Theme & Panel Toggle */}
+                {/* Right: User Menu, Theme & Panel Toggle */}
                 <div className="flex items-center gap-2">
+                    {user && <UserMenu />}
                     <ThemeToggle />
                     <button
                       onClick={() => setIsPanelOpen(!isPanelOpen)}
@@ -1013,15 +1121,19 @@ export default function ModelViewer() {
             </div>
 
             {/* Material Selection */}
-            <div className="mb-6 animate-fade-in">
+            <div className="mb-6 animate-fade-in relative">
               <label htmlFor="material-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Print Materials
+                Print Materials <span className="text-red-500">*</span>
               </label>
               <select
                 id="material-select"
                 value={selectedMaterial}
-                onChange={(e) => setSelectedMaterial(e.target.value)}
+                onChange={(e) => {
+                  setSelectedMaterial(e.target.value);
+                  if (e.target.value) setError(''); // Clear error when material is selected
+                }}
                 className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors"
+                required
               >
                 <option value="">Select material...</option>
                 <option value="asa">ASA - Durable and weather-resistant (outdoor use)</option>
@@ -1046,6 +1158,13 @@ export default function ModelViewer() {
                 </div>
               )}
             </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 animate-fade-in" role="alert">
+                <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+              </div>
+            )}
 
             {/* Model Scale Control */}
             {modelStats && (
@@ -1122,7 +1241,7 @@ export default function ModelViewer() {
                     {/* Action Buttons */}
                     <div className="pt-4 mt-4 border-t border-gray-200 dark:border-slate-700 space-y-3">
                       <button
-                        onClick={() => setIsQuoteModalOpen(true)}
+                        onClick={handleRequestQuote}
                         className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 dark:from-indigo-500 dark:to-purple-500 dark:hover:from-indigo-600 dark:hover:to-purple-600 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
                       >
                         <Send className="w-4 h-4" />
@@ -1149,12 +1268,44 @@ export default function ModelViewer() {
           </>
         )}
       </aside>
+        </>
+      ) : (
+        // User not authenticated - show loading or blank screen while welcome modal is displayed
+        <div className="flex-1 flex items-center justify-center">
+          {authLoading ? (
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            </div>
+          ) : (
+            // Show nothing - WelcomeModal will be displayed
+            <div className="text-center px-4">
+              <div className="mb-6">
+                <img
+                  src="/hexea.png"
+                  alt="Hexea Logo"
+                  className="h-16 w-auto mx-auto opacity-50"
+                />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+                Welcome to Hexea Forge
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Please sign in to access the 3D model viewer
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Modals */}
+      {/* Modals - Always available regardless of auth state */}
       <WelcomeModal
         isOpen={showWelcomeModal}
         onGetQuote={handleGetQuote}
         onTrySample={handleTrySample}
+        // AUTH GATE: Cannot close welcome modal unless user is authenticated
+        // This enforces login requirement - no bypassing the auth gate
+        onClose={user ? () => setShowWelcomeModal(false) : undefined}
       />
 
       <EmailVerificationModal

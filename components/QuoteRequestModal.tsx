@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Loader2, Download, CheckCircle } from 'lucide-react';
 import { uploadMultipleFiles } from '../services/supabase/storage';
 import { useQuoteRequests } from '../services/supabase/hooks';
+import { saveQuote } from '../services/supabase/quotes';
+import { useAuth } from '../contexts/AuthContext';
 
 interface QuoteRequestModalProps {
   isOpen: boolean;
@@ -95,9 +97,12 @@ const finishingPrices: Record<string, number> = {
 };
 
 export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, modelData, modelFile, userInfo }) => {
+  const { user } = useAuth();
+  const { submitQuote } = useQuoteRequests();
+
   const [formData, setFormData] = useState<FormData>({
-    name: userInfo?.name || '',
-    email: userInfo?.email || '',
+    name: userInfo?.name || user?.name || '',
+    email: userInfo?.email || user?.email || '',
     phone: '',
     company: '',
     quantity: '1',
@@ -112,19 +117,17 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Supabase hook for saving quotes
-  const { submitQuote } = useQuoteRequests();
-
-  // Pre-populate form with userInfo when it changes
+  // Pre-populate form with userInfo or authenticated user
   useEffect(() => {
-    if (userInfo) {
-      setFormData(prev => ({
-        ...prev,
-        name: userInfo.name,
-        email: userInfo.email,
-      }));
-    }
-  }, [userInfo]);
+    const name = userInfo?.name || user?.name || '';
+    const email = userInfo?.email || user?.email || '';
+
+    setFormData(prev => ({
+      ...prev,
+      name,
+      email,
+    }));
+  }, [userInfo, user]);
 
   // Focus trap implementation
   useEffect(() => {
@@ -455,50 +458,162 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    console.log('🖱️ Submit button clicked!');
 
+    // 1. SET LOADING STATE IMMEDIATELY (BEFORE ANY ASYNC)
     setIsSubmitting(true);
     setSubmitStatus('idle');
+    setUploadingFiles(false);
+
+    console.log('📤 Starting quote submission...');
+
+    // 2. Validate form
+    if (!validateForm()) {
+      console.log('❌ Form validation failed');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // 3. CHECK AUTH: User must be authenticated to submit quote
+    console.log('🔐 Checking authentication...');
+    if (!user) {
+      console.log('❌ User not authenticated');
+      setSubmitStatus('error');
+      setIsSubmitting(false);
+      alert('You must be signed in to submit a quote request. Please sign in or create an account.');
+      return;
+    }
+
+    console.log('✅ User authenticated:', user.email);
 
     try {
-      // Generate quote
+      // 4. Generate quote
+      console.log('💰 Generating quote...');
       const quote = generateQuote();
       setGeneratedQuote(quote);
+      console.log('✅ Quote generated:', quote.quoteId);
 
-      // Upload model file to Supabase if available
-      let attachmentUrls: string[] = [];
-      if (modelFile) {
-        setUploadingFiles(true);
-        try {
-          const uploadResults = await uploadMultipleFiles(
+      // 5. Save quote to database FIRST - CRITICAL PATH
+      console.log('💾 Saving quote to database...');
+      try {
+        const quoteData = {
+          quote_id: quote.quoteId,
+          customer_name: formData.name,
+          customer_email: formData.email,
+          customer_phone: formData.phone || null,
+          customer_company: formData.company || null,
+          quantity: parseInt(formData.quantity),
+          material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
+          timeline: formData.timeline || 'Not specified',
+          finishing: formData.finishing || 'standard',
+          scale: modelData?.scale || 100,
+          message: formData.message || null,
+          // Model file info
+          model_file_name: modelData?.fileName || 'Unknown',
+          model_file_url: null, // Will be updated after upload
+          // Model stats
+          vertices: modelData?.vertices || null,
+          triangles: modelData?.triangles || null,
+          dimensions: modelData?.dimensions || null,
+          // Pricing breakdown
+          base_cost: quote.pricing.baseCost,
+          material_cost: quote.pricing.materialCost,
+          finishing_cost: quote.pricing.finishingCost,
+          quantity_discount: quote.pricing.quantityDiscount,
+          total_cost: quote.pricing.total,
+        };
+
+        console.log('🔄 Calling submitQuote with userId:', user.id);
+        const { data: savedQuote, error: saveError } = await submitQuote(quoteData, user.id);
+        console.log('🔄 Database save result:', { savedQuote: !!savedQuote, error: !!saveError });
+
+        if (saveError) {
+          console.error('❌ Error saving quote to database:', saveError);
+          // FAIL IMMEDIATELY - database save is critical
+          setSubmitStatus('error');
+          setIsSubmitting(false);
+          alert(`Failed to save quote: ${saveError.message || 'Unknown error'}. Please try again.`);
+          return;
+        }
+
+        console.log('✅ Quote saved to database successfully:', savedQuote?.id || savedQuote?.quote_id);
+
+        // 6. Show success IMMEDIATELY after database save
+        console.log('🎉 Showing success message...');
+        setSubmitStatus('success');
+        downloadQuotePDF(quote);
+
+        // 7. Send email notification in background (non-blocking)
+        console.log('📧 Sending email notification in background...');
+        sendEmailNotification(quote, formData, modelData, []).catch(err => {
+          console.warn('⚠️ Email notification failed (non-critical):', err);
+        });
+
+        // 8. Upload model file in background (non-blocking)
+        // File upload happens after quote is saved and user sees success
+        if (modelFile) {
+          console.log('📁 Uploading model file to storage in background...');
+          setUploadingFiles(true);
+
+          uploadMultipleFiles(
             [modelFile],
             'ATTACHMENTS',
             `quotes/${quote.quoteId}`
-          );
+          ).then(uploadResults => {
+            // Filter successful uploads and get URLs
+            const attachmentUrls = uploadResults
+              .filter(result => result.url && !result.error)
+              .map(result => result.url);
 
-          // Filter successful uploads and get URLs
-          attachmentUrls = uploadResults
-            .filter(result => result.url && !result.error)
-            .map(result => result.url);
+            if (attachmentUrls.length > 0) {
+              console.log('✅ Model file uploaded successfully:', attachmentUrls[0]);
 
-          // Log upload results for debugging
-          if (attachmentUrls.length > 0) {
-            console.log('Model file uploaded successfully:', attachmentUrls[0]);
-          } else {
-            console.warn('Model file upload failed:', uploadResults);
-          }
+              // Update quote with attachment URL
+              import('../services/supabase/quotes').then(({ updateQuoteAttachment }) => {
+                updateQuoteAttachment(quote.quoteId, attachmentUrls[0], user.id).catch(err => {
+                  console.warn('⚠️ Failed to update quote with attachment URL:', err);
+                });
+              });
+            } else {
+              console.warn('⚠️ Model file upload failed:', uploadResults);
+            }
 
-          setUploadingFiles(false);
-        } catch (uploadError) {
-          console.error('Error uploading model file:', uploadError);
-          setUploadingFiles(false);
-          // Continue with quote submission even if upload fails
+            setUploadingFiles(false);
+          }).catch(uploadError => {
+            console.error('❌ Error uploading model file:', uploadError);
+            setUploadingFiles(false);
+          });
+        } else {
+          console.log('ℹ️ No model file to upload with quote');
         }
-      } else {
-        console.warn('No model file to upload with quote');
-      }
 
-      // Prepare model info for the email
+        console.log('✅ Quote submission complete!');
+        return; // Exit early after successful save
+      } catch (dbError) {
+        console.error('❌ Database save exception:', dbError);
+        setSubmitStatus('error');
+        setIsSubmitting(false);
+        setUploadingFiles(false);
+        alert('Failed to save quote. Please try again.');
+        return;
+      }
+    } catch (error) {
+      console.error('❌ Form submission error:', error);
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+      setUploadingFiles(false);
+    }
+  };
+
+  // Email notification helper (non-blocking)
+  const sendEmailNotification = async (
+    quote: QuoteData,
+    formData: FormData,
+    modelData: any,
+    attachmentUrls: string[]
+  ) => {
+    try {
       const modelInfo = modelData ? `
 Model Details:
 - File: ${modelData.fileName}
@@ -517,19 +632,22 @@ Pricing:
 ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishingCost.toFixed(2)} €\n` : ''}${quote.pricing.quantityDiscount > 0 ? `- Quantity Discount: -${quote.pricing.quantityDiscount.toFixed(2)} €\n` : ''}- Total: ${quote.pricing.total.toFixed(2)} €
       `.trim() : 'No model loaded';
 
-      // Prepare model file link for email
       const attachmentLinks = attachmentUrls.length > 0
         ? `\n\nModel File Download:\n${attachmentUrls[0]}`
         : '';
 
-      // Send to Web3Forms
+      const web3formsKey = import.meta.env.VITE_WEB3FORMS_KEY || 'ad897559-e4df-411a-bcb7-086c366bf81f';
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          access_key: 'ad897559-e4df-411a-bcb7-086c366bf81f',
+          access_key: web3formsKey,
           subject: `New Quote Request #${quote.quoteId} - ${formData.name}`,
           from_name: 'Hexea Forge',
           name: formData.name,
@@ -542,64 +660,24 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
           message: formData.message || 'No additional information',
           model_info: modelInfo + attachmentLinks,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const result = await response.json();
 
       if (result.success) {
-        // Save quote to Supabase database
-        try {
-          const quoteData = {
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone || null,
-            company: formData.company || null,
-            quantity: parseInt(formData.quantity),
-            material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
-            timeline: formData.timeline || null,
-            notes: formData.message || null,
-            model_data: JSON.stringify({
-              quoteId: quote.quoteId,
-              fileName: modelData?.fileName,
-              material: modelData?.material ? materialNames[modelData.material] || modelData.material : 'Not specified',
-              scale: modelData?.scale,
-              quantity: parseInt(formData.quantity),
-              timeline: formData.timeline,
-              finishing: formData.finishing,
-              vertices: modelData?.vertices,
-              triangles: modelData?.triangles,
-              dimensions: modelData?.dimensions,
-              pricing: quote.pricing,
-              attachmentUrl: attachmentUrls[0] || null,
-            }),
-          };
-
-          const { data: savedQuote, error: dbError } = await submitQuote(quoteData);
-
-          if (dbError) {
-            console.error('Error saving quote to database:', dbError);
-            // Don't fail the entire submission if database save fails
-            // The email was sent successfully, which is the primary goal
-          } else {
-            console.log('Quote saved to database successfully:', savedQuote);
-          }
-        } catch (dbError) {
-          console.error('Error saving quote to database:', dbError);
-          // Continue with success flow even if database save fails
-        }
-
-        setSubmitStatus('success');
-        // Auto-download quote PDF
-        downloadQuotePDF(quote);
+        console.log('✅ Email notification sent successfully');
       } else {
-        throw new Error('Submission failed');
+        console.warn('⚠️ Email notification failed:', result);
       }
-    } catch (error) {
-      console.error('Form submission error:', error);
-      setSubmitStatus('error');
-    } finally {
-      setIsSubmitting(false);
-      setUploadingFiles(false);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.warn('⚠️ Email notification timed out');
+      } else {
+        console.warn('⚠️ Email notification error:', err);
+      }
     }
   };
 
@@ -635,6 +713,17 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
     setGeneratedQuote(null);
     setSubmitStatus('idle');
     onClose();
+  };
+
+  // Helper to get tooltip message for disabled button
+  const getDisabledButtonTooltip = () => {
+    const missing: string[] = [];
+    if (!modelData?.material) missing.push('Material');
+    if (!formData.timeline) missing.push('Timeline');
+    if (!formData.finishing) missing.push('Finishing');
+
+    if (missing.length === 0) return '';
+    return `Please fill required fields: ${missing.join(', ')}`;
   };
 
   if (!isOpen) return null;
@@ -824,7 +913,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
                 </div>
                 <div>
                   <label htmlFor="timeline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Timeline
+                    Timeline <span className="text-red-500">*</span>
                   </label>
                   <select
                     id="timeline"
@@ -832,6 +921,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
                     value={formData.timeline}
                     onChange={handleChange}
                     className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
                   >
                     <option value="">Select...</option>
                     <option value="urgent">Urgent (1-3 days)</option>
@@ -843,7 +933,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
 
               <div>
                 <label htmlFor="finishing" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Finishing
+                  Finishing <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="finishing"
@@ -851,6 +941,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
                   value={formData.finishing}
                   onChange={handleChange}
                   className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
                 >
                   <option value="">Select...</option>
                   <option value="standard">Standard (No additional cost)</option>
@@ -885,7 +976,8 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
 
               <button
                 type="submit"
-                disabled={isSubmitting || uploadingFiles}
+                disabled={isSubmitting || uploadingFiles || !modelData?.material || !formData.timeline || !formData.finishing}
+                title={getDisabledButtonTooltip()}
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.01] disabled:scale-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 {uploadingFiles ? (

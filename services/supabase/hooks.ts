@@ -1,69 +1,6 @@
 import { useState, useEffect } from 'react';
-import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured, STORAGE_BUCKETS } from './client';
 import type { Model, ModelInsert, SavedView, SavedViewInsert, QuoteRequest, QuoteRequestInsert } from './types';
-
-// Auth hooks
-export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured()) {
-      setLoading(false);
-      return;
-    }
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event: AuthChangeEvent, session: Session | null) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
-  };
-
-  const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    return { data, error };
-  };
-
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
-  };
-
-  return {
-    user,
-    session,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-    isConfigured: isSupabaseConfigured(),
-  };
-}
 
 // Models hooks
 export function useModels(userId?: string) {
@@ -226,9 +163,9 @@ export function useSavedViews(modelId?: string) {
   };
 }
 
-// Quote requests hooks
+// Quote hooks - for quote_request table
 export function useQuoteRequests() {
-  const submitQuote = async (quote: Omit<QuoteRequestInsert, 'id' | 'created_at' | 'status'>) => {
+  const submitQuote = async (quote: any, userId: string) => {
     if (!isSupabaseConfigured()) {
       // Return mock success when not configured
       console.log('Supabase not configured. Mock quote submission:', quote);
@@ -238,11 +175,35 @@ export function useQuoteRequests() {
       };
     }
 
+    // User is already authenticated - userId provided by caller
+    // REMOVED: getUser() call to prevent auth lock
+
+    if (!userId) {
+      console.error('❌ No user ID provided - cannot submit quote');
+      return {
+        data: null,
+        error: { message: 'User ID is required to submit a quote request' }
+      };
+    }
+
+    console.log('💾 Submitting quote to quote_request table for user:', userId);
+
+    // Insert into quote_request table with authenticated user_id
     const { data, error } = await supabase
       .from('quote_request')
-      .insert(quote)
+      .insert({
+        ...quote,
+        user_id: userId, // Use passed userId instead of calling getUser()
+        status: 'pending',
+      })
       .select()
       .single();
+
+    if (error) {
+      console.error('❌ Quote submission error:', error);
+    } else {
+      console.log('✅ Quote submitted successfully:', data?.quote_id);
+    }
 
     return { data, error };
   };
@@ -252,12 +213,3 @@ export function useQuoteRequests() {
   };
 }
 
-// Export a combined hook for convenience
-export function useSupabase() {
-  const auth = useAuth();
-
-  return {
-    ...auth,
-    isConfigured: isSupabaseConfigured(),
-  };
-}
