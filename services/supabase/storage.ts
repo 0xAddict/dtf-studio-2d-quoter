@@ -28,32 +28,6 @@ export async function uploadFile(
   });
 
   try {
-    // Check if bucket exists first
-    console.log(`🔍 [Storage] Checking if bucket '${bucketName}' exists...`);
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-
-    if (listError) {
-      console.error(`❌ [Storage] Failed to list buckets:`, listError);
-      return {
-        url: '',
-        path: '',
-        error: `Cannot access storage: ${listError.message}`,
-      };
-    }
-
-    const bucketExists = buckets?.some(b => b.name === bucketName);
-    if (!bucketExists) {
-      console.error(`❌ [Storage] Bucket '${bucketName}' does not exist!`);
-      console.log(`📋 [Storage] Available buckets:`, buckets?.map(b => b.name).join(', ') || 'none');
-      return {
-        url: '',
-        path: '',
-        error: `Storage bucket '${bucketName}' does not exist. Please create it in Supabase dashboard.`,
-      };
-    }
-
-    console.log(`✅ [Storage] Bucket '${bucketName}' exists`);
-
     // Generate unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
@@ -64,8 +38,8 @@ export async function uploadFile(
     const filePath = folder ? `${folder}/${fileName}` : fileName;
     console.log(`📂 [Storage] Upload path: ${filePath}`);
 
-    // Upload file to Supabase storage - direct call
-    console.log(`⏱️ [Storage] Starting upload...`);
+    // Upload file directly - no bucket check, no timeout wrapper
+    console.log(`⏱️ [Storage] Uploading to '${bucketName}'...`);
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
@@ -85,19 +59,18 @@ export async function uploadFile(
     console.log(`✅ [Storage] File uploaded successfully to: ${data.path}`);
 
     // Get public URL
-    console.log(`🔗 [Storage] Generating public URL...`);
     const { data: { publicUrl } } = supabase.storage
       .from(bucketName)
       .getPublicUrl(data.path);
 
-    console.log(`✅ [Storage] Public URL generated: ${publicUrl}`);
+    console.log(`✅ [Storage] Public URL: ${publicUrl}`);
 
     return {
       url: publicUrl,
       path: data.path,
     };
   } catch (err) {
-    console.error('❌ [Storage] Unexpected upload error:', err);
+    console.error('❌ [Storage] Unexpected error:', err);
     return {
       url: '',
       path: '',
