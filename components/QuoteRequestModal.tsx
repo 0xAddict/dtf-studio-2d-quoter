@@ -4,6 +4,7 @@ import { uploadMultipleFiles } from '../services/supabase/storage';
 import { useQuoteRequests } from '../services/supabase/hooks';
 import { saveQuote } from '../services/supabase/quotes';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 interface QuoteRequestModalProps {
   isOpen: boolean;
@@ -99,6 +100,7 @@ const finishingPrices: Record<string, number> = {
 export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, modelData, modelFile, userInfo }) => {
   const { user } = useAuth();
   const { submitQuote } = useQuoteRequests();
+  const toast = useToast();
 
   const [formData, setFormData] = useState<FormData>({
     name: userInfo?.name || user?.name || '',
@@ -480,7 +482,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
       console.log('❌ User not authenticated');
       setSubmitStatus('error');
       setIsSubmitting(false);
-      alert('You must be signed in to submit a quote request. Please sign in or create an account.');
+      toast.error('You must be signed in to submit a quote request. Please sign in or create an account.');
       return;
     }
 
@@ -532,7 +534,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           // FAIL IMMEDIATELY - database save is critical
           setSubmitStatus('error');
           setIsSubmitting(false);
-          alert(`Failed to save quote: ${saveError.message || 'Unknown error'}. Please try again.`);
+          toast.error(`Failed to save quote: ${saveError.message || 'Unknown error'}. Please try again.`);
           return;
         }
 
@@ -594,7 +596,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
         setSubmitStatus('error');
         setIsSubmitting(false);
         setUploadingFiles(false);
-        alert('Failed to save quote. Please try again.');
+        toast.error('Failed to save quote. Please try again.');
         return;
       }
     } catch (error) {
