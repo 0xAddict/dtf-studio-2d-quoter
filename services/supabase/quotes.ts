@@ -243,11 +243,10 @@ export async function updateQuoteStatus(quoteId: string, status: Quote['status']
 
 /**
  * Delete quote permanently (only for cancelled quotes)
+ * Note: Pass userId from session, don't call auth.getUser() to avoid deadlocks
  */
-export async function deleteQuote(quoteId: string) {
-  const { data: { user } } = await quotesClient.auth.getUser();
-
-  if (!user) {
+export async function deleteQuote(quoteId: string, userId: string) {
+  if (!userId) {
     return { data: null, error: new Error('User not authenticated') };
   }
 
@@ -256,7 +255,7 @@ export async function deleteQuote(quoteId: string) {
     .from('quote_request')
     .select('status')
     .eq('quote_id', quoteId)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .maybeSingle();
 
   if (fetchError) {
@@ -276,7 +275,7 @@ export async function deleteQuote(quoteId: string) {
     .from('quote_request')
     .delete()
     .eq('quote_id', quoteId)
-    .eq('user_id', user.id);
+    .eq('user_id', userId);
 
   if (error) {
     console.error('Delete quote error:', error);

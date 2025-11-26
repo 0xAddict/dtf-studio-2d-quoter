@@ -193,11 +193,11 @@ export const MyQuotesPage: React.FC = () => {
   };
 
   const handleDeleteQuote = async () => {
-    if (!confirmDeleteId) return;
+    if (!confirmDeleteId || !user) return;
 
     setIsDeleting(true);
     try {
-      const { error: deleteError } = await deleteQuote(confirmDeleteId);
+      const { error: deleteError } = await deleteQuote(confirmDeleteId, user.id);
 
       if (deleteError) {
         throw deleteError;
@@ -217,8 +217,10 @@ export const MyQuotesPage: React.FC = () => {
 
   // Handle swipe-to-delete (direct delete without confirmation on swipe)
   const handleSwipeDelete = async (quoteId: string) => {
+    if (!user) return;
+
     try {
-      const { error: deleteError } = await deleteQuote(quoteId);
+      const { error: deleteError } = await deleteQuote(quoteId, user.id);
 
       if (deleteError) {
         throw deleteError;
