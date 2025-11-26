@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import ModelViewer from './components/ModelViewer';
 import { MyQuotesPage } from './components/MyQuotesPage';
+import { QuoteDetailsPage } from './components/QuoteDetailsPage';
 import { AuthCallback } from './components/AuthCallback';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -32,6 +33,18 @@ function App() {
                 <ProtectedRoute>
                   <main className="w-full min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
                     <MyQuotesPage />
+                  </main>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Quote Details page (protected) */}
+            <Route
+              path="/quote/:quoteId"
+              element={
+                <ProtectedRoute>
+                  <main className="w-full min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
+                    <QuoteDetailsPage />
                   </main>
                 </ProtectedRoute>
               }

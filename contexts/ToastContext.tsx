@@ -105,7 +105,7 @@ const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove }) => 
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-[100] flex flex-col gap-3 max-w-sm w-full pointer-events-none"
+      className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-[100] flex flex-col gap-3 max-w-sm w-auto sm:w-full pointer-events-none"
       role="region"
       aria-label="Notifications"
       aria-live="polite"
