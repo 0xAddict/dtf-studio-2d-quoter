@@ -16,6 +16,7 @@ import {
 import { useToast } from '../contexts/ToastContext';
 import { getQuoteByQuoteId, updateQuoteStatus, deleteQuote, Quote } from '../services/supabase/quotes';
 import { SlideToConfirm } from './ui/SlideToConfirm';
+import { ConfirmationDialog } from './ui/ConfirmationDialog';
 
 export const QuoteDetailsPage: React.FC = () => {
   const { quoteId } = useParams<{ quoteId: string }>();
@@ -489,21 +490,36 @@ export const QuoteDetailsPage: React.FC = () => {
                   )}
                 </button>
               ) : (
-                <div className="space-y-3">
-                  <SlideToConfirm
+                <>
+                  {/* Mobile: Slide to confirm */}
+                  <div className="sm:hidden space-y-3">
+                    <SlideToConfirm
+                      onConfirm={handleDelete}
+                      label="Slide to delete"
+                      confirmLabel="Deleting..."
+                      variant="danger"
+                      isLoading={isDeleting}
+                    />
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="w-full py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {/* Desktop: Confirmation dialog */}
+                  <ConfirmationDialog
+                    isOpen={showDeleteConfirm}
+                    onClose={() => setShowDeleteConfirm(false)}
                     onConfirm={handleDelete}
-                    label="Slide to delete"
-                    confirmLabel="Deleting..."
+                    title="Delete Quote"
+                    message={`Are you sure you want to permanently delete quote ${quote.quote_id}? This action cannot be undone.`}
+                    confirmLabel="Delete Quote"
+                    cancelLabel="Keep Quote"
                     variant="danger"
                     isLoading={isDeleting}
                   />
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="w-full py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                  >
-                    Cancel
-                  </button>
-                </div>
+                </>
               )}
             </div>
           )}

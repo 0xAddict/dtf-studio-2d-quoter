@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Download, Calendar, Package, Clock, CheckCircle, XCircle, AlertCircle, Loader2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { Quote } from '../services/supabase/quotes';
 import { SlideToConfirm } from './ui/SlideToConfirm';
+import { ConfirmationDialog } from './ui/ConfirmationDialog';
 
 interface QuoteCardProps {
   quote: Quote;
@@ -409,21 +410,38 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete,
                   )}
                 </button>
               ) : (
-                <div className="space-y-2">
-                  <SlideToConfirm
-                    onConfirm={handleDelete}
-                    label="Slide to delete"
-                    confirmLabel="Deleting..."
-                    variant="danger"
-                    isLoading={isDeleting}
-                  />
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="w-full py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                  >
-                    Cancel
-                  </button>
-                </div>
+                <>
+                  {/* Mobile: Slide to confirm */}
+                  <div className="sm:hidden space-y-2">
+                    <SlideToConfirm
+                      onConfirm={handleDelete}
+                      label="Slide to delete"
+                      confirmLabel="Deleting..."
+                      variant="danger"
+                      isLoading={isDeleting}
+                    />
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="w-full py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {/* Desktop: Confirmation dialog */}
+                  <div className="hidden sm:block">
+                    <ConfirmationDialog
+                      isOpen={showDeleteConfirm}
+                      onClose={() => setShowDeleteConfirm(false)}
+                      onConfirm={handleDelete}
+                      title="Delete Quote"
+                      message={`Are you sure you want to permanently delete quote ${quote.quote_id}? This action cannot be undone.`}
+                      confirmLabel="Delete Quote"
+                      cancelLabel="Keep Quote"
+                      variant="danger"
+                      isLoading={isDeleting}
+                    />
+                  </div>
+                </>
               )}
             </div>
           )}
