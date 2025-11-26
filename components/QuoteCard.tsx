@@ -4,27 +4,18 @@ import { Quote } from '../services/supabase/quotes';
 
 interface QuoteCardProps {
   quote: Quote;
-  onCancel?: (quoteId: string) => Promise<void>;
+  onCancel?: (quoteId: string) => void;
   onDownload?: (quoteId: string) => void;
+  layout?: 'grid' | 'list';
+  isCancelling?: boolean;
 }
 
-export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownload }) => {
+export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownload, layout = 'grid', isCancelling }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
 
-  const handleCancel = async () => {
+  const handleCancel = () => {
     if (!onCancel) return;
-
-    if (window.confirm('Are you sure you want to cancel this quote?')) {
-      setIsCancelling(true);
-      try {
-        await onCancel(quote.quote_id);
-      } catch (err) {
-        console.error('Failed to cancel quote:', err);
-      } finally {
-        setIsCancelling(false);
-      }
-    }
+    onCancel(quote.quote_id);
   };
 
   const handleDownload = () => {
@@ -40,49 +31,49 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
         return {
           icon: Clock,
           label: 'Pending',
-          bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
-          textColor: 'text-yellow-700 dark:text-yellow-400',
-          borderColor: 'border-yellow-200 dark:border-yellow-800',
+          bgColor: 'bg-yellow-200 dark:bg-yellow-900/50',
+          textColor: 'text-yellow-900 dark:text-yellow-200',
+          borderColor: 'border-yellow-300 dark:border-yellow-700',
         };
       case 'reviewed':
         return {
           icon: AlertCircle,
           label: 'Reviewed',
-          bgColor: 'bg-blue-100 dark:bg-blue-900/20',
-          textColor: 'text-blue-700 dark:text-blue-400',
-          borderColor: 'border-blue-200 dark:border-blue-800',
+          bgColor: 'bg-blue-200 dark:bg-blue-900/50',
+          textColor: 'text-blue-900 dark:text-blue-200',
+          borderColor: 'border-blue-300 dark:border-blue-700',
         };
       case 'accepted':
         return {
           icon: CheckCircle,
           label: 'Accepted',
-          bgColor: 'bg-green-100 dark:bg-green-900/20',
-          textColor: 'text-green-700 dark:text-green-400',
-          borderColor: 'border-green-200 dark:border-green-800',
+          bgColor: 'bg-green-200 dark:bg-green-900/50',
+          textColor: 'text-green-900 dark:text-green-200',
+          borderColor: 'border-green-300 dark:border-green-700',
         };
       case 'rejected':
         return {
           icon: XCircle,
           label: 'Rejected',
-          bgColor: 'bg-red-100 dark:bg-red-900/20',
-          textColor: 'text-red-700 dark:text-red-400',
-          borderColor: 'border-red-200 dark:border-red-800',
+          bgColor: 'bg-red-200 dark:bg-red-900/50',
+          textColor: 'text-red-900 dark:text-red-200',
+          borderColor: 'border-red-300 dark:border-red-700',
         };
       case 'cancelled':
         return {
           icon: XCircle,
           label: 'Cancelled',
-          bgColor: 'bg-gray-100 dark:bg-gray-900/20',
-          textColor: 'text-gray-700 dark:text-gray-400',
-          borderColor: 'border-gray-200 dark:border-gray-800',
+          bgColor: 'bg-neutral-200 dark:bg-neutral-800',
+          textColor: 'text-neutral-900 dark:text-neutral-100',
+          borderColor: 'border-neutral-300 dark:border-neutral-700',
         };
       default:
         return {
           icon: Clock,
           label: status,
-          bgColor: 'bg-gray-100 dark:bg-gray-900/20',
-          textColor: 'text-gray-700 dark:text-gray-400',
-          borderColor: 'border-gray-200 dark:border-gray-800',
+          bgColor: 'bg-gray-200 dark:bg-gray-800',
+          textColor: 'text-gray-900 dark:text-gray-100',
+          borderColor: 'border-gray-300 dark:border-gray-700',
         };
     }
   };
@@ -102,17 +93,23 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
     });
   };
 
+  const containerClasses = `bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow ${
+    layout === 'list' ? 'md:flex md:items-stretch' : ''
+  }`;
+
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+    <div className={containerClasses}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-slate-700">
-        <div className="flex items-start justify-between gap-4">
+      <div className={`p-4 border-b border-gray-200 dark:border-slate-700 ${layout === 'list' ? 'md:border-b-0 md:border-r' : ''} md:min-w-[340px]`}>
+        <div className={`flex items-start justify-between gap-4 ${layout === 'list' ? 'md:flex-col' : ''}`}>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-semibold text-gray-900 dark:text-white truncate">
                 {quote.quote_id}
               </h3>
-              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
+              <div
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border shadow-sm ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}
+              >
                 <StatusIcon className="w-3 h-3" />
                 {statusConfig.label}
               </div>
@@ -142,8 +139,8 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
       </div>
 
       {/* Summary Info */}
-      <div className="p-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div className={`p-4 ${layout === 'list' ? 'md:flex-1' : ''}`}>
+        <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 text-sm ${layout === 'list' ? 'md:grid-cols-3' : ''}`}>
           <div>
             <div className="text-gray-500 dark:text-gray-400 text-xs mb-1">Material</div>
             <div className="font-medium text-gray-900 dark:text-white capitalize">{quote.material}</div>
@@ -314,7 +311,11 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
       </div>
 
       {/* Actions */}
-      <div className="p-4 pt-0 flex gap-2">
+      <div
+        className={`p-4 pt-0 flex gap-2 ${
+          layout === 'list' ? 'md:flex-col md:justify-center md:min-w-[200px] md:border-l md:border-gray-200 dark:md:border-slate-700' : ''
+        }`}
+      >
         <button
           onClick={handleDownload}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
