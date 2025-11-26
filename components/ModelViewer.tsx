@@ -96,7 +96,8 @@ export default function ModelViewer() {
     setBackgroundColor(isDark ? '#0f172a' : '#f0f4f8');
   }, [isDark]);
 
-  // Show welcome modal if user is not authenticated
+  // ALWAYS show welcome modal if user is not authenticated
+  // This is the auth gate - no access to viewer without signing in
   useEffect(() => {
     // Don't show welcome modal while we're on the auth callback route
     const isAuthCallbackRoute = window.location.pathname === '/auth/callback';
@@ -109,19 +110,21 @@ export default function ModelViewer() {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
 
-    console.log('🔍 Welcome Modal Logic:', {
+    console.log('🔍 Welcome Modal Logic (Auth Gate):', {
       authLoading,
-      user,
+      user: user ? 'authenticated' : 'null',
+      emailVerified: user?.emailVerified,
       isAuthCallbackRoute,
       shouldShow: !authLoading && !user && !isAuthCallbackRoute
     });
 
+    // AUTH GATE: If no user, ALWAYS show welcome modal (force login)
     if (!authLoading && !user && !isAuthCallbackRoute) {
-      console.log('✅ Setting welcome modal to TRUE');
+      console.log('🚪 AUTH GATE: No user - showing welcome modal (login required)');
       setShowWelcomeModal(true);
     } else if (user) {
-      // Close welcome modal when user is authenticated
-      console.log('❌ Closing welcome modal - user is authenticated');
+      // User is authenticated - close welcome modal and allow access
+      console.log('✅ AUTH GATE: User authenticated - granting access to viewer');
       setShowWelcomeModal(false);
     }
   }, [authLoading, user]);
@@ -710,6 +713,13 @@ export default function ModelViewer() {
   };
 
   const handleTrySample = () => {
+    // AUTH GATE: User must be authenticated to try sample
+    if (!user) {
+      console.log('🚪 AUTH GATE: Cannot try sample - user must sign in first');
+      alert('Please sign in to try the sample model');
+      return;
+    }
+
     setShowWelcomeModal(false);
     setIsSampleMode(true);
     loadSampleModel();
@@ -825,23 +835,26 @@ export default function ModelViewer() {
   return (
     <div
       className="w-full h-screen flex bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300"
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      onDragOver={user ? handleDragOver : undefined}
+      onDragLeave={user ? handleDragLeave : undefined}
+      onDrop={user ? handleDrop : undefined}
     >
-      {/* Drag and Drop Overlay */}
-      {isDragOver && (
-        <div className="absolute inset-0 z-50 bg-indigo-600/20 dark:bg-indigo-500/20 backdrop-blur-sm flex items-center justify-center pointer-events-none animate-fade-in">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-2xl border-2 border-dashed border-indigo-500 dark:border-indigo-400">
-            <div className="text-center">
-              <Upload className="w-16 h-16 mx-auto mb-4 text-indigo-600 dark:text-indigo-400" />
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">Drop your 3D model here</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">STL or FBX files</p>
+      {/* AUTH GATE: Only show viewer UI when user is authenticated */}
+      {user ? (
+        <>
+          {/* Drag and Drop Overlay */}
+          {isDragOver && (
+            <div className="absolute inset-0 z-50 bg-indigo-600/20 dark:bg-indigo-500/20 backdrop-blur-sm flex items-center justify-center pointer-events-none animate-fade-in">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-2xl border-2 border-dashed border-indigo-500 dark:border-indigo-400">
+                <div className="text-center">
+                  <Upload className="w-16 h-16 mx-auto mb-4 text-indigo-600 dark:text-indigo-400" />
+                  <p className="text-xl font-semibold text-gray-900 dark:text-white">Drop your 3D model here</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">STL or FBX files</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-      <main className="flex-1 flex flex-col relative overflow-hidden">
+          )}
+          <main className="flex-1 flex flex-col relative overflow-hidden">
         {/* Clean Minimal Header */}
         <header className="glass border-b border-gray-200 dark:border-slate-700 z-20 animate-fade-in">
             <div className="flex justify-between items-center px-4 md:px-6 py-3">
@@ -1255,13 +1268,43 @@ export default function ModelViewer() {
           </>
         )}
       </aside>
+        </>
+      ) : (
+        // User not authenticated - show loading or blank screen while welcome modal is displayed
+        <div className="flex-1 flex items-center justify-center">
+          {authLoading ? (
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            </div>
+          ) : (
+            // Show nothing - WelcomeModal will be displayed
+            <div className="text-center px-4">
+              <div className="mb-6">
+                <img
+                  src="/hexea.png"
+                  alt="Hexea Logo"
+                  className="h-16 w-auto mx-auto opacity-50"
+                />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+                Welcome to Hexea Forge
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Please sign in to access the 3D model viewer
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Modals */}
+      {/* Modals - Always available regardless of auth state */}
       <WelcomeModal
         isOpen={showWelcomeModal}
         onGetQuote={handleGetQuote}
         onTrySample={handleTrySample}
-        // Prevent closing the welcome modal on the landing page until the user is authenticated
+        // AUTH GATE: Cannot close welcome modal unless user is authenticated
+        // This enforces login requirement - no bypassing the auth gate
         onClose={user ? () => setShowWelcomeModal(false) : undefined}
       />
 
