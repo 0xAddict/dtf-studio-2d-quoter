@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   Search,
@@ -13,11 +12,10 @@ import {
   LayoutGrid,
   List,
   ArrowUpDown,
-  Archive,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { getUserQuotes, updateQuoteStatus, deleteQuote, Quote, getUserQuoteStats } from '../services/supabase/quotes';
+import { getUserQuotes, updateQuoteStatus, Quote, getUserQuoteStats } from '../services/supabase/quotes';
 import { SwipeableQuoteCard } from './SwipeableQuoteCard';
 import { ConfirmationDialog } from './ui/ConfirmationDialog';
 
@@ -42,8 +40,6 @@ export const MyQuotesPage: React.FC = () => {
 
   const [confirmQuoteId, setConfirmQuoteId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -192,59 +188,9 @@ export const MyQuotesPage: React.FC = () => {
     }
   };
 
-  const handleDeleteQuote = async () => {
-    if (!confirmDeleteId || !user) return;
-
-    setIsDeleting(true);
-    try {
-      const { error: deleteError } = await deleteQuote(confirmDeleteId, user.id);
-
-      if (deleteError) {
-        throw deleteError;
-      }
-
-      await loadQuotes();
-      await loadStats();
-      toast.success('Quote deleted successfully.');
-    } catch (err: any) {
-      console.error('❌ Failed to delete quote:', err);
-      toast.error('Failed to delete quote. Please try again.');
-    } finally {
-      setIsDeleting(false);
-      setConfirmDeleteId(null);
-    }
-  };
-
-  // Handle swipe-to-delete (direct delete without confirmation on swipe)
-  const handleSwipeDelete = async (quoteId: string) => {
-    if (!user) return;
-
-    try {
-      const { error: deleteError } = await deleteQuote(quoteId, user.id);
-
-      if (deleteError) {
-        throw deleteError;
-      }
-
-      await loadQuotes();
-      await loadStats();
-      toast.success('Quote deleted.');
-    } catch (err: any) {
-      console.error('❌ Failed to delete quote:', err);
-      toast.error('Failed to delete quote. Please try again.');
-    }
-  };
-
   const handleDownloadPDF = (quoteId: string) => {
     console.log('Download PDF requested for', quoteId);
     toast.info('PDF download will be available soon.');
-  };
-
-  const handleCardClick = (quoteId: string) => {
-    if (viewMode === 'list') {
-      // In list view, clicking opens detail view
-      navigate(`/my-quotes/${quoteId}`);
-    }
   };
 
   const renderViewToggle = () => (
@@ -487,24 +433,18 @@ export const MyQuotesPage: React.FC = () => {
 
         {/* Quotes Layout */}
         {!loading && !error && filteredQuotes.length > 0 && (
-          <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-5' : 'space-y-3 sm:space-y-4'}>
-            <AnimatePresence mode="popLayout">
-              {filteredQuotes.map((quote) => (
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5' : 'space-y-3 sm:space-y-4'}>
+            {filteredQuotes.map((quote) => (
               <SwipeableQuoteCard
                 key={quote.id}
                 quote={quote}
                 onCancel={() => setConfirmQuoteId(quote.quote_id)}
-                onDelete={() => setConfirmDeleteId(quote.quote_id)}
                 onSwipeCancel={handleSwipeCancel}
-                onSwipeDelete={handleSwipeDelete}
                 onDownload={handleDownloadPDF}
-                onClick={handleCardClick}
                 layout={viewMode}
                 isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
-                isDeleting={isDeleting && confirmDeleteId === quote.quote_id}
               />
-              ))}
-            </AnimatePresence>
+            ))}
           </div>
         )}
       </main>
@@ -520,19 +460,6 @@ export const MyQuotesPage: React.FC = () => {
         cancelLabel="Keep Quote"
         variant="danger"
         isLoading={isCancelling}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmationDialog
-        isOpen={!!confirmDeleteId}
-        onClose={() => setConfirmDeleteId(null)}
-        onConfirm={handleDeleteQuote}
-        title="Delete Quote"
-        message={`Are you sure you want to permanently delete quote ${confirmDeleteId}? This action cannot be undone.`}
-        confirmLabel="Delete Quote"
-        cancelLabel="Cancel"
-        variant="danger"
-        isLoading={isDeleting}
       />
     </div>
   );
