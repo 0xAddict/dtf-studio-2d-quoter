@@ -11,6 +11,7 @@ interface SwipeableQuoteCardProps {
   onSwipeCancel?: (quoteId: string) => void;
   onSwipeDelete?: (quoteId: string) => void;
   onDownload?: (quoteId: string) => void;
+  onClick?: (quoteId: string) => void;
   layout?: 'grid' | 'list';
   isCancelling?: boolean;
   isDeleting?: boolean;
@@ -29,6 +30,7 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
   onSwipeCancel,
   onSwipeDelete,
   onDownload,
+  onClick,
   layout = 'grid',
   isCancelling,
   isDeleting,
@@ -39,6 +41,10 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
   // Calculate background opacity based on swipe distance
   const backgroundOpacity = useTransform(x, [-200, -100, 0, 100, 200], [1, 0.8, 0, 0.8, 1]);
   const scale = useTransform(x, [-200, 0, 200], [0.95, 1, 0.95]);
+
+  // Always define these transforms (Hooks must be called in same order)
+  const cancelOpacity = useTransform(x, [-200, 0], [1, 0]);
+  const deleteOpacity = useTransform(x, [0, 200], [0, 1]);
 
   // Swipe left = cancel (for pending/processing)
   // Swipe right = delete (for cancelled quotes only)
@@ -93,6 +99,7 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
           onCancel={onCancel}
           onDelete={onDelete}
           onDownload={onDownload}
+          onClick={onClick}
           layout={layout}
           isCancelling={isCancelling}
           isDeleting={isDeleting}
@@ -115,7 +122,7 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
         <motion.div
           className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 flex items-center justify-end pr-6 overflow-hidden"
           style={{
-            opacity: useTransform(x, [-200, 0], [1, 0]),
+            opacity: cancelOpacity,
             pointerEvents: 'none'
           }}
         >
@@ -130,7 +137,7 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
         <motion.div
           className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-l from-red-500 to-red-600 flex items-center justify-start pl-6 overflow-hidden"
           style={{
-            opacity: useTransform(x, [0, 200], [0, 1]),
+            opacity: deleteOpacity,
             pointerEvents: 'none'
           }}
         >
@@ -156,6 +163,7 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
           onCancel={onCancel}
           onDelete={onDelete}
           onDownload={onDownload}
+          onClick={onClick}
           layout={layout}
           isCancelling={isCancelling}
           isDeleting={isDeleting}

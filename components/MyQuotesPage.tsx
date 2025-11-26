@@ -238,6 +238,13 @@ export const MyQuotesPage: React.FC = () => {
     toast.info('PDF download will be available soon.');
   };
 
+  const handleCardClick = (quoteId: string) => {
+    if (viewMode === 'list') {
+      // In list view, clicking opens detail view
+      navigate(`/my-quotes/${quoteId}`);
+    }
+  };
+
   const renderViewToggle = () => (
     <div className="inline-flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-full bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-inner flex-shrink-0" role="group" aria-label="View toggle">
       <button
@@ -489,6 +496,7 @@ export const MyQuotesPage: React.FC = () => {
                 onSwipeCancel={handleSwipeCancel}
                 onSwipeDelete={handleSwipeDelete}
                 onDownload={handleDownloadPDF}
+                onClick={handleCardClick}
                 layout={viewMode}
                 isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
                 isDeleting={isDeleting && confirmDeleteId === quote.quote_id}

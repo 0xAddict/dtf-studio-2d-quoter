@@ -7,12 +7,13 @@ interface QuoteCardProps {
   onCancel?: (quoteId: string) => void;
   onDelete?: (quoteId: string) => void;
   onDownload?: (quoteId: string) => void;
+  onClick?: (quoteId: string) => void;
   layout?: 'grid' | 'list';
   isCancelling?: boolean;
   isDeleting?: boolean;
 }
 
-export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete, onDownload, layout = 'grid', isCancelling, isDeleting }) => {
+export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete, onDownload, onClick, layout = 'grid', isCancelling, isDeleting }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleCancel = () => {
@@ -139,8 +140,11 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete,
   // Minimal list view
   if (layout === 'list') {
     return (
-      <div className="glass rounded-lg border border-gray-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
-        <div className="p-3 sm:p-4 flex items-center justify-between gap-3">
+      <div
+        className="glass rounded-lg border border-gray-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
+        onClick={() => onClick && onClick(quote.quote_id)}
+      >
+        <div className="p-3 flex items-center justify-between gap-3">
           {/* Left: ID and Date */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
