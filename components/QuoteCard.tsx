@@ -31,49 +31,49 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
         return {
           icon: Clock,
           label: 'Pending',
-          bgColor: 'bg-yellow-200 dark:bg-yellow-900/50',
-          textColor: 'text-yellow-900 dark:text-yellow-200',
-          borderColor: 'border-yellow-300 dark:border-yellow-700',
+          bgColor: 'bg-amber-50 dark:bg-amber-900/30',
+          textColor: 'text-amber-800 dark:text-amber-100',
+          borderColor: 'border-amber-200/80 dark:border-amber-700',
         };
       case 'reviewed':
         return {
           icon: AlertCircle,
           label: 'Reviewed',
-          bgColor: 'bg-blue-200 dark:bg-blue-900/50',
-          textColor: 'text-blue-900 dark:text-blue-200',
-          borderColor: 'border-blue-300 dark:border-blue-700',
+          bgColor: 'bg-sky-50 dark:bg-sky-900/30',
+          textColor: 'text-sky-800 dark:text-sky-100',
+          borderColor: 'border-sky-200/80 dark:border-sky-700',
         };
       case 'accepted':
         return {
           icon: CheckCircle,
           label: 'Accepted',
-          bgColor: 'bg-green-200 dark:bg-green-900/50',
-          textColor: 'text-green-900 dark:text-green-200',
-          borderColor: 'border-green-300 dark:border-green-700',
+          bgColor: 'bg-emerald-50 dark:bg-emerald-900/30',
+          textColor: 'text-emerald-800 dark:text-emerald-100',
+          borderColor: 'border-emerald-200/80 dark:border-emerald-700',
         };
       case 'rejected':
         return {
           icon: XCircle,
           label: 'Rejected',
-          bgColor: 'bg-red-200 dark:bg-red-900/50',
-          textColor: 'text-red-900 dark:text-red-200',
-          borderColor: 'border-red-300 dark:border-red-700',
+          bgColor: 'bg-rose-50 dark:bg-rose-900/30',
+          textColor: 'text-rose-800 dark:text-rose-100',
+          borderColor: 'border-rose-200/80 dark:border-rose-700',
         };
       case 'cancelled':
         return {
           icon: XCircle,
           label: 'Cancelled',
-          bgColor: 'bg-neutral-200 dark:bg-neutral-800',
-          textColor: 'text-neutral-900 dark:text-neutral-100',
-          borderColor: 'border-neutral-300 dark:border-neutral-700',
+          bgColor: 'bg-gray-100 dark:bg-slate-800',
+          textColor: 'text-gray-800 dark:text-gray-100',
+          borderColor: 'border-gray-200/80 dark:border-slate-700',
         };
       default:
         return {
           icon: Clock,
           label: status,
-          bgColor: 'bg-gray-200 dark:bg-gray-800',
+          bgColor: 'bg-gray-100 dark:bg-gray-800',
           textColor: 'text-gray-900 dark:text-gray-100',
-          borderColor: 'border-gray-300 dark:border-gray-700',
+          borderColor: 'border-gray-200/80 dark:border-gray-700',
         };
     }
   };
@@ -93,14 +93,18 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
     });
   };
 
-  const containerClasses = `bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow ${
+  const containerClasses = `bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/80 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-all duration-200 ${
     layout === 'list' ? 'md:flex md:items-stretch' : ''
   }`;
 
   return (
     <div className={containerClasses}>
       {/* Header */}
-      <div className={`p-4 border-b border-gray-200 dark:border-slate-700 ${layout === 'list' ? 'md:border-b-0 md:border-r' : ''} md:min-w-[340px]`}>
+      <div
+        className={`p-5 border-b border-gray-200/80 dark:border-slate-700/80 bg-gradient-to-r from-gray-50/80 to-white/40 dark:from-slate-800 dark:to-slate-900 ${
+          layout === 'list' ? 'md:border-b-0 md:border-r' : ''
+        } md:min-w-[360px]`}
+      >
         <div className={`flex items-start justify-between gap-4 ${layout === 'list' ? 'md:flex-col' : ''}`}>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -108,7 +112,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
                 {quote.quote_id}
               </h3>
               <div
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border shadow-sm ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border shadow-sm ring-1 ring-inset ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}
               >
                 <StatusIcon className="w-3 h-3" />
                 {statusConfig.label}
@@ -139,8 +143,12 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
       </div>
 
       {/* Summary Info */}
-      <div className={`p-4 ${layout === 'list' ? 'md:flex-1' : ''}`}>
-        <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 text-sm ${layout === 'list' ? 'md:grid-cols-3' : ''}`}>
+      <div className={`p-5 ${layout === 'list' ? 'md:flex-1' : ''}`}>
+        <div
+          className={`grid grid-cols-2 md:grid-cols-4 gap-4 text-sm ${
+            layout === 'list' ? 'md:grid-cols-3' : ''
+          }`}
+        >
           <div>
             <div className="text-gray-500 dark:text-gray-400 text-xs mb-1">Material</div>
             <div className="font-medium text-gray-900 dark:text-white capitalize">{quote.material}</div>
@@ -170,7 +178,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
         {/* Expandable Details */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="mt-4 w-full flex items-center justify-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+          className="mt-5 w-full flex items-center justify-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
         >
           {isExpanded ? (
             <>
@@ -187,7 +195,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
 
         {/* Expanded Details */}
         {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700 space-y-4">
+          <div className="mt-4 pt-4 border-t border-gray-200/80 dark:border-slate-700/80 space-y-4">
             {/* Model Stats */}
             <div>
               <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Model Information</h4>
@@ -312,13 +320,15 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
 
       {/* Actions */}
       <div
-        className={`p-4 pt-0 flex gap-2 ${
-          layout === 'list' ? 'md:flex-col md:justify-center md:min-w-[200px] md:border-l md:border-gray-200 dark:md:border-slate-700' : ''
+        className={`p-5 pt-0 flex gap-3 ${
+          layout === 'list'
+            ? 'md:flex-col md:justify-center md:min-w-[220px] md:border-l md:border-gray-200/80 dark:md:border-slate-700/80'
+            : ''
         }`}
       >
         <button
           onClick={handleDownload}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg font-semibold transition-all shadow-sm hover:shadow-md"
         >
           <Download className="w-4 h-4" />
           Download PDF
@@ -328,7 +338,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
           <button
             onClick={handleCancel}
             disabled={isCancelling}
-            className="px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 border border-red-200/80 dark:border-red-700/80 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isCancelling ? (
               <Loader2 className="w-4 h-4 animate-spin" />
