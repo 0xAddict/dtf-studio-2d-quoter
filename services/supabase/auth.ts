@@ -66,35 +66,42 @@ export async function signIn({ email, password }: SignInData) {
   return { data, error: null };
 }
 
-// Sign out - single call, no racing to avoid deadlock
+// Sign out - INSTANT local clear, then background global sign out
+// Best practice: Clear local session immediately for responsive UX
 export async function signOut() {
-  console.log('🔄 Calling Supabase signOut...');
+  console.log('🔄 Sign out: Clearing local session immediately...');
 
+  // STEP 1: Clear local storage FIRST (instant UX)
+  clearAuthStorage();
+  console.log('✅ Local session cleared instantly');
+
+  // STEP 2: Try global sign out in background (non-blocking)
+  // This revokes the refresh token on the server, but don't wait for it
   try {
-    const { error } = await supabase.auth.signOut({ scope: 'global' });
-
-    if (error) {
-      console.warn('⚠️ Sign out error:', error.message);
-      clearAuthStorage();
-      return { error };
-    }
-
-    console.log('✅ Sign out completed successfully');
-    return { error: null };
-
+    supabase.auth.signOut({ scope: 'global' }).then(({ error }) => {
+      if (error) {
+        console.warn('⚠️ Background global sign out warning:', error.message);
+      } else {
+        console.log('✅ Background global sign out completed');
+      }
+    }).catch(err => {
+      console.warn('⚠️ Background sign out failed:', err.message);
+    });
   } catch (err: any) {
-    console.error('❌ Sign out exception:', err.message);
-    clearAuthStorage();
-    return { error: err };
+    console.warn('⚠️ Sign out exception:', err.message);
   }
+
+  // Return immediately - don't wait for Supabase
+  return { error: null };
 }
 
-// Manual cleanup - NEVER call signOut twice, use this instead
+// Manual cleanup - Clear all Supabase auth tokens from localStorage
 function clearAuthStorage() {
-  console.log('🧹 Manually clearing auth storage...');
+  console.log('🧹 Clearing auth storage...');
   Object.keys(localStorage).forEach(key => {
     if (key.startsWith('sb-')) {
       localStorage.removeItem(key);
+      console.log(`   Cleared: ${key}`);
     }
   });
 }

@@ -195,31 +195,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleSignOut = async () => {
-    console.log('🔄 Starting sign out...');
+    console.log('🔄 Sign out: Instant local clear (best practice)');
 
-    // Set signing out state for UI feedback
-    setSigningOut(true);
-
-    // Immediately clear local state for responsive UI (optimistic update)
+    // INSTANT: Clear local state immediately (don't wait for anything)
     setUser(null);
     setSession(null);
 
+    // Call signOut (which clears localStorage instantly and does global in background)
+    // This returns immediately without waiting for Supabase server
     try {
-      // Call Supabase signOut
-      const { error } = await signOut();
-
-      if (error) {
-        console.warn('⚠️ Sign out warning:', error.message);
-      } else {
-        console.log('✅ Signed out successfully from Supabase');
-      }
+      await signOut();
+      console.log('✅ Sign out completed instantly');
     } catch (err: any) {
-      console.error('❌ Sign out error:', err.message);
-    } finally {
-      // Clear signing out state
-      setSigningOut(false);
-      console.log('✅ Sign out process completed');
+      console.warn('⚠️ Sign out warning (already cleared locally):', err.message);
     }
+
+    // User is now signed out - auth listener will trigger if needed
   };
 
   const value: AuthContextType = {
