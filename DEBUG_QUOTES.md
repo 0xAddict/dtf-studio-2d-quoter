@@ -48,7 +48,7 @@ Error saving quote to database: {...}
 
 **If you see network errors:**
 ```
-POST https://jqfudagohdkdtnplgtob.supabase.co/rest/v1/quote_requests 400/500
+POST https://jqfudagohdkdtnplgtob.supabase.co/rest/v1/quote_request 400/500
 ```
 **This tells us:** Request is being made but server is rejecting it. Check Network tab.
 
@@ -62,7 +62,7 @@ POST https://jqfudagohdkdtnplgtob.supabase.co/rest/v1/quote_requests 400/500
 
 ### What to Check:
 
-#### Look for POST request to `/rest/v1/quote_requests`:
+#### Look for POST request to `/rest/v1/quote_request`:
 
 - **If you DON'T see this request**: Code isn't calling submitQuote() at all
 - **If you see it with Status 200-204**: Quote saved successfully! Check Supabase.
@@ -148,7 +148,7 @@ Let's verify the database works at all:
 
 ```sql
 -- Test insert
-INSERT INTO quote_requests (
+INSERT INTO quote_request (
   name,
   email,
   quantity,
@@ -163,7 +163,7 @@ INSERT INTO quote_requests (
 );
 
 -- Check it saved
-SELECT * FROM quote_requests
+SELECT * FROM quote_request
 WHERE email = 'manual@test.com';
 ```
 
@@ -200,7 +200,7 @@ const supabase = createClient(
 
 // Try to insert
 const result = await supabase
-  .from('quote_requests')
+  .from('quote_request')
   .insert({
     name: 'Console Test',
     email: 'console@test.com',

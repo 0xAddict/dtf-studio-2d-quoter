@@ -311,7 +311,7 @@ class Forge_Supabase_Client {
             );
         }
 
-        $result = $this->get('quote_requests', array('limit' => 1));
+        $result = $this->get('quote_request', array('limit' => 1));
 
         if (isset($result['success']) && $result['success']) {
             return array(

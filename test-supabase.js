@@ -15,13 +15,13 @@ async function testConnection() {
     // Test 1: Check if we can connect
     console.log('1️⃣ Testing connection...');
     const { data: healthCheck, error: healthError } = await supabase
-      .from('quote_requests')
+      .from('quote_request')
       .select('count')
       .limit(1);
 
     if (healthError) {
       if (healthError.code === '42P01') {
-        console.log('❌ Table "quote_requests" does NOT exist!');
+        console.log('❌ Table "quote_request" does NOT exist!');
         console.log('   👉 You need to run supabase-setup.sql in Supabase SQL Editor\n');
         return;
       }
@@ -33,7 +33,7 @@ async function testConnection() {
     // Test 2: Check current quotes count
     console.log('2️⃣ Checking existing quotes...');
     const { count, error: countError } = await supabase
-      .from('quote_requests')
+      .from('quote_request')
       .select('*', { count: 'exact', head: true });
 
     if (countError) {
@@ -69,7 +69,7 @@ async function testConnection() {
     };
 
     const { data: insertedQuote, error: insertError } = await supabase
-      .from('quote_requests')
+      .from('quote_request')
       .insert(testQuote)
       .select()
       .single();
@@ -94,7 +94,7 @@ async function testConnection() {
     // Test 4: Verify we can read the quote back
     console.log('4️⃣ Verifying quote can be read...');
     const { data: readQuote, error: readError } = await supabase
-      .from('quote_requests')
+      .from('quote_request')
       .select('*')
       .eq('id', insertedQuote.id)
       .single();
@@ -108,7 +108,7 @@ async function testConnection() {
     // Test 5: List recent quotes
     console.log('5️⃣ Fetching recent quotes...');
     const { data: recentQuotes, error: listError } = await supabase
-      .from('quote_requests')
+      .from('quote_request')
       .select('id, name, email, material, quantity, created_at')
       .order('created_at', { ascending: false })
       .limit(5);
