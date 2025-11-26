@@ -145,11 +145,7 @@ class Forge_Quote_List_Table extends WP_List_Table {
      * Quote ID column
      */
     public function column_quote_id($item) {
-        $model_data = isset($item['model_data']) && is_string($item['model_data'])
-            ? json_decode($item['model_data'], true)
-            : array();
-
-        $quote_id = isset($model_data['quoteId']) ? $model_data['quoteId'] : 'N/A';
+        $quote_id = isset($item['quote_id']) ? $item['quote_id'] : 'N/A';
 
         // Build view URL
         $view_url = add_query_arg(array(
@@ -163,10 +159,10 @@ class Forge_Quote_List_Table extends WP_List_Table {
         );
 
         // Add model download link if available
-        if (isset($model_data['attachmentUrl']) && !empty($model_data['attachmentUrl'])) {
+        if (isset($item['model_file_url']) && !empty($item['model_file_url'])) {
             $actions['download'] = sprintf(
                 '<a href="%s" target="_blank"><span class="dashicons dashicons-download" style="font-size: 13px; width: 13px; height: 13px;"></span> %s</a>',
-                esc_url($model_data['attachmentUrl']),
+                esc_url($item['model_file_url']),
                 __('Model', 'forge-dashboard')
             );
         }
@@ -214,8 +210,8 @@ class Forge_Quote_List_Table extends WP_List_Table {
      * Customer column
      */
     public function column_customer($item) {
-        $name = isset($item['name']) ? $item['name'] : 'N/A';
-        $company = isset($item['company']) && !empty($item['company']) ? $item['company'] : '';
+        $name = isset($item['customer_name']) ? $item['customer_name'] : 'N/A';
+        $company = isset($item['customer_company']) && !empty($item['customer_company']) ? $item['customer_company'] : '';
 
         if ($company) {
             return sprintf(
@@ -232,14 +228,14 @@ class Forge_Quote_List_Table extends WP_List_Table {
      * Email column
      */
     public function column_email($item) {
-        if (empty($item['email'])) {
+        if (empty($item['customer_email'])) {
             return 'N/A';
         }
 
         return sprintf(
             '<a href="mailto:%s">%s</a>',
-            esc_attr($item['email']),
-            esc_html($item['email'])
+            esc_attr($item['customer_email']),
+            esc_html($item['customer_email'])
         );
     }
 
@@ -261,11 +257,7 @@ class Forge_Quote_List_Table extends WP_List_Table {
      * Total column
      */
     public function column_total($item) {
-        $model_data = isset($item['model_data']) && is_string($item['model_data'])
-            ? json_decode($item['model_data'], true)
-            : array();
-
-        $total = isset($model_data['pricing']['total']) ? floatval($model_data['pricing']['total']) : 0;
+        $total = isset($item['total_cost']) ? floatval($item['total_cost']) : 0;
 
         return sprintf(
             '<strong>€%s</strong>',

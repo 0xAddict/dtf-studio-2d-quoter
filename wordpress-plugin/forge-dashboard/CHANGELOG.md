@@ -5,6 +5,39 @@ All notable changes to the Forge Dashboard WordPress Plugin will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-11-26
+
+### Changed
+- **BREAKING:** Complete schema restructure to match actual database
+  - Changed from compressed JSONB `model_data` column to flattened individual columns
+  - Column renames: `name` → `customer_name`, `email` → `customer_email`, `phone` → `customer_phone`, `company` → `customer_company`, `notes` → `message`
+  - Added required `quote_id` column (TEXT) for quote reference
+  - Added individual pricing columns: `base_cost`, `material_cost`, `finishing_cost`, `quantity_discount`, `total_cost`
+  - Added model info columns: `model_file_name`, `model_file_url`, `finishing`, `scale`, `vertices`, `triangles`, `dimensions` (JSONB)
+  - Removed `model_id` column
+  - Made `timeline` and `finishing` required (NOT NULL)
+
+### Fixed
+- React app now sends data in correct flattened format matching database schema
+- WordPress plugin now reads from correct column names
+- Quote Manager class updated for new schema (search, statistics, CSV export, file deletion)
+- Quote details view displays data from new columns
+- Quote list table uses new column names for display and actions
+- Dashboard view shows recent quotes with correct column references
+- Pricing now read from individual cost columns instead of JSONB
+- Model file URLs now read from `model_file_url` column
+
+### Updated
+- TypeScript types completely rewritten to match actual database schema
+- All WordPress views updated to use new column names
+- Admin menu file simplified (no model_data extraction needed)
+- CSV export updated with correct column names
+
+### Documentation
+- Added SCHEMA_MISMATCH_FIX.md documenting the issue and fixes
+- Updated SCHEMA_COMPARISON.md with actual vs expected schema comparison
+- Added schema verification tools (verify-schema.sql, verify-schema.js)
+
 ## [1.1.1] - 2025-11-26
 
 ### Fixed

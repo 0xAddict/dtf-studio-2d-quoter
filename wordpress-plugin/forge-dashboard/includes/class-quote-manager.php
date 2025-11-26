@@ -93,13 +93,13 @@ class Forge_Quote_Manager {
             $params['created_at'] = 'lte.' . $args['date_to'];
         }
 
-        // Add search filter (search in name, email, company)
+        // Add search filter (search in customer_name, customer_email, customer_company)
         if (!empty($args['search'])) {
             $search = sanitize_text_field($args['search']);
             // Note: Supabase doesn't support OR queries in query params easily
             // We'll fetch all matching records and filter in PHP
             // For production, consider using Supabase RPC function
-            $params['or'] = "(name.ilike.*{$search}*,email.ilike.*{$search}*,company.ilike.*{$search}*)";
+            $params['or'] = "(customer_name.ilike.*{$search}*,customer_email.ilike.*{$search}*,customer_company.ilike.*{$search}*)";
         }
 
         $result = $this->supabase->get('quote_request', $params);
@@ -188,16 +188,13 @@ class Forge_Quote_Manager {
 
         $quote = $quote_result['quote'];
 
-        // Extract quote ID from model_data if available
-        if (isset($quote['model_data']) && is_string($quote['model_data'])) {
-            $model_data = json_decode($quote['model_data'], true);
-            if (isset($model_data['quoteId'])) {
-                $quote_id_folder = $model_data['quoteId'];
+        // Extract quote ID for file deletion
+        if (isset($quote['quote_id'])) {
+            $quote_id_folder = $quote['quote_id'];
 
-                // Delete files from storage
-                $file_manager = new Forge_File_Manager($this->supabase);
-                $file_manager->delete_quote_files($quote_id_folder);
-            }
+            // Delete files from storage
+            $file_manager = new Forge_File_Manager($this->supabase);
+            $file_manager->delete_quote_files($quote_id_folder);
         }
 
         // Delete quote from database
@@ -226,7 +223,7 @@ class Forge_Quote_Manager {
 
         if (isset($filters['search']) && !empty($filters['search'])) {
             $search = sanitize_text_field($filters['search']);
-            $params['or'] = "(name.ilike.*{$search}*,email.ilike.*{$search}*,company.ilike.*{$search}*)";
+            $params['or'] = "(customer_name.ilike.*{$search}*,customer_email.ilike.*{$search}*,customer_company.ilike.*{$search}*)";
         }
 
         return $this->supabase->count('quote_request', $params);
@@ -298,11 +295,8 @@ class Forge_Quote_Manager {
             }
 
             // Calculate revenue estimate
-            if (isset($quote['model_data']) && is_string($quote['model_data'])) {
-                $model_data = json_decode($quote['model_data'], true);
-                if (isset($model_data['pricing']['total'])) {
-                    $stats['revenue_estimate'] += floatval($model_data['pricing']['total']);
-                }
+            if (isset($quote['total_cost']) && $quote['total_cost'] !== null) {
+                $stats['revenue_estimate'] += floatval($quote['total_cost']);
             }
 
             // Count materials
@@ -410,22 +404,18 @@ class Forge_Quote_Manager {
 
         // CSV rows
         foreach ($quotes as $quote) {
-            $model_data = isset($quote['model_data']) && is_string($quote['model_data'])
-                ? json_decode($quote['model_data'], true)
-                : array();
-
             $row = array(
-                isset($model_data['quoteId']) ? $model_data['quoteId'] : '',
+                isset($quote['quote_id']) ? $quote['quote_id'] : '',
                 isset($quote['created_at']) ? date('Y-m-d H:i', strtotime($quote['created_at'])) : '',
-                isset($quote['name']) ? $quote['name'] : '',
-                isset($quote['email']) ? $quote['email'] : '',
-                isset($quote['phone']) ? $quote['phone'] : '',
-                isset($quote['company']) ? $quote['company'] : '',
+                isset($quote['customer_name']) ? $quote['customer_name'] : '',
+                isset($quote['customer_email']) ? $quote['customer_email'] : '',
+                isset($quote['customer_phone']) ? $quote['customer_phone'] : '',
+                isset($quote['customer_company']) ? $quote['customer_company'] : '',
                 isset($quote['material']) ? $quote['material'] : '',
                 isset($quote['quantity']) ? $quote['quantity'] : '',
                 isset($quote['timeline']) ? $quote['timeline'] : '',
                 isset($quote['status']) ? $quote['status'] : '',
-                isset($model_data['pricing']['total']) ? $model_data['pricing']['total'] : ''
+                isset($quote['total_cost']) ? $quote['total_cost'] : ''
             );
 
             fputcsv($output, $row);
