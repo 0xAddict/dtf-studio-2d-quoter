@@ -1,4 +1,4 @@
-import { supabase, STORAGE_BUCKETS } from './client';
+import { supabase, STORAGE_BUCKETS, withTimeout } from './client';
 
 export interface UploadResult {
   url: string;
@@ -18,7 +18,42 @@ export async function uploadFile(
   bucket: keyof typeof STORAGE_BUCKETS = 'ATTACHMENTS',
   folder?: string
 ): Promise<UploadResult> {
+  const bucketName = STORAGE_BUCKETS[bucket];
+
+  console.log(`📤 [Storage] Starting upload:`, {
+    fileName: file.name,
+    fileSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+    bucket: bucketName,
+    folder: folder || 'root'
+  });
+
   try {
+    // Check if bucket exists first
+    console.log(`🔍 [Storage] Checking if bucket '${bucketName}' exists...`);
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+
+    if (listError) {
+      console.error(`❌ [Storage] Failed to list buckets:`, listError);
+      return {
+        url: '',
+        path: '',
+        error: `Cannot access storage: ${listError.message}`,
+      };
+    }
+
+    const bucketExists = buckets?.some(b => b.name === bucketName);
+    if (!bucketExists) {
+      console.error(`❌ [Storage] Bucket '${bucketName}' does not exist!`);
+      console.log(`📋 [Storage] Available buckets:`, buckets?.map(b => b.name).join(', ') || 'none');
+      return {
+        url: '',
+        path: '',
+        error: `Storage bucket '${bucketName}' does not exist. Please create it in Supabase dashboard.`,
+      };
+    }
+
+    console.log(`✅ [Storage] Bucket '${bucketName}' exists`);
+
     // Generate unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
@@ -27,17 +62,25 @@ export async function uploadFile(
 
     // Construct the full path
     const filePath = folder ? `${folder}/${fileName}` : fileName;
+    console.log(`📂 [Storage] Upload path: ${filePath}`);
 
-    // Upload file to Supabase storage
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKETS[bucket])
+    // Upload file to Supabase storage with 30s timeout for large files
+    console.log(`⏱️ [Storage] Starting upload (30s timeout)...`);
+    const uploadPromise = supabase.storage
+      .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false,
       });
 
+    const { data, error } = await withTimeout(
+      uploadPromise,
+      30000, // 30 second timeout for file uploads
+      `File upload (${file.name})`
+    );
+
     if (error) {
-      console.error('Upload error:', error);
+      console.error('❌ [Storage] Upload error:', error);
       return {
         url: '',
         path: '',
@@ -45,17 +88,22 @@ export async function uploadFile(
       };
     }
 
+    console.log(`✅ [Storage] File uploaded successfully to: ${data.path}`);
+
     // Get public URL
+    console.log(`🔗 [Storage] Generating public URL...`);
     const { data: { publicUrl } } = supabase.storage
-      .from(STORAGE_BUCKETS[bucket])
+      .from(bucketName)
       .getPublicUrl(data.path);
+
+    console.log(`✅ [Storage] Public URL generated: ${publicUrl}`);
 
     return {
       url: publicUrl,
       path: data.path,
     };
   } catch (err) {
-    console.error('Unexpected upload error:', err);
+    console.error('❌ [Storage] Unexpected upload error:', err);
     return {
       url: '',
       path: '',
@@ -76,8 +124,21 @@ export async function uploadMultipleFiles(
   bucket: keyof typeof STORAGE_BUCKETS = 'ATTACHMENTS',
   folder?: string
 ): Promise<UploadResult[]> {
-  const uploadPromises = files.map(file => uploadFile(file, bucket, folder));
-  return Promise.all(uploadPromises);
+  console.log(`📤 [Storage] Uploading ${files.length} file(s)...`);
+
+  const uploadPromises = files.map((file, index) => {
+    console.log(`📄 [Storage] File ${index + 1}/${files.length}: ${file.name}`);
+    return uploadFile(file, bucket, folder);
+  });
+
+  const results = await Promise.all(uploadPromises);
+
+  const successCount = results.filter(r => !r.error).length;
+  const failCount = results.filter(r => r.error).length;
+
+  console.log(`✅ [Storage] Upload complete: ${successCount} succeeded, ${failCount} failed`);
+
+  return results;
 }
 
 /**
