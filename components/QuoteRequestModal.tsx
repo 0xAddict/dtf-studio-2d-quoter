@@ -493,42 +493,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
       setGeneratedQuote(quote);
       console.log('✅ Quote generated:', quote.quoteId);
 
-      // 5. Upload model file to Supabase if available
-      let attachmentUrls: string[] = [];
-      if (modelFile) {
-        console.log('📁 Uploading model file to storage...');
-        setUploadingFiles(true);
-        try {
-          const uploadResults = await uploadMultipleFiles(
-            [modelFile],
-            'ATTACHMENTS',
-            `quotes/${quote.quoteId}`
-          );
-
-          // Filter successful uploads and get URLs
-          attachmentUrls = uploadResults
-            .filter(result => result.url && !result.error)
-            .map(result => result.url);
-
-          // Log upload results for debugging
-          if (attachmentUrls.length > 0) {
-            console.log('✅ Model file uploaded successfully:', attachmentUrls[0]);
-          } else {
-            console.warn('⚠️ Model file upload failed:', uploadResults);
-          }
-
-          setUploadingFiles(false);
-          console.log('✅ File upload complete');
-        } catch (uploadError) {
-          console.error('Error uploading model file:', uploadError);
-          setUploadingFiles(false);
-          // Continue with quote submission even if upload fails
-        }
-      } else {
-        console.log('ℹ️ No model file to upload with quote');
-      }
-
-      // 6. Save quote to database - CRITICAL PATH
+      // 5. Save quote to database FIRST - CRITICAL PATH
       console.log('💾 Saving quote to database...');
       try {
         const quoteData = {
@@ -545,7 +510,7 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           message: formData.message || null,
           // Model file info
           model_file_name: modelData?.fileName || 'Unknown',
-          model_file_url: attachmentUrls[0] || null,
+          model_file_url: null, // Will be updated after upload
           // Model stats
           vertices: modelData?.vertices || null,
           triangles: modelData?.triangles || null,
@@ -558,17 +523,8 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           total_cost: quote.pricing.total,
         };
 
-        // Add timeout for database save
         console.log('🔄 Calling submitQuote...');
-        const dbSavePromise = submitQuote(quoteData);
-        const dbTimeoutPromise = new Promise<{ data: null; error: Error }>((resolve) => {
-          setTimeout(() => {
-            console.warn('⏱️ Database save timeout (10s)');
-            resolve({ data: null, error: new Error('Database save timed out') });
-          }, 10000); // 10 second timeout
-        });
-
-        const { data: savedQuote, error: saveError } = await Promise.race([dbSavePromise, dbTimeoutPromise]);
+        const { data: savedQuote, error: saveError } = await submitQuote(quoteData);
         console.log('🔄 Database save result:', { savedQuote: !!savedQuote, error: !!saveError });
 
         if (saveError) {
@@ -576,24 +532,60 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           // FAIL IMMEDIATELY - database save is critical
           setSubmitStatus('error');
           setIsSubmitting(false);
-          setUploadingFiles(false);
           alert(`Failed to save quote: ${saveError.message || 'Unknown error'}. Please try again.`);
           return;
         }
 
         console.log('✅ Quote saved to database successfully:', savedQuote?.id || savedQuote?.quote_id);
 
-        // 7. Show success IMMEDIATELY after database save
+        // 6. Show success IMMEDIATELY after database save
         console.log('🎉 Showing success message...');
         setSubmitStatus('success');
         downloadQuotePDF(quote);
 
-        // 8. Send email notification in background (non-blocking)
-        // Email failure won't affect user experience
+        // 7. Send email notification in background (non-blocking)
         console.log('📧 Sending email notification in background...');
-        sendEmailNotification(quote, formData, modelData, attachmentUrls).catch(err => {
+        sendEmailNotification(quote, formData, modelData, []).catch(err => {
           console.warn('⚠️ Email notification failed (non-critical):', err);
         });
+
+        // 8. Upload model file in background (non-blocking)
+        // File upload happens after quote is saved and user sees success
+        if (modelFile) {
+          console.log('📁 Uploading model file to storage in background...');
+          setUploadingFiles(true);
+
+          uploadMultipleFiles(
+            [modelFile],
+            'ATTACHMENTS',
+            `quotes/${quote.quoteId}`
+          ).then(uploadResults => {
+            // Filter successful uploads and get URLs
+            const attachmentUrls = uploadResults
+              .filter(result => result.url && !result.error)
+              .map(result => result.url);
+
+            if (attachmentUrls.length > 0) {
+              console.log('✅ Model file uploaded successfully:', attachmentUrls[0]);
+
+              // Update quote with attachment URL
+              import('../services/supabase/quotes').then(({ updateQuoteAttachment }) => {
+                updateQuoteAttachment(quote.quoteId, attachmentUrls[0]).catch(err => {
+                  console.warn('⚠️ Failed to update quote with attachment URL:', err);
+                });
+              });
+            } else {
+              console.warn('⚠️ Model file upload failed:', uploadResults);
+            }
+
+            setUploadingFiles(false);
+          }).catch(uploadError => {
+            console.error('❌ Error uploading model file:', uploadError);
+            setUploadingFiles(false);
+          });
+        } else {
+          console.log('ℹ️ No model file to upload with quote');
+        }
 
         console.log('✅ Quote submission complete!');
         return; // Exit early after successful save

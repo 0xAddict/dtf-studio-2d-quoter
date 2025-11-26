@@ -314,3 +314,33 @@ export async function searchQuotes(searchTerm: string) {
 
   return { data: data as Quote[], error: null };
 }
+
+/**
+ * Update quote attachment URL after file upload
+ * Used when attachment is uploaded after initial quote submission
+ */
+export async function updateQuoteAttachment(quoteId: string, fileUrl: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: new Error('User not authenticated') };
+  }
+
+  console.log('📎 Updating quote attachment:', { quoteId, fileUrl });
+
+  const { data, error } = await supabase
+    .from('quote_request')
+    .update({ model_file_url: fileUrl })
+    .eq('quote_id', quoteId)
+    .eq('user_id', user.id)
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    console.error('❌ Update quote attachment error:', error);
+    return { data: null, error };
+  }
+
+  console.log('✅ Quote attachment updated successfully');
+  return { data: data as Quote | null, error: null };
+}
