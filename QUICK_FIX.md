@@ -6,7 +6,7 @@ Your Supabase database is blocking quote submissions due to Row Level Security (
 
 **Error**: "Access denied" when trying to insert quotes
 
-**Cause**: The `quote_requests` table has RLS enabled but no policy allowing anonymous inserts.
+**Cause**: The `quote_request` table has RLS enabled but no policy allowing anonymous inserts.
 
 ---
 
@@ -25,19 +25,19 @@ Copy and paste this SQL and click **Run**:
 ```sql
 -- Allow anonymous users to INSERT quotes
 -- This is what allows the React app to save quotes
-CREATE POLICY "Allow anonymous inserts" ON quote_requests
+CREATE POLICY "Allow anonymous inserts" ON quote_request
     FOR INSERT
     WITH CHECK (true);
 
 -- Allow service_role full access (for WordPress)
-CREATE POLICY "Service role has full access" ON quote_requests
+CREATE POLICY "Service role has full access" ON quote_request
     FOR ALL
     TO service_role
     USING (true)
     WITH CHECK (true);
 
 -- Allow anyone to SELECT quotes (optional)
-CREATE POLICY "Allow public reads" ON quote_requests
+CREATE POLICY "Allow public reads" ON quote_request
     FOR SELECT
     USING (true);
 ```
@@ -49,7 +49,7 @@ Run this query to check your policies:
 ```sql
 SELECT policyname, cmd, roles
 FROM pg_policies
-WHERE tablename = 'quote_requests';
+WHERE tablename = 'quote_request';
 ```
 
 You should see:
@@ -65,7 +65,7 @@ After running the SQL above:
 
 1. Go to your React app
 2. Submit a test quote
-3. Check Supabase Table Editor → `quote_requests`
+3. Check Supabase Table Editor → `quote_request`
 4. Quote should appear! ✅
 
 ---
@@ -93,7 +93,7 @@ After running the SQL above:
 Once you run this SQL:
 
 1. **React App** → Can submit quotes ✅
-2. **Quotes save to Supabase** → `quote_requests` table ✅
+2. **Quotes save to Supabase** → `quote_request` table ✅
 3. **WordPress Dashboard** → Can see and manage all quotes ✅
 4. **Email notifications** → Still work via Web3Forms ✅
 
@@ -113,20 +113,20 @@ If quotes still don't save after running the SQL:
 
 1. **Verify policies exist**:
    ```sql
-   SELECT * FROM pg_policies WHERE tablename = 'quote_requests';
+   SELECT * FROM pg_policies WHERE tablename = 'quote_request';
    ```
 
 2. **Check RLS is enabled**:
    ```sql
    SELECT tablename, rowsecurity
    FROM pg_tables
-   WHERE tablename = 'quote_requests';
+   WHERE tablename = 'quote_request';
    ```
    Should show `rowsecurity = true`
 
 3. **Try manual insert**:
    ```sql
-   INSERT INTO quote_requests (name, email, quantity, material)
+   INSERT INTO quote_request (name, email, quantity, material)
    VALUES ('Test', 'test@example.com', 1, 'PLA');
    ```
    This should work even in SQL Editor

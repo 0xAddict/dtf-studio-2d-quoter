@@ -239,7 +239,7 @@ export function useQuoteRequests() {
     }
 
     const { data, error } = await supabase
-      .from('quote_requests')
+      .from('quote_request')
       .insert(quote)
       .select()
       .single();

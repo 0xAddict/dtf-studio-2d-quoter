@@ -23,8 +23,8 @@ Before starting, make sure you have:
 4. Run this SQL:
 
 ```sql
--- Create quote_requests table
-CREATE TABLE IF NOT EXISTS quote_requests (
+-- Create quote_request table
+CREATE TABLE IF NOT EXISTS quote_request (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id),
     model_id UUID,
@@ -42,26 +42,26 @@ CREATE TABLE IF NOT EXISTS quote_requests (
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_quote_requests_status ON quote_requests(status);
-CREATE INDEX IF NOT EXISTS idx_quote_requests_created_at ON quote_requests(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_quote_requests_email ON quote_requests(email);
+CREATE INDEX IF NOT EXISTS idx_quote_request_status ON quote_request(status);
+CREATE INDEX IF NOT EXISTS idx_quote_request_created_at ON quote_request(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_quote_request_email ON quote_request(email);
 
 -- Enable Row Level Security
-ALTER TABLE quote_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quote_request ENABLE ROW LEVEL SECURITY;
 
 -- Allow anonymous inserts (for quote submissions from the app)
-CREATE POLICY "Allow anonymous inserts" ON quote_requests
+CREATE POLICY "Allow anonymous inserts" ON quote_request
     FOR INSERT
     WITH CHECK (true);
 
 -- Allow service_role full access (for WordPress admin)
-CREATE POLICY "Service role has full access" ON quote_requests
+CREATE POLICY "Service role has full access" ON quote_request
     FOR ALL
     USING (auth.role() = 'service_role')
     WITH CHECK (auth.role() = 'service_role');
 
 -- Allow anon to read their own submissions (optional)
-CREATE POLICY "Allow read own submissions" ON quote_requests
+CREATE POLICY "Allow read own submissions" ON quote_request
     FOR SELECT
     USING (true);
 ```
@@ -180,7 +180,7 @@ You should see in the console:
 - If "Test Connection" fails, check:
   - URL has no trailing slash
   - You're using the **service_role key**, not anon key
-  - The quote_requests table exists in Supabase
+  - The quote_request table exists in Supabase
 
 ---
 
@@ -215,7 +215,7 @@ You should see in the console:
 
 5. **Verify in Supabase**:
    - Go to Supabase Dashboard → **Table Editor**
-   - Click on `quote_requests` table
+   - Click on `quote_request` table
    - You should see your test quote!
 
 6. **Verify in WordPress**:
@@ -241,7 +241,7 @@ You should see in the console:
 **Solution**:
 1. Check browser console for errors
 2. Make sure RLS policies allow anonymous inserts
-3. Verify the table name is exactly `quote_requests` (lowercase, underscore)
+3. Verify the table name is exactly `quote_request` (lowercase, underscore)
 4. Check Network tab for failed requests to Supabase
 
 ### Issue: WordPress shows "Supabase Not Configured"
@@ -287,7 +287,7 @@ After setup, verify each component:
 - [ ] Gets PDF download
 
 ### ✅ Supabase:
-- [ ] `quote_requests` table has data
+- [ ] `quote_request` table has data
 - [ ] `attachments` bucket has files in `quotes/HF-*/` folders
 - [ ] Can query table manually in SQL Editor
 
@@ -340,12 +340,12 @@ If you're still having problems after following this guide:
 
 2. **Verify table exists**:
    ```sql
-   SELECT * FROM quote_requests LIMIT 1;
+   SELECT * FROM quote_request LIMIT 1;
    ```
 
 3. **Check RLS policies**:
    ```sql
-   SELECT * FROM pg_policies WHERE tablename = 'quote_requests';
+   SELECT * FROM pg_policies WHERE tablename = 'quote_request';
    ```
 
 4. **Test manually**:

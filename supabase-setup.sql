@@ -2,10 +2,10 @@
 -- Run this in your Supabase SQL Editor
 
 -- ============================================
--- 1. Create quote_requests table
+-- 1. Create quote_request table
 -- ============================================
 
-CREATE TABLE IF NOT EXISTS quote_requests (
+CREATE TABLE IF NOT EXISTS quote_request (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id),
     model_id UUID,
@@ -26,31 +26,31 @@ CREATE TABLE IF NOT EXISTS quote_requests (
 -- 2. Create indexes for better performance
 -- ============================================
 
-CREATE INDEX IF NOT EXISTS idx_quote_requests_status
-    ON quote_requests(status);
+CREATE INDEX IF NOT EXISTS idx_quote_request_status
+    ON quote_request(status);
 
-CREATE INDEX IF NOT EXISTS idx_quote_requests_created_at
-    ON quote_requests(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_quote_request_created_at
+    ON quote_request(created_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_quote_requests_email
-    ON quote_requests(email);
+CREATE INDEX IF NOT EXISTS idx_quote_request_email
+    ON quote_request(email);
 
-CREATE INDEX IF NOT EXISTS idx_quote_requests_material
-    ON quote_requests(material);
+CREATE INDEX IF NOT EXISTS idx_quote_request_material
+    ON quote_request(material);
 
 -- ============================================
 -- 3. Enable Row Level Security (RLS)
 -- ============================================
 
-ALTER TABLE quote_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quote_request ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- 4. Drop existing policies (if any)
 -- ============================================
 
-DROP POLICY IF EXISTS "Allow anonymous inserts" ON quote_requests;
-DROP POLICY IF EXISTS "Service role has full access" ON quote_requests;
-DROP POLICY IF EXISTS "Allow read own submissions" ON quote_requests;
+DROP POLICY IF EXISTS "Allow anonymous inserts" ON quote_request;
+DROP POLICY IF EXISTS "Service role has full access" ON quote_request;
+DROP POLICY IF EXISTS "Allow read own submissions" ON quote_request;
 
 -- ============================================
 -- 5. Create RLS Policies
@@ -58,13 +58,13 @@ DROP POLICY IF EXISTS "Allow read own submissions" ON quote_requests;
 
 -- Policy 1: Allow anonymous users to INSERT quotes
 -- This allows the React app to submit quotes without authentication
-CREATE POLICY "Allow anonymous inserts" ON quote_requests
+CREATE POLICY "Allow anonymous inserts" ON quote_request
     FOR INSERT
     WITH CHECK (true);
 
 -- Policy 2: Allow service_role full access
 -- This allows the WordPress plugin (using service_role key) to manage all quotes
-CREATE POLICY "Service role has full access" ON quote_requests
+CREATE POLICY "Service role has full access" ON quote_request
     FOR ALL
     TO service_role
     USING (true)
@@ -72,7 +72,7 @@ CREATE POLICY "Service role has full access" ON quote_requests
 
 -- Policy 3: Allow anyone to SELECT quotes (optional - for public viewing)
 -- Remove this if you want quotes to be admin-only
-CREATE POLICY "Allow read own submissions" ON quote_requests
+CREATE POLICY "Allow read own submissions" ON quote_request
     FOR SELECT
     USING (true);
 
@@ -136,7 +136,7 @@ SELECT
     data_type,
     is_nullable
 FROM information_schema.columns
-WHERE table_name = 'quote_requests'
+WHERE table_name = 'quote_request'
 ORDER BY ordinal_position;
 
 -- Check if indexes exist
@@ -144,14 +144,14 @@ SELECT
     indexname,
     indexdef
 FROM pg_indexes
-WHERE tablename = 'quote_requests';
+WHERE tablename = 'quote_request';
 
 -- Check if RLS is enabled
 SELECT
     tablename,
     rowsecurity
 FROM pg_tables
-WHERE tablename = 'quote_requests';
+WHERE tablename = 'quote_request';
 
 -- Check policies
 SELECT
@@ -160,14 +160,14 @@ SELECT
     roles,
     cmd
 FROM pg_policies
-WHERE tablename = 'quote_requests';
+WHERE tablename = 'quote_request';
 
 -- ============================================
 -- 8. Test data (optional - for testing)
 -- ============================================
 
 -- Insert a test quote to verify everything works
-INSERT INTO quote_requests (
+INSERT INTO quote_request (
     name,
     email,
     phone,
@@ -200,7 +200,7 @@ SELECT
     quantity,
     status,
     created_at
-FROM quote_requests
+FROM quote_request
 ORDER BY created_at DESC
 LIMIT 1;
 
@@ -216,6 +216,6 @@ LIMIT 1;
 -- 5. Verify quotes appear in WordPress dashboard
 
 -- For troubleshooting:
--- - Check RLS policies: SELECT * FROM pg_policies WHERE tablename = 'quote_requests';
--- - View recent quotes: SELECT * FROM quote_requests ORDER BY created_at DESC LIMIT 10;
+-- - Check RLS policies: SELECT * FROM pg_policies WHERE tablename = 'quote_request';
+-- - View recent quotes: SELECT * FROM quote_request ORDER BY created_at DESC LIMIT 10;
 -- - Check storage policies: SELECT * FROM pg_policies WHERE schemaname = 'storage';

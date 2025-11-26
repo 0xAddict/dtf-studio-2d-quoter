@@ -102,7 +102,7 @@ class Forge_Quote_Manager {
             $params['or'] = "(name.ilike.*{$search}*,email.ilike.*{$search}*,company.ilike.*{$search}*)";
         }
 
-        $result = $this->supabase->get('quote_requests', $params);
+        $result = $this->supabase->get('quote_request', $params);
 
         if (!isset($result['success']) || !$result['success']) {
             return array(
@@ -127,7 +127,7 @@ class Forge_Quote_Manager {
             'limit' => 1
         );
 
-        $result = $this->supabase->get('quote_requests', $params);
+        $result = $this->supabase->get('quote_request', $params);
 
         if (!isset($result['success']) || !$result['success']) {
             return array(
@@ -163,7 +163,7 @@ class Forge_Quote_Manager {
         $filters = array('id' => 'eq.' . $id);
         $data = array('status' => $status);
 
-        $result = $this->supabase->patch('quote_requests', $data, $filters);
+        $result = $this->supabase->patch('quote_request', $data, $filters);
 
         if (!isset($result['success']) || !$result['success']) {
             return array(
@@ -202,7 +202,7 @@ class Forge_Quote_Manager {
 
         // Delete quote from database
         $filters = array('id' => 'eq.' . $id);
-        $result = $this->supabase->delete('quote_requests', $filters);
+        $result = $this->supabase->delete('quote_request', $filters);
 
         if (!isset($result['success']) || !$result['success']) {
             return array(
@@ -229,7 +229,7 @@ class Forge_Quote_Manager {
             $params['or'] = "(name.ilike.*{$search}*,email.ilike.*{$search}*,company.ilike.*{$search}*)";
         }
 
-        return $this->supabase->count('quote_requests', $params);
+        return $this->supabase->count('quote_request', $params);
     }
 
     /**
