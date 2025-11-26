@@ -118,25 +118,25 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-fade-in"
       onClick={handleBackdropClick}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="signup-modal-title"
-        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-slate-700"
+        className="glass-heavy rounded-2xl shadow-2xl w-full max-w-md border border-gray-200/50 dark:border-slate-700/50 animate-scale-in"
         onClick={handleModalClick}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-slate-700/50">
           <h2 id="signup-modal-title" className="text-2xl font-bold text-gray-900 dark:text-white">
             Create Account
           </h2>
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-500 dark:text-gray-400 disabled:opacity-50"
+            className="p-2.5 rounded-xl hover:bg-gray-100/80 dark:hover:bg-slate-800/80 transition-colors text-gray-500 dark:text-gray-400 disabled:opacity-50 min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -262,7 +262,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.01] disabled:scale-100 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-3.5 rounded-xl font-medium transition-all duration-200 disabled:cursor-not-allowed min-h-[48px] shadow-sm hover:shadow-md"
           >
             {isSubmitting ? (
               <>

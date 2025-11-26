@@ -732,7 +732,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-fade-in"
       onClick={handleBackdropClick}
     >
       <div
@@ -740,7 +740,7 @@ ${quote.pricing.finishingCost > 0 ? `- Finishing Cost: ${quote.pricing.finishing
         role="dialog"
         aria-modal="true"
         aria-labelledby="quote-modal-title"
-        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-slate-700"
+        className="glass-heavy rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-200/50 dark:border-slate-700/50 animate-scale-in"
         onClick={handleModalClick}
       >
         {submitStatus === 'success' && generatedQuote ? (

@@ -53,7 +53,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md animate-fade-in"
       onClick={handleBackdropClick}
     >
       <div
@@ -61,12 +61,12 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="welcome-title"
-        className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-8 animate-scale-in border border-gray-200 dark:border-slate-700"
+        className="relative glass-heavy rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-8 animate-scale-in border border-gray-200/50 dark:border-slate-700/50"
         onClick={handleModalClick}
       >
         {/* Loading Overlay - Show while checking auth or after sign out */}
         {authLoading && (
-          <div className="absolute inset-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-2xl z-50 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 glass-heavy rounded-2xl z-50 flex flex-col items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent dark:border-indigo-400 dark:border-t-transparent mb-4"></div>
             <p className="text-gray-700 dark:text-gray-300 font-medium">Loading...</p>
           </div>
@@ -76,7 +76,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
         {onClose && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="absolute top-4 right-4 p-2.5 rounded-xl hover:bg-gray-100/80 dark:hover:bg-slate-800/80 transition-colors text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Close welcome dialog"
           >
             <X className="w-5 h-5" />
@@ -121,7 +121,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
               setShowAuthModal('signup');
               // Don't close welcome modal yet, user might cancel
             }}
-            className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-[1.02] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-slate-900"
+            className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-slate-900 min-h-[56px]"
           >
             <Upload className="w-5 h-5" />
             Sign Up / Sign In
@@ -129,7 +129,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
 
           <button
             onClick={onTrySample}
-            className="w-full flex items-center justify-center gap-3 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 px-6 py-4 rounded-xl font-semibold border-2 border-gray-300 dark:border-slate-600 transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 dark:focus:ring-offset-slate-900"
+            className="w-full flex items-center justify-center gap-3 glass hover:bg-gray-100/50 dark:hover:bg-slate-700/50 text-gray-700 dark:text-gray-300 px-6 py-4 rounded-xl font-semibold border border-gray-200/60 dark:border-slate-600/60 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 dark:focus:ring-offset-slate-900 min-h-[56px]"
           >
             <Play className="w-5 h-5" />
             Try with Sample
