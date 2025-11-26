@@ -1,16 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './client';
 import type { Database } from './types';
-
-// Create isolated client for quotes - bypasses any deadlocked main client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-const quotesClient = createClient<Database>(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  }
-});
 
 // Quote interface matching the quote_request table schema
 export interface Quote {
@@ -117,7 +106,7 @@ export async function saveQuote(quoteData: QuoteData, userId: string) {
     console.log('💾 Inserting into quote_request...', { quote_id: insertData.quote_id, user_id: insertData.user_id });
 
     // Insert into quote_request table
-    const { data, error } = await quotesClient
+    const { data, error } = await supabase
       .from('quote_request')
       .insert([insertData])
       .select()
@@ -145,7 +134,7 @@ export async function getUserQuotes() {
 
   try {
     // Get current user
-    const { data: { user } } = await quotesClient.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       console.log('❌ getUserQuotes: No user authenticated');
@@ -155,7 +144,7 @@ export async function getUserQuotes() {
     console.log('📊 getUserQuotes: Fetching quotes for user:', user.id);
 
     // Fetch quotes from quote_request table for this user
-    const { data, error } = await quotesClient
+    const { data, error } = await supabase
       .from('quote_request')
       .select('*')
       .eq('user_id', user.id)
@@ -178,7 +167,7 @@ export async function getUserQuotes() {
  * Get single quote by quote_id
  */
 export async function getQuoteByQuoteId(quoteId: string) {
-  const { data, error } = await quotesClient
+  const { data, error } = await supabase
     .from('quote_request')
     .select('*')
     .eq('quote_id', quoteId)
@@ -196,7 +185,7 @@ export async function getQuoteByQuoteId(quoteId: string) {
  * Get single quote by id (UUID)
  */
 export async function getQuote(id: string) {
-  const { data, error } = await quotesClient
+  const { data, error } = await supabase
     .from('quote_request')
     .select('*')
     .eq('id', id)
@@ -214,7 +203,7 @@ export async function getQuote(id: string) {
  * Update quote status (user can cancel their own quotes)
  */
 export async function updateQuoteStatus(quoteId: string, status: Quote['status']) {
-  const { data: { user } } = await quotesClient.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return { data: null, error: new Error('User not authenticated') };
@@ -225,7 +214,7 @@ export async function updateQuoteStatus(quoteId: string, status: Quote['status']
     return { data: null, error: new Error('Users can only cancel quotes') };
   }
 
-  const { data, error } = await quotesClient
+  const { data, error } = await supabase
     .from('quote_request')
     .update({ status })
     .eq('quote_id', quoteId)
@@ -245,13 +234,13 @@ export async function updateQuoteStatus(quoteId: string, status: Quote['status']
  * Get quotes by status
  */
 export async function getQuotesByStatus(status: Quote['status']) {
-  const { data: { user } } = await quotesClient.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return { data: null, error: new Error('User not authenticated') };
   }
 
-  const { data, error } = await quotesClient
+  const { data, error } = await supabase
     .from('quote_request')
     .select('*')
     .eq('user_id', user.id)
@@ -270,7 +259,7 @@ export async function getQuotesByStatus(status: Quote['status']) {
  * Get quote statistics for user
  */
 export async function getUserQuoteStats() {
-  const { data: { user } } = await quotesClient.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return {
@@ -279,7 +268,7 @@ export async function getUserQuoteStats() {
     };
   }
 
-  const { data, error } = await quotesClient
+  const { data, error } = await supabase
     .from('quote_request')
     .select('status, total_cost')
     .eq('user_id', user.id);
@@ -308,13 +297,13 @@ export async function getUserQuoteStats() {
  * Search quotes by text
  */
 export async function searchQuotes(searchTerm: string) {
-  const { data: { user } } = await quotesClient.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return { data: null, error: new Error('User not authenticated') };
   }
 
-  const { data, error } = await quotesClient
+  const { data, error } = await supabase
     .from('quote_request')
     .select('*')
     .eq('user_id', user.id)
@@ -341,7 +330,7 @@ export async function deleteQuote(quoteId: string, userId: string) {
   }
 
   // First check if the quote is cancelled
-  const { data: quote, error: fetchError } = await quotesClient
+  const { data: quote, error: fetchError } = await supabase
     .from('quote_request')
     .select('status')
     .eq('quote_id', quoteId)
@@ -362,7 +351,7 @@ export async function deleteQuote(quoteId: string, userId: string) {
   }
 
   // Delete the quote
-  const { error } = await quotesClient
+  const { error } = await supabase
     .from('quote_request')
     .delete()
     .eq('quote_id', quoteId)
@@ -388,7 +377,7 @@ export async function updateQuoteAttachment(quoteId: string, fileUrl: string, us
 
   console.log('📎 Updating quote attachment:', { quoteId, fileUrl, userId });
 
-  const { data, error } = await quotesClient
+  const { data, error } = await supabase
     .from('quote_request')
     .update({ model_file_url: fileUrl })
     .eq('quote_id', quoteId)
