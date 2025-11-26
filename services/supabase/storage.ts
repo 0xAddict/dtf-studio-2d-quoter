@@ -1,4 +1,4 @@
-import { supabase, STORAGE_BUCKETS, withTimeout } from './client';
+import { supabase, STORAGE_BUCKETS } from './client';
 
 export interface UploadResult {
   url: string;
@@ -64,20 +64,14 @@ export async function uploadFile(
     const filePath = folder ? `${folder}/${fileName}` : fileName;
     console.log(`📂 [Storage] Upload path: ${filePath}`);
 
-    // Upload file to Supabase storage with 30s timeout for large files
-    console.log(`⏱️ [Storage] Starting upload (30s timeout)...`);
-    const uploadPromise = supabase.storage
+    // Upload file to Supabase storage - direct call
+    console.log(`⏱️ [Storage] Starting upload...`);
+    const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false,
       });
-
-    const { data, error } = await withTimeout(
-      uploadPromise,
-      30000, // 30 second timeout for file uploads
-      `File upload (${file.name})`
-    );
 
     if (error) {
       console.error('❌ [Storage] Upload error:', error);

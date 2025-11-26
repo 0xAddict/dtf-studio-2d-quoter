@@ -1,4 +1,4 @@
-import { supabase, withTimeout } from './client';
+import { supabase } from './client';
 
 export interface SignUpData {
   email: string;

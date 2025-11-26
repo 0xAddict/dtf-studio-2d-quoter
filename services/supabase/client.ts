@@ -33,7 +33,12 @@ export function isSupabaseConfigured() {
   );
 }
 
-// Timeout wrapper for async operations
+/**
+ * @deprecated Do not use with Supabase operations - causes deadlocks.
+ * Promise.race leaves original promise hanging. Use direct calls instead.
+ *
+ * Timeout wrapper for async operations
+ */
 export async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number = 10000,
