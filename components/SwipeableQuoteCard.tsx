@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { Trash2, Archive } from 'lucide-react';
+import { Trash2, XCircle } from 'lucide-react';
 import { Quote } from '../services/supabase/quotes';
 import { QuoteCard } from './QuoteCard';
 
 interface SwipeableQuoteCardProps {
   quote: Quote;
   onCancel?: (quoteId: string) => void;
-  onArchive?: (quoteId: string) => void;
+  onDelete?: (quoteId: string) => void;
   onSwipeCancel?: (quoteId: string) => void;
-  onSwipeArchive?: (quoteId: string) => void;
+  onSwipeDelete?: (quoteId: string) => void;
   onDownload?: (quoteId: string) => void;
   layout?: 'grid' | 'list';
   isCancelling?: boolean;
-  isArchiving?: boolean;
+  isDeleting?: boolean;
 }
 
 // Check if device is touch-enabled (mobile)
@@ -25,13 +25,13 @@ const isTouchDevice = () => {
 export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
   quote,
   onCancel,
-  onArchive,
+  onDelete,
   onSwipeCancel,
-  onSwipeArchive,
+  onSwipeDelete,
   onDownload,
   layout = 'grid',
   isCancelling,
-  isArchiving,
+  isDeleting,
 }) => {
   const [isRemoving, setIsRemoving] = useState(false);
   const x = useMotionValue(0);
@@ -40,10 +40,11 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
   const backgroundOpacity = useTransform(x, [-200, -100, 0, 100, 200], [1, 0.8, 0, 0.8, 1]);
   const scale = useTransform(x, [-200, 0, 200], [0.95, 1, 0.95]);
 
-  // Can cancel if pending/processing, can archive if completed/rejected/cancelled
+  // Swipe left = cancel (for pending/processing)
+  // Swipe right = delete (for cancelled quotes only)
   const canCancel = quote.status === 'pending' || quote.status === 'processing';
-  const canArchive = ['accepted', 'rejected', 'cancelled'].includes(quote.status);
-  const showSwipe = (canCancel || canArchive) && isTouchDevice();
+  const canDelete = quote.status === 'cancelled';
+  const showSwipe = (canCancel || canDelete) && isTouchDevice();
 
   const handleDragEnd = async (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const threshold = 120;
@@ -53,10 +54,10 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
       setIsRemoving(true);
       await onSwipeCancel(quote.quote_id);
     }
-    // Swipe right to archive (completed quotes)
-    else if (info.offset.x > threshold && canArchive && onSwipeArchive) {
+    // Swipe right to delete (cancelled quotes)
+    else if (info.offset.x > threshold && canDelete && onSwipeDelete) {
       setIsRemoving(true);
-      await onSwipeArchive(quote.quote_id);
+      await onSwipeDelete(quote.quote_id);
     }
   };
 
@@ -90,11 +91,11 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
         <QuoteCard
           quote={quote}
           onCancel={onCancel}
-          onArchive={onArchive}
+          onDelete={onDelete}
           onDownload={onDownload}
           layout={layout}
           isCancelling={isCancelling}
-          isArchiving={isArchiving}
+          isDeleting={isDeleting}
         />
       </motion.div>
     );
@@ -112,30 +113,30 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
       {/* Background action indicators */}
       {canCancel && (
         <motion.div
-          className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-end pr-6 overflow-hidden"
+          className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 flex items-center justify-end pr-6 overflow-hidden"
           style={{
             opacity: useTransform(x, [-200, 0], [1, 0]),
             pointerEvents: 'none'
           }}
         >
           <div className="flex flex-col items-center gap-1 text-white">
-            <Trash2 className="w-6 h-6" />
+            <XCircle className="w-6 h-6" />
             <span className="text-xs font-medium">Cancel</span>
           </div>
         </motion.div>
       )}
 
-      {canArchive && (
+      {canDelete && (
         <motion.div
-          className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-l from-blue-500 to-blue-600 flex items-center justify-start pl-6 overflow-hidden"
+          className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-l from-red-500 to-red-600 flex items-center justify-start pl-6 overflow-hidden"
           style={{
             opacity: useTransform(x, [0, 200], [0, 1]),
             pointerEvents: 'none'
           }}
         >
           <div className="flex flex-col items-center gap-1 text-white">
-            <Archive className="w-6 h-6" />
-            <span className="text-xs font-medium">Archive</span>
+            <Trash2 className="w-6 h-6" />
+            <span className="text-xs font-medium">Delete</span>
           </div>
         </motion.div>
       )}
@@ -143,7 +144,7 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
       {/* Swipeable card */}
       <motion.div
         drag="x"
-        dragConstraints={{ left: canCancel ? -150 : 0, right: canArchive ? 150 : 0 }}
+        dragConstraints={{ left: canCancel ? -150 : 0, right: canDelete ? 150 : 0 }}
         dragElastic={{ left: 0.1, right: 0.1 }}
         onDragEnd={handleDragEnd}
         style={{ x, scale }}
@@ -153,11 +154,11 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
         <QuoteCard
           quote={quote}
           onCancel={onCancel}
-          onArchive={onArchive}
+          onDelete={onDelete}
           onDownload={onDownload}
           layout={layout}
           isCancelling={isCancelling}
-          isArchiving={isArchiving}
+          isDeleting={isDeleting}
         />
       </motion.div>
     </motion.div>

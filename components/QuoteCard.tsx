@@ -5,14 +5,14 @@ import { Quote } from '../services/supabase/quotes';
 interface QuoteCardProps {
   quote: Quote;
   onCancel?: (quoteId: string) => void;
-  onArchive?: (quoteId: string) => void;
+  onDelete?: (quoteId: string) => void;
   onDownload?: (quoteId: string) => void;
   layout?: 'grid' | 'list';
   isCancelling?: boolean;
-  isArchiving?: boolean;
+  isDeleting?: boolean;
 }
 
-export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onArchive, onDownload, layout = 'grid', isCancelling, isArchiving }) => {
+export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDelete, onDownload, layout = 'grid', isCancelling, isDeleting }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleCancel = () => {
@@ -20,9 +20,9 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onArchive
     onCancel(quote.quote_id);
   };
 
-  const handleArchive = () => {
-    if (!onArchive) return;
-    onArchive(quote.quote_id);
+  const handleDelete = () => {
+    if (!onDelete) return;
+    onDelete(quote.quote_id);
   };
 
   const handleDownload = () => {
@@ -87,7 +87,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onArchive
           textColor: 'text-gray-800 dark:text-gray-100',
           borderColor: 'border-gray-200/80 dark:border-slate-700',
           canCancel: false,
-          canArchive: true,
+          canDelete: true,
         };
       case 'archived':
         return {
@@ -125,6 +125,54 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onArchive
       minute: '2-digit',
     });
   };
+
+  // Format date for list view (short)
+  const formatDateShort = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  // Minimal list view
+  if (layout === 'list') {
+    return (
+      <div className="glass rounded-lg border border-gray-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+        <div className="p-3 sm:p-4 flex items-center justify-between gap-3">
+          {/* Left: ID and Date */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-sm text-gray-900 dark:text-white truncate">
+                {quote.quote_id}
+              </h3>
+              <div
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border flex-shrink-0 ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}
+              >
+                <StatusIcon className="w-2.5 h-2.5" />
+                {statusConfig.label}
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+              <Calendar className="w-3 h-3" />
+              {formatDateShort(quote.created_at)}
+            </div>
+          </div>
+
+          {/* Right: Amount and Quantity */}
+          <div className="text-right flex-shrink-0">
+            <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+              €{quote.total_cost?.toFixed(2) || '0.00'}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {quote.quantity} pcs
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Mobile compact grid uses smaller sizes
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
@@ -395,22 +443,22 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onArchive
             </button>
           )}
 
-          {statusConfig.canArchive && onArchive && (
+          {statusConfig.canDelete && onDelete && (
             <button
-              onClick={handleArchive}
-              disabled={isArchiving}
-              className="flex-1 sm:w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-200/60 dark:border-slate-700/60 hover:border-blue-300 dark:hover:border-blue-700 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px] sm:min-h-[44px]"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="flex-1 sm:w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border border-red-200/60 dark:border-red-700/60 hover:border-red-400 dark:hover:border-red-600 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50/50 dark:hover:bg-red-900/20 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px] sm:min-h-[44px]"
             >
-              {isArchiving ? (
+              {isDeleting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                  <span className="hidden xs:inline sm:inline">Archiving...</span>
+                  <span className="hidden xs:inline sm:inline">Deleting...</span>
                   <span className="xs:hidden sm:hidden">...</span>
                 </>
               ) : (
                 <>
-                  <Archive className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  Archive
+                  <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  Delete
                 </>
               )}
             </button>

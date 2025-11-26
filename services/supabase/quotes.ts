@@ -38,7 +38,7 @@ export interface Quote {
   finishing_cost: number | null;
   quantity_discount: number | null;
   total_cost: number | null;
-  status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled';
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled' | 'archived';
   admin_notes: string | null;
 }
 
@@ -211,7 +211,7 @@ export async function getQuote(id: string) {
 }
 
 /**
- * Update quote status (user can cancel their own quotes)
+ * Update quote status (user can cancel or archive their own quotes)
  */
 export async function updateQuoteStatus(quoteId: string, status: Quote['status']) {
   const { data: { user } } = await quotesClient.auth.getUser();
@@ -220,9 +220,9 @@ export async function updateQuoteStatus(quoteId: string, status: Quote['status']
     return { data: null, error: new Error('User not authenticated') };
   }
 
-  // Users can only update to 'cancelled' status
-  if (status !== 'cancelled') {
-    return { data: null, error: new Error('Users can only cancel quotes') };
+  // Users can only update to 'cancelled' or 'archived' status
+  if (status !== 'cancelled' && status !== 'archived') {
+    return { data: null, error: new Error('Users can only cancel or archive quotes') };
   }
 
   const { data, error } = await quotesClient
@@ -239,6 +239,51 @@ export async function updateQuoteStatus(quoteId: string, status: Quote['status']
   }
 
   return { data: data as Quote | null, error: null };
+}
+
+/**
+ * Delete quote permanently (only for cancelled quotes)
+ */
+export async function deleteQuote(quoteId: string) {
+  const { data: { user } } = await quotesClient.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: new Error('User not authenticated') };
+  }
+
+  // First check if quote is cancelled
+  const { data: quote, error: fetchError } = await quotesClient
+    .from('quote_request')
+    .select('status')
+    .eq('quote_id', quoteId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error('Fetch quote error:', fetchError);
+    return { data: null, error: fetchError };
+  }
+
+  if (!quote) {
+    return { data: null, error: new Error('Quote not found') };
+  }
+
+  if (quote.status !== 'cancelled') {
+    return { data: null, error: new Error('Only cancelled quotes can be deleted') };
+  }
+
+  const { error } = await quotesClient
+    .from('quote_request')
+    .delete()
+    .eq('quote_id', quoteId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Delete quote error:', error);
+    return { data: null, error };
+  }
+
+  return { data: true, error: null };
 }
 
 /**

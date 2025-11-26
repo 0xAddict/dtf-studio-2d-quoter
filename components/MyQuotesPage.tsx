@@ -17,11 +17,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { getUserQuotes, updateQuoteStatus, Quote, getUserQuoteStats } from '../services/supabase/quotes';
+import { getUserQuotes, updateQuoteStatus, deleteQuote, Quote, getUserQuoteStats } from '../services/supabase/quotes';
 import { SwipeableQuoteCard } from './SwipeableQuoteCard';
 import { ConfirmationDialog } from './ui/ConfirmationDialog';
 
-type FilterType = 'all' | 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled' | 'archived';
+type FilterType = 'all' | 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled';
 type ViewMode = 'grid' | 'list';
 type SortType = 'newest' | 'oldest' | 'price_high' | 'price_low';
 
@@ -42,8 +42,8 @@ export const MyQuotesPage: React.FC = () => {
 
   const [confirmQuoteId, setConfirmQuoteId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
-  const [isArchiving, setIsArchiving] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -52,7 +52,6 @@ export const MyQuotesPage: React.FC = () => {
     accepted: 0,
     rejected: 0,
     cancelled: 0,
-    archived: 0,
     totalValue: 0,
   });
 
@@ -66,14 +65,9 @@ export const MyQuotesPage: React.FC = () => {
   useEffect(() => {
     let result = quotes;
 
-    // Apply status filter (exclude archived by default)
-    if (filter === 'archived') {
-      result = result.filter(q => q.status === 'archived');
-    } else if (filter !== 'all') {
+    // Apply status filter
+    if (filter !== 'all') {
       result = result.filter(q => q.status === filter);
-    } else {
-      // 'all' filter excludes archived quotes
-      result = result.filter(q => q.status !== 'archived');
     }
 
     // Apply search
@@ -198,44 +192,44 @@ export const MyQuotesPage: React.FC = () => {
     }
   };
 
-  const handleArchiveQuote = async () => {
-    if (!confirmArchiveId) return;
+  const handleDeleteQuote = async () => {
+    if (!confirmDeleteId) return;
 
-    setIsArchiving(true);
+    setIsDeleting(true);
     try {
-      const { error: archiveError } = await updateQuoteStatus(confirmArchiveId, 'archived');
+      const { error: deleteError } = await deleteQuote(confirmDeleteId);
 
-      if (archiveError) {
-        throw archiveError;
+      if (deleteError) {
+        throw deleteError;
       }
 
       await loadQuotes();
       await loadStats();
-      toast.success('Quote archived successfully.');
+      toast.success('Quote deleted successfully.');
     } catch (err: any) {
-      console.error('❌ Failed to archive quote:', err);
-      toast.error('Failed to archive quote. Please try again.');
+      console.error('❌ Failed to delete quote:', err);
+      toast.error('Failed to delete quote. Please try again.');
     } finally {
-      setIsArchiving(false);
-      setConfirmArchiveId(null);
+      setIsDeleting(false);
+      setConfirmDeleteId(null);
     }
   };
 
-  // Handle swipe-to-archive (direct archive without confirmation on swipe)
-  const handleSwipeArchive = async (quoteId: string) => {
+  // Handle swipe-to-delete (direct delete without confirmation on swipe)
+  const handleSwipeDelete = async (quoteId: string) => {
     try {
-      const { error: archiveError } = await updateQuoteStatus(quoteId, 'archived');
+      const { error: deleteError } = await deleteQuote(quoteId);
 
-      if (archiveError) {
-        throw archiveError;
+      if (deleteError) {
+        throw deleteError;
       }
 
       await loadQuotes();
       await loadStats();
-      toast.success('Quote archived.');
+      toast.success('Quote deleted.');
     } catch (err: any) {
-      console.error('❌ Failed to archive quote:', err);
-      toast.error('Failed to archive quote. Please try again.');
+      console.error('❌ Failed to delete quote:', err);
+      toast.error('Failed to delete quote. Please try again.');
     }
   };
 
@@ -491,13 +485,13 @@ export const MyQuotesPage: React.FC = () => {
                 key={quote.id}
                 quote={quote}
                 onCancel={() => setConfirmQuoteId(quote.quote_id)}
-                onArchive={() => setConfirmArchiveId(quote.quote_id)}
+                onDelete={() => setConfirmDeleteId(quote.quote_id)}
                 onSwipeCancel={handleSwipeCancel}
-                onSwipeArchive={handleSwipeArchive}
+                onSwipeDelete={handleSwipeDelete}
                 onDownload={handleDownloadPDF}
                 layout={viewMode}
                 isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
-                isArchiving={isArchiving && confirmArchiveId === quote.quote_id}
+                isDeleting={isDeleting && confirmDeleteId === quote.quote_id}
               />
               ))}
             </AnimatePresence>
@@ -518,17 +512,17 @@ export const MyQuotesPage: React.FC = () => {
         isLoading={isCancelling}
       />
 
-      {/* Archive Confirmation Dialog */}
+      {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
-        isOpen={!!confirmArchiveId}
-        onClose={() => setConfirmArchiveId(null)}
-        onConfirm={handleArchiveQuote}
-        title="Archive Quote"
-        message={`Are you sure you want to archive quote ${confirmArchiveId}? You can view archived quotes by selecting the "Archived" filter.`}
-        confirmLabel="Archive Quote"
+        isOpen={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={handleDeleteQuote}
+        title="Delete Quote"
+        message={`Are you sure you want to permanently delete quote ${confirmDeleteId}? This action cannot be undone.`}
+        confirmLabel="Delete Quote"
         cancelLabel="Cancel"
-        variant="default"
-        isLoading={isArchiving}
+        variant="danger"
+        isLoading={isDeleting}
       />
     </div>
   );
