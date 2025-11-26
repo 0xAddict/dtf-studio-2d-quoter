@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   Search,
@@ -13,7 +12,6 @@ import {
   LayoutGrid,
   List,
   ArrowUpDown,
-  Archive,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -21,7 +19,7 @@ import { getUserQuotes, updateQuoteStatus, Quote, getUserQuoteStats } from '../s
 import { SwipeableQuoteCard } from './SwipeableQuoteCard';
 import { ConfirmationDialog } from './ui/ConfirmationDialog';
 
-type FilterType = 'all' | 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled' | 'archived';
+type FilterType = 'all' | 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled';
 type ViewMode = 'grid' | 'list';
 type SortType = 'newest' | 'oldest' | 'price_high' | 'price_low';
 
@@ -42,8 +40,6 @@ export const MyQuotesPage: React.FC = () => {
 
   const [confirmQuoteId, setConfirmQuoteId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
-  const [isArchiving, setIsArchiving] = useState(false);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -52,7 +48,6 @@ export const MyQuotesPage: React.FC = () => {
     accepted: 0,
     rejected: 0,
     cancelled: 0,
-    archived: 0,
     totalValue: 0,
   });
 
@@ -66,14 +61,9 @@ export const MyQuotesPage: React.FC = () => {
   useEffect(() => {
     let result = quotes;
 
-    // Apply status filter (exclude archived by default)
-    if (filter === 'archived') {
-      result = result.filter(q => q.status === 'archived');
-    } else if (filter !== 'all') {
+    // Apply status filter
+    if (filter !== 'all') {
       result = result.filter(q => q.status === filter);
-    } else {
-      // 'all' filter excludes archived quotes
-      result = result.filter(q => q.status !== 'archived');
     }
 
     // Apply search
@@ -195,47 +185,6 @@ export const MyQuotesPage: React.FC = () => {
     } catch (err: any) {
       console.error('❌ Failed to cancel quote:', err);
       toast.error('Failed to cancel quote. Please try again.');
-    }
-  };
-
-  const handleArchiveQuote = async () => {
-    if (!confirmArchiveId) return;
-
-    setIsArchiving(true);
-    try {
-      const { error: archiveError } = await updateQuoteStatus(confirmArchiveId, 'archived');
-
-      if (archiveError) {
-        throw archiveError;
-      }
-
-      await loadQuotes();
-      await loadStats();
-      toast.success('Quote archived successfully.');
-    } catch (err: any) {
-      console.error('❌ Failed to archive quote:', err);
-      toast.error('Failed to archive quote. Please try again.');
-    } finally {
-      setIsArchiving(false);
-      setConfirmArchiveId(null);
-    }
-  };
-
-  // Handle swipe-to-archive (direct archive without confirmation on swipe)
-  const handleSwipeArchive = async (quoteId: string) => {
-    try {
-      const { error: archiveError } = await updateQuoteStatus(quoteId, 'archived');
-
-      if (archiveError) {
-        throw archiveError;
-      }
-
-      await loadQuotes();
-      await loadStats();
-      toast.success('Quote archived.');
-    } catch (err: any) {
-      console.error('❌ Failed to archive quote:', err);
-      toast.error('Failed to archive quote. Please try again.');
     }
   };
 
@@ -484,23 +433,18 @@ export const MyQuotesPage: React.FC = () => {
 
         {/* Quotes Layout */}
         {!loading && !error && filteredQuotes.length > 0 && (
-          <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-5' : 'space-y-3 sm:space-y-4'}>
-            <AnimatePresence mode="popLayout">
-              {filteredQuotes.map((quote) => (
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5' : 'space-y-3 sm:space-y-4'}>
+            {filteredQuotes.map((quote) => (
               <SwipeableQuoteCard
                 key={quote.id}
                 quote={quote}
                 onCancel={() => setConfirmQuoteId(quote.quote_id)}
-                onArchive={() => setConfirmArchiveId(quote.quote_id)}
                 onSwipeCancel={handleSwipeCancel}
-                onSwipeArchive={handleSwipeArchive}
                 onDownload={handleDownloadPDF}
                 layout={viewMode}
                 isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
-                isArchiving={isArchiving && confirmArchiveId === quote.quote_id}
               />
-              ))}
-            </AnimatePresence>
+            ))}
           </div>
         )}
       </main>
@@ -516,19 +460,6 @@ export const MyQuotesPage: React.FC = () => {
         cancelLabel="Keep Quote"
         variant="danger"
         isLoading={isCancelling}
-      />
-
-      {/* Archive Confirmation Dialog */}
-      <ConfirmationDialog
-        isOpen={!!confirmArchiveId}
-        onClose={() => setConfirmArchiveId(null)}
-        onConfirm={handleArchiveQuote}
-        title="Archive Quote"
-        message={`Are you sure you want to archive quote ${confirmArchiveId}? You can view archived quotes by selecting the "Archived" filter.`}
-        confirmLabel="Archive Quote"
-        cancelLabel="Cancel"
-        variant="default"
-        isLoading={isArchiving}
       />
     </div>
   );
