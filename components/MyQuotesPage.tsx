@@ -11,15 +11,18 @@ import {
   Loader2,
   LayoutGrid,
   List,
+  ArrowUpDown,
 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { getUserQuotes, updateQuoteStatus, Quote, getUserQuoteStats } from '../services/supabase/quotes';
-import { QuoteCard } from './QuoteCard';
+import { SwipeableQuoteCard } from './SwipeableQuoteCard';
 import { ConfirmationDialog } from './ui/ConfirmationDialog';
 
 type FilterType = 'all' | 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'cancelled';
 type ViewMode = 'grid' | 'list';
+type SortType = 'newest' | 'oldest' | 'price_high' | 'price_low';
 
 export const MyQuotesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +37,7 @@ export const MyQuotesPage: React.FC = () => {
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [sortBy, setSortBy] = useState<SortType>('newest');
 
   const [confirmQuoteId, setConfirmQuoteId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -54,7 +58,7 @@ export const MyQuotesPage: React.FC = () => {
     loadStats();
   }, []);
 
-  // Filter and search quotes when filter or search term changes
+  // Filter, search and sort quotes when filter, search term, or sort changes
   useEffect(() => {
     let result = quotes;
 
@@ -73,8 +77,24 @@ export const MyQuotesPage: React.FC = () => {
       );
     }
 
+    // Apply sorting
+    result = [...result].sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'price_high':
+          return (b.total_cost || 0) - (a.total_cost || 0);
+        case 'price_low':
+          return (a.total_cost || 0) - (b.total_cost || 0);
+        default:
+          return 0;
+      }
+    });
+
     setFilteredQuotes(result);
-  }, [quotes, filter, searchTerm]);
+  }, [quotes, filter, searchTerm, sortBy]);
 
   const loadQuotes = async () => {
     console.log('📊 MyQuotesPage: Loading quotes...');
@@ -148,6 +168,24 @@ export const MyQuotesPage: React.FC = () => {
     } finally {
       setIsCancelling(false);
       setConfirmQuoteId(null);
+    }
+  };
+
+  // Handle swipe-to-cancel (direct cancel without confirmation on swipe)
+  const handleSwipeCancel = async (quoteId: string) => {
+    try {
+      const { error: cancelError } = await updateQuoteStatus(quoteId, 'cancelled');
+
+      if (cancelError) {
+        throw cancelError;
+      }
+
+      await loadQuotes();
+      await loadStats();
+      toast.success('Quote cancelled.');
+    } catch (err: any) {
+      console.error('❌ Failed to cancel quote:', err);
+      toast.error('Failed to cancel quote. Please try again.');
     }
   };
 
@@ -244,24 +282,24 @@ export const MyQuotesPage: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8">
+        {/* Stats Cards - Hidden on mobile */}
+        <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {statsCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div
                 key={index}
-                className="glass rounded-xl sm:rounded-2xl border border-gray-200/50 dark:border-slate-700/50 p-3 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
+                className="glass rounded-2xl border border-gray-200/50 dark:border-slate-700/50 p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
               >
-                <div className="flex items-center justify-between mb-1 sm:mb-2">
-                  <div className={`p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl ${stat.bgColor}`}>
-                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`p-2.5 rounded-xl ${stat.bgColor}`}>
+                    <Icon className={`w-5 h-5 ${stat.color}`} />
                   </div>
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-1 truncate">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1 truncate">
                   {stat.value}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
                   {stat.label}
                 </div>
               </div>
@@ -284,8 +322,9 @@ export const MyQuotesPage: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-center gap-2 justify-between">
-              {/* Filter */}
+            {/* Filter Row - Status and Sort */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              {/* Status Filter */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                 <select
@@ -302,14 +341,32 @@ export const MyQuotesPage: React.FC = () => {
                 </select>
               </div>
 
+              {/* Sort Filter */}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <ArrowUpDown className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortType)}
+                  className="flex-1 min-w-0 px-2 sm:px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="price_high">Highest Price</option>
+                  <option value="price_low">Lowest Price</option>
+                </select>
+              </div>
+            </div>
+
+            {/* View Toggle Row */}
+            <div className="flex items-center justify-between">
+              {/* Results count */}
+              <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                {filteredQuotes.length} of {quotes.length} quotes
+              </div>
+
               {/* View Toggle */}
               {renderViewToggle()}
             </div>
-          </div>
-
-          {/* Results count */}
-          <div className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-            {filteredQuotes.length} of {quotes.length} quotes
           </div>
         </div>
 
@@ -378,16 +435,19 @@ export const MyQuotesPage: React.FC = () => {
         {/* Quotes Layout */}
         {!loading && !error && filteredQuotes.length > 0 && (
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5' : 'space-y-3 sm:space-y-4'}>
-            {filteredQuotes.map((quote) => (
-              <QuoteCard
-                key={quote.id}
-                quote={quote}
-                onCancel={() => setConfirmQuoteId(quote.quote_id)}
-                onDownload={handleDownloadPDF}
-                layout={viewMode}
-                isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
-              />
-            ))}
+            <AnimatePresence mode="popLayout">
+              {filteredQuotes.map((quote) => (
+                <SwipeableQuoteCard
+                  key={quote.id}
+                  quote={quote}
+                  onCancel={() => setConfirmQuoteId(quote.quote_id)}
+                  onSwipeCancel={handleSwipeCancel}
+                  onDownload={handleDownloadPDF}
+                  layout={viewMode}
+                  isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
+                />
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </main>
