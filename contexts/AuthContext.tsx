@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     init();
 
     // Listen for auth changes - this is the source of truth
-    const subscription = onAuthStateChange(async (event, session) => {
+    const subscription = onAuthStateChange((event, session) => {
       console.log('✅ Auth state changed:', event, session?.user?.email);
 
       // Handle specific events
@@ -95,22 +95,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSigningOut(false);
         setLoading(false);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        console.log('🔑 User authenticated, fetching user data...');
+        console.log('🔑 User authenticated, updating session');
         setSession(session);
 
-        // Set immediate user to avoid flicker
+        // Set immediate user from provided session to avoid flicker
         const immediateUser = formatUser(session?.user);
         if (immediateUser) {
           setUser(immediateUser);
         }
 
-        if (session) {
-          const currentUser = await getCurrentUser();
-          console.log('🔍 Current user result:', currentUser);
-          if (currentUser) {
-            setUser(currentUser);
-          }
-        }
         setLoading(false);
       } else {
         // Handle other events (INITIAL_SESSION, etc.)
@@ -119,13 +112,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const immediateUser = formatUser(session?.user);
         if (immediateUser) {
           setUser(immediateUser);
-        }
-
-        if (session) {
-          const currentUser = await getCurrentUser();
-          if (currentUser) {
-            setUser(currentUser);
-          }
         } else {
           setUser(null);
         }
