@@ -458,26 +458,45 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    console.log('🖱️ Submit button clicked!');
 
-    // CHECK: User must be authenticated to submit quote
+    // 1. SET LOADING STATE IMMEDIATELY (BEFORE ANY ASYNC)
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+    setUploadingFiles(false);
+
+    console.log('📤 Starting quote submission...');
+
+    // 2. Validate form
+    if (!validateForm()) {
+      console.log('❌ Form validation failed');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // 3. CHECK AUTH: User must be authenticated to submit quote
+    console.log('🔐 Checking authentication...');
     if (!user) {
+      console.log('❌ User not authenticated');
       setSubmitStatus('error');
+      setIsSubmitting(false);
       alert('You must be signed in to submit a quote request. Please sign in or create an account.');
       return;
     }
 
-    setIsSubmitting(true);
-    setSubmitStatus('idle');
+    console.log('✅ User authenticated:', user.email);
 
     try {
-      // Generate quote
+      // 4. Generate quote
+      console.log('💰 Generating quote...');
       const quote = generateQuote();
       setGeneratedQuote(quote);
+      console.log('✅ Quote generated:', quote.quoteId);
 
-      // Upload model file to Supabase if available
+      // 5. Upload model file to Supabase if available
       let attachmentUrls: string[] = [];
       if (modelFile) {
+        console.log('📁 Uploading model file to storage...');
         setUploadingFiles(true);
         try {
           const uploadResults = await uploadMultipleFiles(
@@ -493,23 +512,24 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
 
           // Log upload results for debugging
           if (attachmentUrls.length > 0) {
-            console.log('Model file uploaded successfully:', attachmentUrls[0]);
+            console.log('✅ Model file uploaded successfully:', attachmentUrls[0]);
           } else {
-            console.warn('Model file upload failed:', uploadResults);
+            console.warn('⚠️ Model file upload failed:', uploadResults);
           }
 
           setUploadingFiles(false);
+          console.log('✅ File upload complete');
         } catch (uploadError) {
           console.error('Error uploading model file:', uploadError);
           setUploadingFiles(false);
           // Continue with quote submission even if upload fails
         }
       } else {
-        console.warn('No model file to upload with quote');
+        console.log('ℹ️ No model file to upload with quote');
       }
 
-      // Save quote to database - SIMPLIFIED
-      // Single quotes table, user_id is optional
+      // 6. Save quote to database - CRITICAL PATH
+      console.log('💾 Saving quote to database...');
       try {
         const quoteData = {
           quote_id: quote.quoteId,
@@ -539,14 +559,17 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
         };
 
         // Add timeout for database save
+        console.log('🔄 Calling submitQuote...');
         const dbSavePromise = submitQuote(quoteData);
         const dbTimeoutPromise = new Promise<{ data: null; error: Error }>((resolve) => {
           setTimeout(() => {
+            console.warn('⏱️ Database save timeout (10s)');
             resolve({ data: null, error: new Error('Database save timed out') });
           }, 10000); // 10 second timeout
         });
 
         const { data: savedQuote, error: saveError } = await Promise.race([dbSavePromise, dbTimeoutPromise]);
+        console.log('🔄 Database save result:', { savedQuote: !!savedQuote, error: !!saveError });
 
         if (saveError) {
           console.error('❌ Error saving quote to database:', saveError);
@@ -558,18 +581,21 @@ export const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, on
           return;
         }
 
-        console.log('✅ Quote saved to database successfully:', savedQuote);
+        console.log('✅ Quote saved to database successfully:', savedQuote?.id || savedQuote?.quote_id);
 
-        // Show success IMMEDIATELY after database save
+        // 7. Show success IMMEDIATELY after database save
+        console.log('🎉 Showing success message...');
         setSubmitStatus('success');
         downloadQuotePDF(quote);
 
-        // Send email notification in background (non-blocking)
+        // 8. Send email notification in background (non-blocking)
         // Email failure won't affect user experience
+        console.log('📧 Sending email notification in background...');
         sendEmailNotification(quote, formData, modelData, attachmentUrls).catch(err => {
           console.warn('⚠️ Email notification failed (non-critical):', err);
         });
 
+        console.log('✅ Quote submission complete!');
         return; // Exit early after successful save
       } catch (dbError) {
         console.error('❌ Database save exception:', dbError);
