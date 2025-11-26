@@ -34,6 +34,16 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
           bgColor: 'bg-amber-50 dark:bg-amber-900/30',
           textColor: 'text-amber-800 dark:text-amber-100',
           borderColor: 'border-amber-200/80 dark:border-amber-700',
+          canCancel: true,
+        };
+      case 'processing':
+        return {
+          icon: Clock,
+          label: 'Processing',
+          bgColor: 'bg-indigo-50 dark:bg-indigo-900/30',
+          textColor: 'text-indigo-800 dark:text-indigo-100',
+          borderColor: 'border-indigo-200/80 dark:border-indigo-700',
+          canCancel: true,
         };
       case 'reviewed':
         return {
@@ -42,6 +52,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
           bgColor: 'bg-sky-50 dark:bg-sky-900/30',
           textColor: 'text-sky-800 dark:text-sky-100',
           borderColor: 'border-sky-200/80 dark:border-sky-700',
+          canCancel: false,
         };
       case 'accepted':
         return {
@@ -50,6 +61,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
           bgColor: 'bg-emerald-50 dark:bg-emerald-900/30',
           textColor: 'text-emerald-800 dark:text-emerald-100',
           borderColor: 'border-emerald-200/80 dark:border-emerald-700',
+          canCancel: false,
         };
       case 'rejected':
         return {
@@ -58,6 +70,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
           bgColor: 'bg-rose-50 dark:bg-rose-900/30',
           textColor: 'text-rose-800 dark:text-rose-100',
           borderColor: 'border-rose-200/80 dark:border-rose-700',
+          canCancel: false,
         };
       case 'cancelled':
         return {
@@ -66,6 +79,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
           bgColor: 'bg-gray-100 dark:bg-slate-800',
           textColor: 'text-gray-800 dark:text-gray-100',
           borderColor: 'border-gray-200/80 dark:border-slate-700',
+          canCancel: false,
         };
       default:
         return {
@@ -74,6 +88,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
           bgColor: 'bg-gray-100 dark:bg-gray-800',
           textColor: 'text-gray-900 dark:text-gray-100',
           borderColor: 'border-gray-200/80 dark:border-gray-700',
+          canCancel: true,
         };
     }
   };
@@ -336,7 +351,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, onCancel, onDownloa
             Download PDF
           </button>
 
-          {quote.status === 'pending' && onCancel && (
+          {statusConfig.canCancel && onCancel && (
             <button
               onClick={handleCancel}
               disabled={isCancelling}
