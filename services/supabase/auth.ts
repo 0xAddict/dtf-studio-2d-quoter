@@ -66,36 +66,37 @@ export async function signIn({ email, password }: SignInData) {
   return { data, error: null };
 }
 
-// Sign out with timeout to prevent stalling
+// Sign out - single call, no racing to avoid deadlock
 export async function signOut() {
   console.log('🔄 Calling Supabase signOut...');
 
   try {
-    // Attempt global sign out with a 3-second timeout
-    // We race the real signOut against a timeout promise
-    const { error } = await Promise.race([
-      supabase.auth.signOut(), // Defaults to global scope
-      new Promise<{ error: { message: string } }>((resolve) =>
-        setTimeout(() => resolve({ error: { message: 'Sign out request timed out' } }), 3000)
-      )
-    ]);
+    const { error } = await supabase.auth.signOut({ scope: 'global' });
 
     if (error) {
-      console.warn('⚠️ Global sign out issue:', error.message);
-      // If global fails or times out, force local cleanup to ensure the user is logged out in the browser
-      console.log('🧹 Forcing local session cleanup...');
-      await supabase.auth.signOut({ scope: 'local' });
-    } else {
-      console.log('✅ Global sign out completed successfully');
+      console.warn('⚠️ Sign out error:', error.message);
+      clearAuthStorage();
+      return { error };
     }
 
+    console.log('✅ Sign out completed successfully');
     return { error: null };
+
   } catch (err: any) {
-    console.error('❌ Sign out error:', err.message);
-    // Last resort: force clear local session
-    await supabase.auth.signOut({ scope: 'local' });
+    console.error('❌ Sign out exception:', err.message);
+    clearAuthStorage();
     return { error: err };
   }
+}
+
+// Manual cleanup - NEVER call signOut twice, use this instead
+function clearAuthStorage() {
+  console.log('🧹 Manually clearing auth storage...');
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
 }
 
 // Get current user with formatted data
