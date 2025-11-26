@@ -332,11 +332,11 @@ export async function searchQuotes(searchTerm: string) {
 /**
  * Delete a cancelled quote permanently
  * Users can only delete their own cancelled quotes
+ * @param quoteId - The quote ID to delete
+ * @param userId - The user ID (passed from auth context to avoid async getUser calls)
  */
-export async function deleteQuote(quoteId: string) {
-  const { data: { user } } = await quotesClient.auth.getUser();
-
-  if (!user) {
+export async function deleteQuote(quoteId: string, userId: string) {
+  if (!userId) {
     return { data: null, error: new Error('User not authenticated') };
   }
 
@@ -345,7 +345,7 @@ export async function deleteQuote(quoteId: string) {
     .from('quote_request')
     .select('status')
     .eq('quote_id', quoteId)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .maybeSingle();
 
   if (fetchError) {
@@ -366,7 +366,7 @@ export async function deleteQuote(quoteId: string) {
     .from('quote_request')
     .delete()
     .eq('quote_id', quoteId)
-    .eq('user_id', user.id);
+    .eq('user_id', userId);
 
   if (error) {
     console.error('Delete quote error:', error);

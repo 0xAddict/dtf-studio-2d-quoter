@@ -14,6 +14,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import { getQuoteByQuoteId, updateQuoteStatus, deleteQuote, Quote } from '../services/supabase/quotes';
 import { SlideToConfirm } from './ui/SlideToConfirm';
 import { ConfirmationDialog } from './ui/ConfirmationDialog';
@@ -22,6 +23,7 @@ export const QuoteDetailsPage: React.FC = () => {
   const { quoteId } = useParams<{ quoteId: string }>();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
 
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,10 +89,14 @@ export const QuoteDetailsPage: React.FC = () => {
 
   const handleDelete = async () => {
     if (!quote) return;
+    if (!user?.id) {
+      toast.error('You must be logged in to delete quotes.');
+      return;
+    }
 
     setIsDeleting(true);
     try {
-      const { error: deleteError } = await deleteQuote(quote.quote_id);
+      const { error: deleteError } = await deleteQuote(quote.quote_id, user.id);
 
       if (deleteError) {
         throw deleteError;

@@ -196,9 +196,14 @@ export const MyQuotesPage: React.FC = () => {
   };
 
   const handleDeleteQuote = async (quoteId: string) => {
+    if (!user?.id) {
+      toast.error('You must be logged in to delete quotes.');
+      return;
+    }
+
     setDeletingQuoteId(quoteId);
     try {
-      const { error: deleteError } = await deleteQuote(quoteId);
+      const { error: deleteError } = await deleteQuote(quoteId, user.id);
 
       if (deleteError) {
         throw deleteError;
@@ -385,10 +390,8 @@ export const MyQuotesPage: React.FC = () => {
                 {filteredQuotes.length} of {quotes.length} quotes
               </div>
 
-              {/* View Toggle - hidden on mobile since we use compact list */}
-              <div className="hidden sm:block">
-                {renderViewToggle()}
-              </div>
+              {/* View Toggle */}
+              {renderViewToggle()}
             </div>
           </div>
         </div>
@@ -458,15 +461,35 @@ export const MyQuotesPage: React.FC = () => {
         {/* Quotes Layout */}
         {!loading && !error && filteredQuotes.length > 0 && (
           <>
-            {/* Mobile Compact List View */}
-            <div className="sm:hidden space-y-2">
-              {filteredQuotes.map((quote) => (
-                <MobileQuoteListItem key={quote.id} quote={quote} />
-              ))}
+            {/* Mobile View - List mode shows compact items, Grid mode shows full cards */}
+            <div className="sm:hidden">
+              {viewMode === 'list' ? (
+                <div className="space-y-2">
+                  {filteredQuotes.map((quote) => (
+                    <MobileQuoteListItem key={quote.id} quote={quote} />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3 overflow-y-auto">
+                  {filteredQuotes.map((quote) => (
+                    <SwipeableQuoteCard
+                      key={quote.id}
+                      quote={quote}
+                      onCancel={() => setConfirmQuoteId(quote.quote_id)}
+                      onSwipeCancel={handleSwipeCancel}
+                      onDelete={handleDeleteQuote}
+                      onDownload={handleDownloadPDF}
+                      layout="grid"
+                      isCancelling={isCancelling && confirmQuoteId === quote.quote_id}
+                      isDeleting={deletingQuoteId === quote.quote_id}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Desktop/Tablet View */}
-            <div className={`hidden sm:block ${viewMode === 'grid' ? '' : ''}`}>
+            <div className="hidden sm:block">
               <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5' : 'space-y-3 sm:space-y-4'}>
                 {filteredQuotes.map((quote) => (
                   <SwipeableQuoteCard
