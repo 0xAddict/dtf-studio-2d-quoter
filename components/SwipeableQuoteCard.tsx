@@ -9,12 +9,11 @@ interface SwipeableQuoteCardProps {
   quote: Quote;
   onCancel?: (quoteId: string) => void;
   onSwipeCancel?: (quoteId: string) => void;
-  onDelete?: (quoteId: string) => Promise<void>;
+  onDelete?: (quoteId: string) => void;
   onDownload?: (quoteId: string) => void;
   layout?: 'grid' | 'list';
   isCancelling?: boolean;
   isDeleting?: boolean;
-  showInlineConfirmation?: boolean;
 }
 
 // Check if device is touch-enabled (mobile)
@@ -32,7 +31,6 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
   layout = 'grid',
   isCancelling,
   isDeleting,
-  showInlineConfirmation = false,
 }) => {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -94,7 +92,6 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
           layout={layout}
           isCancelling={isCancelling}
           isDeleting={isDeleting}
-          showInlineConfirmation={showInlineConfirmation}
         />
       </div>
     );
@@ -144,7 +141,6 @@ export const SwipeableQuoteCard: React.FC<SwipeableQuoteCardProps> = ({
           layout={layout}
           isCancelling={isCancelling}
           isDeleting={isDeleting}
-          showInlineConfirmation={showInlineConfirmation}
         />
       </motion.div>
 
