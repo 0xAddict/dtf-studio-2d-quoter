@@ -214,6 +214,26 @@ No latency outliers — all real pairs dispatched within 1.5s of each other.
 
 ---
 
+## Known follow-up (out of scope for this epic)
+
+- **Idempotency guard for duplicate quote submissions** (observed as DUPE-1779484858 in iter-1 exploration). This is a quotes/orders concern, not an email-delivery concern — file as separate Trello card if Xavier wants it addressed. Recommend: client-side debounce + server-side fingerprint dedup on (customer_email, quote_payload_hash) within 5s window.
+
+---
+
+## iter-4 (2026-05-23)
+
+Single delta: CI wiring. Added `.github/workflows/email-pipeline-health.yml` — runs
+`bash tests/email-pipeline-health.sh` on push to main (path-filtered to
+`send-quote.js`, `email-pipeline-health.sh`, `contract.json`) and on a daily
+schedule (06:17 UTC off-zero). This turns the iter-3 contract-driven health script
+from "available" to "load-bearing": every relevant code change now gates on all 7
+spec checks automatically.
+
+Idempotency guard (DUPE-1779484858) documented above as known follow-up; not
+addressed here (out of scope for kuva-email-debug).
+
+---
+
 ## E. Spec Gate Summary (iter-2 run)
 
 | Gate | Command result | Status |

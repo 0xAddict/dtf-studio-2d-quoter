@@ -1,0 +1,24 @@
+name: Email pipeline health
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'netlify/functions/send-quote.js'
+      - 'tests/email-pipeline-health.sh'
+      - '.harness/program/dtf-2026-05/epics/00-kuva-email-debug/contract.json'
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install jq + dig
+        run: sudo apt-get update && sudo apt-get install -y jq dnsutils
+      - name: Run health gates
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: bash tests/email-pipeline-health.sh
