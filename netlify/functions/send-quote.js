@@ -730,13 +730,14 @@ export const handler = async (event) => {
     }).catch(e => console.error('Admin email error:', e));
   }
 
-  // ── 3. Write dtf_orders row ────────────────────────────────────────────
+  // ── 3. Write dtf_orders row (Supabase — optional) ─────────────────────
   let orderId = null;
   let trelloCardId = null;
+  let supabaseClient = null;
 
   if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
     try {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+      supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
       const insertPayload = {
         customer_email: to,
@@ -752,7 +753,7 @@ export const handler = async (event) => {
         status: 'new',
       };
 
-      const { data: orderRow, error: orderErr } = await supabase
+      const { data: orderRow, error: orderErr } = await supabaseClient
         .from('dtf_orders')
         .insert([insertPayload])
         .select('id')
@@ -763,120 +764,132 @@ export const handler = async (event) => {
       } else {
         orderId = orderRow.id;
         console.log('dtf_orders row created:', orderId);
-
-        // ── 4. Create Trello card ────────────────────────────────────────
-        if (TRELLO_API_KEY && TRELLO_API_TOKEN && TRELLO_LIST_ID) {
-          const cardName = `[DTF-${shortId(orderId)}] ${customerName || to} — ${sheetCount || 1} A3`;
-          const supabaseOrderUrl = `${SUPABASE_URL}/project/default/editor?table=dtf_orders&filter=id.eq.${orderId}`;
-
-          const cardDesc =
-            `Asiakas: ${customerName || to} <${to}>\n` +
-            `Tilausnumero: DTF-${shortId(orderId)}\n` +
-            `Tilaushinta: ${quoteEur} €  (${sheetCount}× A3 ${material || '—'})\n` +
-            (sizeCm ? `Mitat: ${sizeCm.width}×${sizeCm.height} cm × ${sizeCm.qty || 1} kpl\n` : '') +
-            `\nLiitteet:\n` +
-            (gangSheetUrl ? `- Gang-arkki: ${gangSheetUrl}\n` : '') +
-            (Array.isArray(files) ? `- Alkuperäiset kuvat: ${files.length} kpl\n` : '') +
-            `- Tilaussivu: https://kuva.dtfstudio.fi/account/orders/${orderId}\n` +
-            (notes ? `\nLisätietoja:\n${notes}` : '');
-
-          // Determine labels: material + volume tier + rush
-          const idLabels = [];
-          const materialLabelId = getMaterialLabelId(material);
-          if (materialLabelId) idLabels.push(materialLabelId);
-          idLabels.push(getVolumeLabelId(sheetCount));
-          if (rush) {
-            idLabels.push(TRELLO_LABELS.RUSH_24H);
-          } else {
-            idLabels.push(TRELLO_LABELS.VAKIOTOIMITUS);
-          }
-
-          const card = await createTrelloCard({
-            apiKey: TRELLO_API_KEY,
-            apiToken: TRELLO_API_TOKEN,
-            listId: TRELLO_LIST_ID,
-            name: cardName,
-            desc: cardDesc,
-            idLabels,
-          });
-
-          if (card?.id) {
-            trelloCardId = card.id;
-
-            // ── 5. Set custom fields ─────────────────────────────────────
-            if (TRELLO_BOARD_ID) {
-              await setCardCustomFields({
-                apiKey: TRELLO_API_KEY,
-                apiToken: TRELLO_API_TOKEN,
-                cardId: card.id,
-                boardId: TRELLO_BOARD_ID,
-                customerName: customerName || to,
-                customerEmail: to,
-                quoteEur,
-                sheetCount,
-                material,
-                sizeCm,
-                orderId,
-              }).catch(e => console.error('setCardCustomFields error (non-fatal):', e));
-            }
-
-            // ── 6. Attach gang sheet + files + Supabase URL to card ──────
-            if (gangSheetUrl) {
-              await attachUrlToTrelloCard({
-                apiKey: TRELLO_API_KEY,
-                apiToken: TRELLO_API_TOKEN,
-                cardId: card.id,
-                url: gangSheetUrl,
-                name: `Gang sheet — DTF-${shortId(orderId)}`,
-              });
-            }
-
-            // Attach original uploaded files
-            if (Array.isArray(files)) {
-              for (const f of files.slice(0, 5)) { // max 5 attachments
-                if (f.url) {
-                  await attachUrlToTrelloCard({
-                    apiKey: TRELLO_API_KEY,
-                    apiToken: TRELLO_API_TOKEN,
-                    cardId: card.id,
-                    url: f.url,
-                    name: f.name || 'uploaded-file',
-                  });
-                }
-              }
-            }
-
-            // Attach Supabase order URL
-            await attachUrlToTrelloCard({
-              apiKey: TRELLO_API_KEY,
-              apiToken: TRELLO_API_TOKEN,
-              cardId: card.id,
-              url: supabaseOrderUrl,
-              name: `Supabase — dtf_orders/${shortId(orderId)}`,
-            });
-
-            // ── 7. Back-write trello_card_id to dtf_orders ───────────────
-            const { error: updateErr } = await supabase
-              .from('dtf_orders')
-              .update({ trello_card_id: trelloCardId })
-              .eq('id', orderId);
-
-            if (updateErr) {
-              console.error('trello_card_id update error:', updateErr);
-            } else {
-              console.log('trello_card_id set:', trelloCardId);
-            }
-          }
-        } else {
-          console.warn('Trello env vars missing — skipping card creation');
-        }
       }
     } catch (e) {
-      console.error('Supabase/Trello block error:', e);
+      console.error('Supabase block error:', e);
       // Non-fatal — email already sent
     }
   } else {
     console.warn('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set — skipping DB write');
+  }
+
+  // ── 4. Create Trello card (independent of Supabase state) ─────────────
+  // Trello card creation is gated only on TRELLO_API_KEY + TOKEN + LIST_ID.
+  // If Supabase persisted an orderId we use it; otherwise we fall back to
+  // quoteId (already computed from the email payload) so a card ALWAYS
+  // appears in Tilaus saapunut even when SUPABASE_SERVICE_ROLE_KEY is absent.
+  if (TRELLO_API_KEY && TRELLO_API_TOKEN && TRELLO_LIST_ID) {
+    try {
+      // Use orderId when available; fall back to quoteId for display names
+      const displayId = orderId ? `DTF-${shortId(orderId)}` : `DTF-${quoteId}`;
+      const cardName = `[${displayId}] ${customerName || to} — ${sheetCount || 1} A3`;
+
+      const cardDesc =
+        `Asiakas: ${customerName || to} <${to}>\n` +
+        `Tilausnumero: ${displayId}\n` +
+        `Tilaushinta: ${quoteEur} €  (${sheetCount}× A3 ${material || '—'})\n` +
+        (sizeCm ? `Mitat: ${sizeCm.width}×${sizeCm.height} cm × ${sizeCm.qty || 1} kpl\n` : '') +
+        `\nLiitteet:\n` +
+        (gangSheetUrl ? `- Gang-arkki: ${gangSheetUrl}\n` : '') +
+        (Array.isArray(files) ? `- Alkuperäiset kuvat: ${files.length} kpl\n` : '') +
+        (orderId ? `- Tilaussivu: https://dtf-studio-2d-quoter.netlify.app/account/orders/${orderId}\n` : '') +
+        (notes ? `\nLisätietoja:\n${notes}` : '');
+
+      // Determine labels: material + volume tier + rush
+      const idLabels = [];
+      const materialLabelId = getMaterialLabelId(material);
+      if (materialLabelId) idLabels.push(materialLabelId);
+      idLabels.push(getVolumeLabelId(sheetCount));
+      if (rush) {
+        idLabels.push(TRELLO_LABELS.RUSH_24H);
+      } else {
+        idLabels.push(TRELLO_LABELS.VAKIOTOIMITUS);
+      }
+
+      const card = await createTrelloCard({
+        apiKey: TRELLO_API_KEY,
+        apiToken: TRELLO_API_TOKEN,
+        listId: TRELLO_LIST_ID,
+        name: cardName,
+        desc: cardDesc,
+        idLabels,
+      });
+
+      if (card?.id) {
+        trelloCardId = card.id;
+        console.log('Trello card created:', trelloCardId);
+
+        // ── 5. Set custom fields ───────────────────────────────────────
+        if (TRELLO_BOARD_ID) {
+          await setCardCustomFields({
+            apiKey: TRELLO_API_KEY,
+            apiToken: TRELLO_API_TOKEN,
+            cardId: card.id,
+            boardId: TRELLO_BOARD_ID,
+            customerName: customerName || to,
+            customerEmail: to,
+            quoteEur,
+            sheetCount,
+            material,
+            sizeCm,
+            orderId,
+          }).catch(e => console.error('setCardCustomFields error (non-fatal):', e));
+        }
+
+        // ── 6. Attach gang sheet + files to card ──────────────────────
+        if (gangSheetUrl) {
+          await attachUrlToTrelloCard({
+            apiKey: TRELLO_API_KEY,
+            apiToken: TRELLO_API_TOKEN,
+            cardId: card.id,
+            url: gangSheetUrl,
+            name: `Gang sheet — ${displayId}`,
+          });
+        }
+
+        // Attach original uploaded files
+        if (Array.isArray(files)) {
+          for (const f of files.slice(0, 5)) { // max 5 attachments
+            if (f.url) {
+              await attachUrlToTrelloCard({
+                apiKey: TRELLO_API_KEY,
+                apiToken: TRELLO_API_TOKEN,
+                cardId: card.id,
+                url: f.url,
+                name: f.name || 'uploaded-file',
+              });
+            }
+          }
+        }
+
+        // ── 7. Back-write trello_card_id to dtf_orders (if Supabase available) ──
+        if (supabaseClient && orderId) {
+          await attachUrlToTrelloCard({
+            apiKey: TRELLO_API_KEY,
+            apiToken: TRELLO_API_TOKEN,
+            cardId: card.id,
+            url: `${SUPABASE_URL}/project/default/editor?table=dtf_orders&filter=id.eq.${orderId}`,
+            name: `Supabase — dtf_orders/${shortId(orderId)}`,
+          });
+
+          const { error: updateErr } = await supabaseClient
+            .from('dtf_orders')
+            .update({ trello_card_id: trelloCardId })
+            .eq('id', orderId);
+
+          if (updateErr) {
+            console.error('trello_card_id update error:', updateErr);
+          } else {
+            console.log('trello_card_id set:', trelloCardId);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Trello card creation error (non-fatal):', e);
+      // Non-fatal — email already sent
+    }
+  } else {
+    console.warn('Trello env vars missing — skipping card creation');
   }
 
   // ── 8. Telegram alert ─────────────────────────────────────────────────
