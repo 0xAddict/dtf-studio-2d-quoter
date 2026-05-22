@@ -590,6 +590,29 @@ export const handler = async (event) => {
     return { statusCode: 500, body: 'Email service not configured' };
   }
 
+  // ── Fail-loud on missing persistence env (no silent skip) ────────────
+  const missingPersistence = [];
+  if (!SUPABASE_URL) missingPersistence.push('SUPABASE_URL');
+  if (!SUPABASE_SERVICE_KEY) missingPersistence.push('SUPABASE_SERVICE_ROLE_KEY');
+  if (missingPersistence.length > 0) {
+    const msg = `Persistence env missing: ${missingPersistence.join(', ')}`;
+    console.error(msg);
+    if (TELEGRAM_BOT_TOKEN) {
+      try {
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: `kuva.dtfstudio.fi send-quote 503 — ${msg}` }),
+        });
+      } catch {}
+    }
+    return {
+      statusCode: 503,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ok: false, error: 'persistence_env_missing', missing: missingPersistence }),
+    };
+  }
+
   // ── Parse body ─────────────────────────────────────────────────────────
   let body;
   try {
