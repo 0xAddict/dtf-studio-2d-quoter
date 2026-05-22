@@ -25,6 +25,20 @@ artifacts, function-by-function audit with line refs, and a regression test scri
 
 ---
 
+## iter-3 (2026-05-23)
+
+Single delta: `tests/email-pipeline-health.sh` rewritten as a generic contract-driven
+runner. The script now parses `contract.json` with `jq`, iterates `spec_gate[].must_pass`,
+and executes each command — no gate definitions are hand-mirrored. Adding a gate to the
+contract automatically adds it to the health check; drift between the two is structurally
+impossible. All 7 gates continue to pass (EXIT 0). Regression test (inject `false` as S1
+`must_pass`) confirmed FAIL banner + exit 1.
+
+This addresses Critic-B iter-2 O=2 finding: "Worth a 3 if the script were generated from
+the contract instead of hand-mirrored."
+
+---
+
 ## A. Resend Events Table — Last 32 emails (as of 2026-05-23)
 
 Raw data: `evidence/iter-2/resend-emails-last50-redacted.json`
