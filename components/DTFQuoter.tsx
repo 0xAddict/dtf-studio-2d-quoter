@@ -6,6 +6,7 @@ import { UserMenu } from './UserMenu';
 import { packGangSheet, getImageDimensionsCm } from '../src/lib/gangSheet';
 import { generateQuotePdf } from '../src/lib/generateQuotePdf';
 import type { GangSheetResult } from '../src/lib/gangSheet';
+import { supabase } from '../services/supabase/client';
 
 const MATERIAALIT = [
   { value: 'cotton', label: 'Puuvilla', surcharge: 0 },
@@ -108,7 +109,16 @@ export default function DTFQuoter() {
       const pdfBase64 = btoa(String.fromCharCode(...quote.pdfBytes));
       const htmlBody = buildEmailHtml(quote, { customerName, customerEmail, leveys, korkeus, quantity, materiaali, notes });
 
-      // Send via Netlify function (RESEND_API_KEY injected server-side)
+      // Resolve current Supabase user (if authenticated) for portal linkage
+      let customerId: string | null = null;
+      try {
+        const { data } = await supabase.auth.getUser();
+        customerId = data?.user?.id ?? null;
+      } catch {
+        customerId = null;
+      }
+      const filesPayload = files.map((f) => ({ name: f.name, size: f.size, type: f.type }));
+
       const resp = await fetch('/.netlify/functions/send-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -119,6 +129,15 @@ export default function DTFQuoter() {
           pdfBase64,
           quoteId: quote.quoteId,
           adminEmail: ADMIN_EMAIL,
+          customerName: customerName || null,
+          customerId,
+          quoteEur: quote.gangSheet.totalEur,
+          sheetCount: quote.gangSheet.sheets,
+          material: materiaali,
+          sizeCm: { width: leveys, height: korkeus, quantity },
+          files: filesPayload,
+          gangSheetUrl: null,
+          notes: notes || null,
         }),
       });
 
