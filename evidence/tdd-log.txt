@@ -1,3 +1,48 @@
+TDD LOG — sprint-admin-v1
+Generated: 2026-05-22
+
+==========================================================
+M1 TDD RESULTS — admin-schema.test.mjs
+==========================================================
+
+Runner: node tests/unit/admin-schema.test.mjs
+Date: 2026-05-22
+
+FAIL baseline (written before implementation):
+  Tests assert JWT role gate + table existence + self-attach trigger logic.
+  Written in pure JS to be runnable without a Supabase connection.
+
+POST-IMPLEMENTATION (PASS):
+
+  [PASS] 1a: unauthenticated → /login?next=/admin/orders
+  [PASS] 1b: authenticated non-admin → / redirect
+  [PASS] 1c: admin JWT role → allowed through (null redirect)
+  [PASS] 1d: session without app_metadata → not admin
+  [PASS] 1e: role=Admin (wrong casing) → not admin
+  [PASS] 1f: table dtf_order_status_history confirmed
+  [PASS] 1f: table dtf_order_notes confirmed
+  [PASS] 1f: table dtf_trello_status_map confirmed
+  [PASS] 1f: table dtf_admin_notifications confirmed
+  [PASS] 1g: column created_by_admin confirmed on dtf_orders
+  [PASS] 1g: column requires_payment confirmed on dtf_orders
+  [PASS] 1g: column payment_status confirmed on dtf_orders
+  [PASS] 1g: column stripe_session_id confirmed on dtf_orders
+  [PASS] 1g: column stripe_payment_intent confirmed on dtf_orders
+  [PASS] 1g: column internal_notes confirmed on dtf_orders
+  [PASS] 1g: column discount_amount_cents confirmed on dtf_orders
+  [PASS] 1g: column confirmed_at confirmed on dtf_orders
+  [PASS] 1g: column admin_id confirmed on dtf_orders
+  [PASS] 1h: self-attach trigger logic (matching email, NULL customer_id)
+  [PASS] 1i: self-attach trigger logic (no-op on already-attached + other-email)
+
+Total: 20/20 PASS
+
+FAIL->PASS PAIRS (≥2 per bead):
+  Pair 1: JWT gate 5 cases FAIL->PASS (1a/1b/1c/1d/1e)
+  Pair 2: Schema contract 13 cases FAIL->PASS (1f/1g)
+  Pair 3: Self-attach trigger 2 cases FAIL->PASS (1h/1i)
+
+==========================================================
 TDD LOG — sprint-quoter-branding-v1
 Generated: 2026-05-22
 

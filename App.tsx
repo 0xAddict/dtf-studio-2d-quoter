@@ -6,8 +6,18 @@ import { ToastProvider } from './contexts/ToastContext';
 import DTFQuoter from './components/DTFQuoter';
 import { MyQuotesPage } from './components/MyQuotesPage';
 import { QuoteDetailsPage } from './components/QuoteDetailsPage';
+import { AccountPage } from './components/AccountPage';
+import { OrderDetailPage } from './components/OrderDetailPage';
 import { AuthCallback } from './components/AuthCallback';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { RequireAdmin } from './components/RequireAdmin';
+import { AdminHomePage } from './components/admin/AdminHomePage';
+import { AdminOrdersPage } from './components/admin/AdminOrdersPage';
+import { AdminOrderDetailPage } from './components/admin/AdminOrderDetailPage';
+import { AdminCustomersPage } from './components/admin/AdminCustomersPage';
+import { AdminFilesPage } from './components/admin/AdminFilesPage';
+import { AdminNotificationsPage } from './components/admin/AdminNotificationsPage';
+import { AdminNewQuotePage } from './components/admin/AdminNewQuotePage';
 
 function App() {
   return (
@@ -27,9 +37,7 @@ function App() {
               path="/my-quotes"
               element={
                 <ProtectedRoute>
-                  <main className="w-full min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
-                    <MyQuotesPage />
-                  </main>
+                  <MyQuotesPage />
                 </ProtectedRoute>
               }
             />
@@ -39,15 +47,91 @@ function App() {
               path="/quote/:quoteId"
               element={
                 <ProtectedRoute>
-                  <main className="w-full min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
-                    <QuoteDetailsPage />
-                  </main>
+                  <QuoteDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Account — order history */}
+            <Route
+              path="/account"
+              element={
+                <ProtectedRoute>
+                  <AccountPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Order detail */}
+            <Route
+              path="/account/orders/:id"
+              element={
+                <ProtectedRoute>
+                  <OrderDetailPage />
                 </ProtectedRoute>
               }
             />
 
             {/* Auth callback for email verification */}
             <Route path="/auth/callback" element={<AuthCallback />} />
+
+            {/* ── Admin routes — gated by RequireAdmin (JWT app_metadata.role=admin) ── */}
+            <Route
+              path="/admin"
+              element={
+                <RequireAdmin>
+                  <AdminHomePage />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/orders"
+              element={
+                <RequireAdmin>
+                  <AdminOrdersPage />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/orders/:id"
+              element={
+                <RequireAdmin>
+                  <AdminOrderDetailPage />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/customers"
+              element={
+                <RequireAdmin>
+                  <AdminCustomersPage />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/files"
+              element={
+                <RequireAdmin>
+                  <AdminFilesPage />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/notifications"
+              element={
+                <RequireAdmin>
+                  <AdminNotificationsPage />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/quotes/new"
+              element={
+                <RequireAdmin>
+                  <AdminNewQuotePage />
+                </RequireAdmin>
+              }
+            />
           </Routes>
           </ToastProvider>
         </AuthProvider>

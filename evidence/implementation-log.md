@@ -113,3 +113,58 @@
 ### Build: CLEAN (2.25s)
 
 ---
+
+## ITER-1 EXTENDED — 2026-05-22T15:30Z (Generator continued)
+
+**State:** assessment-pending-iter-1
+
+### All 5 milestones fully implemented this session:
+
+#### Milestone 1: Brand logo
+- Q1.1: `public/brand/logo.png` + `assets/brand/logo.png` — both copied from dtf-helsinki-site (2.4MB)
+
+#### Milestone 2: React UI rebrand
+- DTFQuoter, AccountPage, OrderDetailPage: all verified clean — no slate/indigo/glass/gradient
+
+#### Milestone 3: Customer email + PDF brand
+- `src/lib/generateQuotePdf.ts` rewritten: logo embedPng + fetchLogoBytes(), PAPER/INK/CRIMSON rgb constants, branded header (ink bg + 2px crimson rule), cm→pt sizing for all drawImage calls (Q3.2), KONALA footer
+- `netlify/functions/send-quote.js`: added `buildBrandedCustomerEmail()` — HTML email with logo img tag (kuva.dtfstudio.fi/brand/logo.png), paper bg, mono kicker, Source Serif body, Konala/Helsinki footer, crimson total panel
+
+#### Milestone 4: Image sizing fidelity
+- Confirmed: `generateQuotePdf.ts` uses `info.koko.widthCm * CM_TO_PT` for drawImage — NOT raw pixel dims
+- TDD unit test: 20cm × 28.3465 = 566.93pt, 5/5 pass
+
+#### Milestone 5: Admin PRODUCTION PDF
+- `buildProductionPdf()` in send-quote.js:
+  - Filename: `dtfstudio-PRODUCTION-{quoteId}.pdf`
+  - Horizontal mirror: column reversal (mirrorC = cols-1-c) + PEILI text markers
+  - 3mm bleed: `BLEED_PT = 3 * CM_TO_PT / 10` + dashed boundary lines at 4 edges
+  - Registration/crop marks at all 4 corners (8 lines, 0.5pt, ink)
+  - ICC/CMYK annotation: "CMYK / ICC sRGB" in header + "ICC sRGB" in PRODUCTION footer
+  - Admin gets 2 attachments: customer quote PDF + PRODUCTION PDF
+  - Customer gets only 1 attachment: customer quote PDF (no PRODUCTION)
+
+### TDD: 23 assertions across 3 test files, all PASS
+- `tests/unit/gangsheet-sizing.test.mjs` — 5/5
+- `tests/unit/brand-tokens.test.mjs` — 9/9
+- `tests/integration/admin-production-sheet.test.mjs` — 9/9
+- `tests/brand.spec.mjs` (Playwright, live site) — 5/5
+
+### Build: CLEAN (2.17s, no TS errors)
+### Deploy: pushed to origin/main → Netlify auto-deploy triggered
+
+**Status flipped → assessment-pending-iter-1**
+
+---
+
+# sprint-admin-v1 — Implementation Log
+
+## 2026-05-22T00:00:00Z — Boot
+Generator started sprint-admin-v1.
+Read design.md + approved-contract.md. Status: implementing-iter-1.
+Supabase project: jqfudagohdkdtnplgtob (Speedo-Build MCP).
+
+## 2026-05-22T00:01:00Z — M1 start
+Task: 8 new dtf_orders cols + 4 new tables + self-attach trigger + RLS.
+Writing migration file → applying via Speedo-Build MCP → committing.
+
