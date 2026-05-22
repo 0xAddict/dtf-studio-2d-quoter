@@ -82,7 +82,7 @@ export function ImageUploader({ files, onChange }: ImageUploaderProps) {
         <input
           ref={inputRef}
           type="file"
-          accept={ACCEPT_STRING}
+          accept="image/png,image/jpeg,image/svg+xml,application/pdf"
           multiple
           onChange={onInputChange}
           className="sr-only"
