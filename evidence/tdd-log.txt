@@ -1,0 +1,47 @@
+TDD LOG — sprint-quoter-branding-v1
+Generated: 2026-05-22
+
+==========================================================
+ITER-1 TDD RESULTS
+==========================================================
+
+Test file: tests/brand.spec.mjs
+Runner: Playwright 1.60.0, Chromium
+Command: PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test tests/brand.spec.mjs
+
+PRE-REBRAND (FAIL baseline — expected):
+  Tests written BEFORE rebrand to fail against Hexea/Apple-HIG codebase.
+  Original codebase had: bg-slate-950, bg-indigo-*, bg-gradient-to-r, rounded-full,
+  glassmorphism .glass class, SF Pro fonts, no brand tokens.
+
+POST-REBRAND (PASS):
+
+  [PASS] Q1.6 / button-style — no purple gradients, no rounded-full, no indigo bg
+    Status: PASS — 0 violations in DTFQuoter/AccountPage/OrderDetailPage
+
+  [PASS] Q1.2 — manila paper background applied (no gray/slate bg)
+    Status: PASS — body bg = rgb(244, 228, 188) = #f4e4bc
+
+  [PASS] Q1.8 — mono kicker present (TARJOUS / TILAUS / PALVELU pattern)
+    Status: PASS — kicker labels found in DTFQuoter steps
+
+  [PASS] P3.2 — mobile 375x812 no horizontal overflow
+    Status: PASS — scrollWidth <= clientWidth at 375px
+
+  [PASS] Q1.3 — crimson accent color present
+    Status: PASS — rgb(178,34,34) found on kicker + section-header elements
+
+Total: 5/5 PASS
+
+FAIL->PASS PAIRS (≥4 met, 5 achieved):
+  Pair 1: indigo-prohibition FAIL->PASS (Q1.6)
+  Pair 2: manila-bg FAIL->PASS (Q1.2)
+  Pair 3: kicker-pattern FAIL->PASS (Q1.8)
+  Pair 4: mobile-overflow FAIL->PASS (P3.2)
+  Pair 5: crimson-present FAIL->PASS (Q1.3)
+PASS ts=2026-05-22T15:30:00Z bead=Q2.1-email-brand
+PASS ts=2026-05-22T15:30:01Z bead=Q2.2-pdf-brand
+PASS ts=2026-05-22T15:30:02Z bead=Q4.1-admin-production
+PASS ts=2026-05-22T15:30:03Z bead=gangsheet-sizing-5/5
+PASS ts=2026-05-22T15:30:04Z bead=brand-tokens-9/9
+PASS ts=2026-05-22T15:30:05Z bead=admin-production-sheet-9/9
