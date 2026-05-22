@@ -590,7 +590,11 @@ export const handler = async (event) => {
     return { statusCode: 500, body: 'Email service not configured' };
   }
 
-  // ── Fail-loud on missing persistence env (no silent skip) ────────────
+  // ── Compute persistence-env state for non-blocking warning + Telegram alert ──
+  // Customer-first: Resend send proceeds regardless. Missing persistence env
+  // is observable as a server-side Telegram alert + response.persistence_warning
+  // so admin knows orders aren't persisting + UI can flag, but customer still
+  // gets their quote PDF email.
   const missingPersistence = [];
   if (!SUPABASE_URL) missingPersistence.push('SUPABASE_URL');
   if (!SUPABASE_SERVICE_KEY) missingPersistence.push('SUPABASE_SERVICE_ROLE_KEY');
@@ -602,15 +606,10 @@ export const handler = async (event) => {
         await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: `kuva.dtfstudio.fi send-quote 503 — ${msg}` }),
+          body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: `kuva.dtfstudio.fi send-quote: ${msg} — order will NOT persist + NOT create Trello card. Customer email still sent.` }),
         });
       } catch {}
     }
-    return {
-      statusCode: 503,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ok: false, error: 'persistence_env_missing', missing: missingPersistence }),
-    };
   }
 
   // ── Parse body ─────────────────────────────────────────────────────────
@@ -902,6 +901,12 @@ export const handler = async (event) => {
   return {
     statusCode: 200,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: customerData.id, orderId, trelloCardId, ok: true }),
+    body: JSON.stringify({
+      id: customerData.id,
+      orderId,
+      trelloCardId,
+      ok: true,
+      persistence_warning: missingPersistence.length > 0 ? { missing: missingPersistence, message: 'Order email sent but not persisted in DB / Trello' } : undefined,
+    }),
   };
 };
