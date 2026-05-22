@@ -6,7 +6,7 @@ on:
     paths:
       - 'netlify/functions/send-quote.js'
       - 'tests/email-pipeline-health.sh'
-      - '.harness/program/dtf-2026-05/epics/00-kuva-email-debug/contract.json'
+      - 'tests/email-pipeline-spec-gate.json'
   schedule:
     - cron: '17 6 * * *'
   workflow_dispatch: {}
@@ -18,6 +18,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install jq + dig
         run: sudo apt-get update && sudo apt-get install -y jq dnsutils
+      - name: Check vendored spec-gate is not stale
+        # Canonical contract.json is in dtf-helsinki-site (not checked out in CI).
+        # sync-spec-gate.sh --check exits 0 when canonical is absent (CI-safe).
+        run: bash tests/sync-spec-gate.sh --check
       - name: Run health gates
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

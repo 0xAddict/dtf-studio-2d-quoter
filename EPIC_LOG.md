@@ -234,6 +234,38 @@ addressed here (out of scope for kuva-email-debug).
 
 ---
 
+## iter-5 (2026-05-23)
+
+CI portability fix. Critic-B iter-4 correctly identified that
+`tests/email-pipeline-health.sh` resolves `contract.json` via
+`$REPO_ROOT/../../dtf-helsinki-site/...` — a path that doesn't exist on a
+GitHub Actions runner, making the workflow exit 2 on every CI run (theatre,
+not real gate enforcement).
+
+Fix applied:
+
+1. **`tests/email-pipeline-spec-gate.json`** — vendored snapshot of
+   `contract.json#/spec_gate`. Present in this repo; CI-portable.
+2. **`tests/email-pipeline-health.sh`** — reads from vendored copy first;
+   falls back to canonical contract.json if vendored is absent (local dev);
+   errors loudly if neither found.
+3. **`tests/sync-spec-gate.sh`** — developer utility to pull latest spec_gate
+   from canonical contract.json into the vendored copy. `--check` mode diffs
+   only (used by CI).
+4. **`.github/workflows/email-pipeline-health.yml`** — added drift-check step
+   (`bash tests/sync-spec-gate.sh --check`) before the health gate run. In CI
+   (no canonical present) the check exits 0 gracefully; in local dev it will
+   fail loudly if vendored copy drifted. Also replaced the dead path-filter line
+   (`.harness/.../contract.json`, not in this repo) with the real file
+   `tests/email-pipeline-spec-gate.json`.
+
+Health script confirmed: exits with correct "vendored:" label in output, reads
+all 7 gates from vendored copy. 4/7 pass without `RESEND_API_KEY`
+(S1-S3 DNS, S6 catch-swallow); S4/S5/S7 require live API key — unchanged from
+iter-3 baseline.
+
+---
+
 ## E. Spec Gate Summary (iter-2 run)
 
 | Gate | Command result | Status |
