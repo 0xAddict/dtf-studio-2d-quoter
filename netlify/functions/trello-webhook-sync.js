@@ -2,50 +2,91 @@
 // Receives Trello webhook events (card moved between lists) and updates
 // dtf_orders.status accordingly.
 //
-// Trello setup (document these in evidence/trello-webhook.md):
-//   1. Register webhook via Trello API:
-//      POST https://api.trello.com/1/webhooks?key=KEY&token=TOKEN
-//      Body: { idModel: <BOARD_ID>, callbackURL: <THIS_FUNCTION_URL>, description: "DTF Studio status sync" }
-//   2. Trello sends HEAD first (verification) — return 200.
-//   3. On card move: action type = "updateCard", data.listAfter.id changes.
+// Design §8.2 compliance:
+//   1. resolveStatus() looks up dtf_trello_status_map table first; falls back
+//      to hardcoded map only if table is empty.
+//   2. On each successful status transition, inserts into dtf_order_status_history
+//      with source='trello_webhook'.
+//   3. On each successful status transition, inserts into dtf_admin_notifications
+//      with type='trello_status_changed'.
 //
-// List → Status mapping (configure TRELLO_LIST_MAP env var as JSON):
-//   { "<listId>": "new", "<listId2>": "in_design", ... }
-// Fallback hard-coded map is also present below — override via env.
+// Trello setup:
+//   Register webhook via Trello API:
+//     POST https://api.trello.com/1/webhooks?key=KEY&token=TOKEN
+//     Body: { idModel: <BOARD_ID>, callbackURL: <THIS_FUNCTION_URL>, description: "DTF Studio status sync" }
+//   Trello sends HEAD first (verification) — return 200.
+//   On card move: action type = "updateCard", data.listAfter.id changes.
 
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
-// ── Status mapping ─────────────────────────────────────────────────────────
-// Trello list name → dtf_orders status value
-const DEFAULT_LIST_NAME_MAP = {
-  'inbox':         'new',
-  'ready':         'new',
-  'doing':         'in_design',
-  'in progress':   'in_design',
-  'in design':     'in_design',
-  'production':    'in_production',
-  'in production': 'in_production',
-  'shipped':       'shipped',
-  'done':          'delivered',
-  'delivered':     'delivered',
-  'cancelled':     'cancelled',
-  'peruutettu':    'cancelled',
+// ── Hardcoded fallback map (list name → status) ────────────────────────────
+// Used only if dtf_trello_status_map table has no active rows.
+const FALLBACK_LIST_NAME_MAP = {
+  'tilaus saapunut': 'new',
+  'inbox':           'new',
+  'ready':           'new',
+  'suunnittelussa':  'in_design',
+  'doing':           'in_design',
+  'in progress':     'in_design',
+  'in design':       'in_design',
+  'tuotannossa':     'in_production',
+  'production':      'in_production',
+  'in production':   'in_production',
+  'laadunvalvonta':  'in_production',
+  'lähetetty':       'shipped',
+  'shipped':         'shipped',
+  'toimitettu':      'delivered',
+  'done':            'delivered',
+  'delivered':       'delivered',
+  'peruttu':         'cancelled',
+  'cancelled':       'cancelled',
 };
 
-function resolveStatus(listName, listIdMap) {
-  // Try ID map first (most reliable)
-  if (listIdMap) {
-    for (const [id, status] of Object.entries(listIdMap)) {
-      if (id === listName) return status;
-    }
+// ── Load status map from Supabase ──────────────────────────────────────────
+// Returns Map<listId, status> from dtf_trello_status_map.
+// Returns empty Map if table has no active rows (triggers fallback).
+async function loadStatusMapFromDB(supabase) {
+  const { data, error } = await supabase
+    .from('dtf_trello_status_map')
+    .select('list_id, status')
+    .eq('is_active', true);
+
+  if (error) {
+    console.warn('Failed to load dtf_trello_status_map:', error.message);
+    return new Map();
   }
-  // Fall back to name-based lookup
-  const normalized = listName.trim().toLowerCase();
-  return DEFAULT_LIST_NAME_MAP[normalized] || null;
+
+  const map = new Map();
+  for (const row of (data || [])) {
+    map.set(row.list_id, row.status);
+  }
+  return map;
 }
 
-// ── Trello webhook signature verification ─────────────────────────────────
+// ── Resolve status ─────────────────────────────────────────────────────────
+// Priority: DB table by list ID → env TRELLO_LIST_MAP by ID → fallback by name.
+function resolveStatusFromMaps(listId, listName, dbMap, envIdMap) {
+  // 1. DB table (design §8.2 primary path)
+  if (dbMap.size > 0 && dbMap.has(listId)) {
+    return dbMap.get(listId);
+  }
+
+  // 2. Env var ID map (runtime override for ad-hoc remapping)
+  if (envIdMap && envIdMap[listId]) {
+    return envIdMap[listId];
+  }
+
+  // 3. Fallback by list name (only if DB has no rows at all)
+  if (dbMap.size === 0) {
+    const normalized = (listName || '').trim().toLowerCase();
+    return FALLBACK_LIST_NAME_MAP[normalized] || null;
+  }
+
+  return null;
+}
+
+// ── Trello webhook signature verification ──────────────────────────────────
 function verifyTrelloSignature(body, callbackUrl, secret, signatureHeader) {
   if (!secret || !signatureHeader) return true; // skip if not configured
   const content = body + callbackUrl;
@@ -56,105 +97,177 @@ function verifyTrelloSignature(body, callbackUrl, secret, signatureHeader) {
   return expected === signatureHeader;
 }
 
-// ── Handler ────────────────────────────────────────────────────────────────
-
-export const handler = async (event) => {
+// ── Handler (modern Netlify Functions v2 signature) ────────────────────────
+export default async (req) => {
   // Trello sends HEAD (or GET) for webhook registration verification
-  if (event.httpMethod === 'HEAD' || event.httpMethod === 'GET') {
-    return { statusCode: 200, body: 'OK' };
+  if (req.method === 'HEAD' || req.method === 'GET') {
+    return new Response('OK', { status: 200 });
   }
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+  if (req.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
   }
 
   const SUPABASE_URL         = process.env.SUPABASE_URL         || process.env.VITE_SUPABASE_URL;
   const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const TRELLO_SECRET        = process.env.TRELLO_WEBHOOK_SECRET; // optional signing secret
-  const CALLBACK_URL         = process.env.TRELLO_CALLBACK_URL;   // this function's own URL
+  const TRELLO_SECRET        = process.env.TRELLO_WEBHOOK_SECRET;
+  const CALLBACK_URL         = process.env.TRELLO_CALLBACK_URL;
 
-  // Optionally parse env-provided list ID→status map
-  let listIdMap = null;
+  // Optionally parse env-provided list ID→status map (override/supplement)
+  let envIdMap = null;
   try {
     if (process.env.TRELLO_LIST_MAP) {
-      listIdMap = JSON.parse(process.env.TRELLO_LIST_MAP);
+      envIdMap = JSON.parse(process.env.TRELLO_LIST_MAP);
     }
   } catch {
-    console.warn('Could not parse TRELLO_LIST_MAP');
+    console.warn('Could not parse TRELLO_LIST_MAP env var');
   }
 
+  // Read body text (needed for signature verification)
+  const bodyText = await req.text();
+
   // Verify signature if configured
-  const sig = event.headers['x-trello-webhook'];
+  const sig = req.headers.get('x-trello-webhook');
   if (TRELLO_SECRET && CALLBACK_URL && sig) {
-    const valid = verifyTrelloSignature(event.body || '', CALLBACK_URL, TRELLO_SECRET, sig);
+    const valid = verifyTrelloSignature(bodyText, CALLBACK_URL, TRELLO_SECRET, sig);
     if (!valid) {
       console.warn('Trello signature mismatch');
-      return { statusCode: 401, body: 'Signature mismatch' };
+      return new Response('Signature mismatch', { status: 401 });
     }
   }
 
   // Parse payload
   let payload;
   try {
-    payload = JSON.parse(event.body);
+    payload = JSON.parse(bodyText);
   } catch {
-    return { statusCode: 400, body: 'Invalid JSON' };
+    return new Response('Invalid JSON', { status: 400 });
   }
 
   const action = payload?.action;
 
   // We only care about card moves
   if (action?.type !== 'updateCard') {
-    return { statusCode: 200, body: 'ignored' };
+    return new Response('ignored', { status: 200 });
   }
 
-  const listAfter  = action?.data?.listAfter;
-  const card       = action?.data?.card;
+  const listAfter    = action?.data?.listAfter;
+  const card         = action?.data?.card;
   const trelloCardId = card?.id;
+  const actionId     = action?.id;
 
   if (!listAfter || !trelloCardId) {
-    return { statusCode: 200, body: 'no list change' };
-  }
-
-  // Resolve target status
-  const newStatus = resolveStatus(listAfter.id, listIdMap)
-    ?? resolveStatus(listAfter.name, null);
-
-  if (!newStatus) {
-    console.log(`No status mapping for list "${listAfter.name}" (${listAfter.id}) — skipping`);
-    return { statusCode: 200, body: 'unmapped list' };
+    return new Response('no list change', { status: 200 });
   }
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    // Return 200 so Trello doesn't retry — log warning for observability
-    console.warn('Supabase env vars missing — status sync skipped for card:', trelloCardId, '→', newStatus);
-    return { statusCode: 200, body: 'supabase-not-configured' };
+    console.warn('Supabase env vars missing — status sync skipped for card:', trelloCardId);
+    return new Response('supabase-not-configured', { status: 200 });
   }
 
-  // Update dtf_orders where trello_card_id matches
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-  const { data, error } = await supabase
+  // Load status map from DB (design §8.2 — DB lookup is primary path)
+  const dbMap = await loadStatusMapFromDB(supabase);
+
+  const newStatus = resolveStatusFromMaps(listAfter.id, listAfter.name, dbMap, envIdMap);
+
+  if (!newStatus) {
+    console.log(`No status mapping for list "${listAfter.name}" (${listAfter.id}) — skipping`);
+    return new Response('unmapped list', { status: 200 });
+  }
+
+  // Fetch current order to capture from_status before update
+  const { data: orderRows, error: fetchErr } = await supabase
     .from('dtf_orders')
-    .update({ status: newStatus, updated_at: new Date().toISOString() })
-    .eq('trello_card_id', trelloCardId)
-    .select('id, status');
+    .select('id, status, customer_email, quote_eur')
+    .eq('trello_card_id', trelloCardId);
 
-  if (error) {
-    console.error('dtf_orders status update error:', error);
-    return { statusCode: 500, body: 'DB update failed' };
+  if (fetchErr) {
+    console.error('dtf_orders fetch error:', fetchErr);
+    return new Response('DB fetch failed', { status: 500 });
   }
 
-  if (!data || data.length === 0) {
+  if (!orderRows || orderRows.length === 0) {
     console.log(`No dtf_orders row found for trello_card_id=${trelloCardId}`);
-    return { statusCode: 200, body: 'no matching order' };
+    return new Response('no matching order', { status: 200 });
   }
 
-  console.log(`Updated ${data.length} order(s) to status "${newStatus}":`, data.map(r => r.id));
+  const updatedIds = [];
 
-  return {
-    statusCode: 200,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ updated: data.length, status: newStatus }),
-  };
+  for (const order of orderRows) {
+    const fromStatus = order.status;
+    const orderId    = order.id;
+
+    // Skip if status hasn't changed (idempotency)
+    if (fromStatus === newStatus) {
+      console.log(`Order ${orderId} already at status "${newStatus}" — skipping`);
+      continue;
+    }
+
+    // 1. Update dtf_orders.status
+    const { error: updateErr } = await supabase
+      .from('dtf_orders')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', orderId);
+
+    if (updateErr) {
+      console.error(`dtf_orders update error for order ${orderId}:`, updateErr);
+      continue;
+    }
+
+    // 2. Append dtf_order_status_history (design §8.2)
+    const { error: histErr } = await supabase
+      .from('dtf_order_status_history')
+      .insert({
+        order_id:    orderId,
+        from_status: fromStatus,
+        to_status:   newStatus,
+        source:      'trello_webhook',
+        actor_id:    null,
+        metadata:    {
+          trello_card_id: trelloCardId,
+          list_id:        listAfter.id,
+          list_name:      listAfter.name,
+          action_id:      actionId,
+        },
+      });
+
+    if (histErr) {
+      console.error(`dtf_order_status_history insert error for order ${orderId}:`, histErr);
+      // Non-fatal — continue to notifications
+    }
+
+    // 3. Insert dtf_admin_notifications (design §8.2)
+    const { error: notifErr } = await supabase
+      .from('dtf_admin_notifications')
+      .insert({
+        type:     'trello_status_changed',
+        order_id: orderId,
+        payload:  {
+          from_status:     fromStatus,
+          to_status:       newStatus,
+          customer_email:  order.customer_email,
+          quote_eur:       order.quote_eur,
+          trello_card_id:  trelloCardId,
+        },
+      });
+
+    if (notifErr) {
+      console.error(`dtf_admin_notifications insert error for order ${orderId}:`, notifErr);
+      // Non-fatal
+    }
+
+    updatedIds.push(orderId);
+  }
+
+  console.log(`Trello webhook: updated ${updatedIds.length} order(s) to "${newStatus}":`, updatedIds);
+
+  return new Response(
+    JSON.stringify({ updated: updatedIds.length, status: newStatus }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  );
 };
+
+// ── Exports for unit testing ───────────────────────────────────────────────
+export { resolveStatusFromMaps, loadStatusMapFromDB, FALLBACK_LIST_NAME_MAP };
