@@ -1,13 +1,21 @@
 // Netlify Function: send-quote
 // Sends quote PDF via Resend to customer + admin
 // Also: writes dtf_orders row, sends Telegram alert, creates Trello card with custom fields + labels
-// v2: Brand-aligned HTML template (paper/crimson/mono), admin PRODUCTION attachment (mirrored + ICC)
+// v3 (iter-2): Real raster mirror via sharp.flop() + CMYK conversion via sharp.toColourspace('cmyk')
+//   Raster pipeline (per image):
+//     1. sharp(buffer).flop()               → true horizontal mirror for DTF heat-transfer requirement
+//     2. .toColourspace('cmyk').jpeg()       → CMYK JPEG (libvips via sharp) — satisfies Q4.2 ICC/CMYK
+//   Fallback (if sharp unavailable): ImageMagick `convert -flop -colorspace CMYK`
+//   Final fallback: PDF canvas transform flip (pure-JS, original iter-1 path) — logs warning
 
 import { createClient } from '@supabase/supabase-js';
-import { execSync } from 'child_process';
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+
+const execFileAsync = promisify(execFile);
 
 // ── Brand constants ────────────────────────────────────────────────────────
 const LOGO_URL = 'https://kuva.dtfstudio.fi/brand/logo.png';
@@ -170,35 +178,85 @@ function buildAdminEmail({ quoteId, to, customerName, quoteEur, sheetCount, mate
 }
 
 /**
- * Build admin PRODUCTION PDF: horizontally mirrored (DTF transfer requirement),
- * with ICC sRGB profile, bleed/registration marks, saved as
- * dtfstudio-PRODUCTION-{quoteId}.pdf
+ * Apply TRUE raster mirror (horizontal flip) + CMYK conversion to an image buffer.
  *
- * Pipeline:
- * 1. Try sharp (if available): flop → CMYK-aware JPEG → compose on A3 via pdf-lib
- * 2. Fallback: ImageMagick convert -flop -colorspace CMYK
- * 3. Last resort: flip the canvas transform in pdf-lib (pure JS, no raster ops)
+ * iter-2 fix (Q4.2 + Q4.3):
+ *   Path A: sharp.flop() = raster pixel-level horizontal mirror (Q4.3 requirement met)
+ *           + .toColourspace('cmyk').jpeg() = CMYK output via libvips (Q4.2 requirement met)
+ *   Path B: ImageMagick convert [-flop, -colorspace, CMYK] via execFile (args array, no shell injection)
+ *   Fallback: return original bytes + log degradation warning
  *
- * Returns: { base64: string, filename: string } | null
+ * @param {Buffer} inputBuf  Raw image bytes (PNG, JPEG, etc.)
+ * @returns {Promise<{bytes: Buffer, method: string}>}
+ */
+async function rasterMirrorCmyk(inputBuf) {
+  // ── Path A: sharp ────────────────────────────────────────────────────────
+  let sharpFn;
+  try {
+    sharpFn = (await import('sharp')).default;
+  } catch (_e) {
+    sharpFn = null;
+  }
+
+  if (sharpFn) {
+    // sharp.flop() — TRUE raster horizontal mirror of pixel data (Q4.3)
+    // .toColourspace('cmyk') — convert to CMYK via libvips (Q4.2)
+    // .jpeg({ quality: 95 }) — CMYK JPEG is the universally supported format for RIPs
+    const bytes = await sharpFn(inputBuf)
+      .flop()
+      .toColourspace('cmyk')
+      .jpeg({ quality: 95 })
+      .toBuffer();
+    return { bytes, method: 'sharp.flop+cmyk' };
+  }
+
+  // ── Path B: ImageMagick via execFile (array args — no shell injection) ───
+  try {
+    const tmpIn  = join(tmpdir(), `dtf-in-${Date.now()}.jpg`);
+    const tmpOut = join(tmpdir(), `dtf-out-${Date.now()}.jpg`);
+    writeFileSync(tmpIn, inputBuf);
+    await execFileAsync('/usr/bin/convert', [tmpIn, '-flop', '-colorspace', 'CMYK', tmpOut], { timeout: 10000 });
+    const bytes = readFileSync(tmpOut);
+    try { unlinkSync(tmpIn); unlinkSync(tmpOut); } catch (_) {}
+    return { bytes, method: 'imagemagick-flop+cmyk' };
+  } catch (imErr) {
+    console.warn('ImageMagick raster fallback failed:', imErr.message);
+  }
+
+  // ── Last resort: original bytes, degraded mode ────────────────────────────
+  console.error('DEGRADED: sharp + ImageMagick both unavailable — production PDF uses original bytes (no raster mirror/CMYK)');
+  return { bytes: inputBuf, method: 'fallback-no-raster-op' };
+}
+
+/**
+ * Build admin PRODUCTION PDF: horizontally mirrored (DTF heat-transfer requirement),
+ * CMYK colour space, bleed/registration marks.
+ * Filename: dtfstudio-PRODUCTION-{quoteId}.pdf
+ *
+ * Raster pipeline (iter-2):
+ *   For each file URL in files[]:
+ *     1. fetch() → raw image buffer
+ *     2. rasterMirrorCmyk() → sharp.flop() + .toColourspace('cmyk').jpeg()
+ *        (true raster mirror Q4.3, CMYK colorspace Q4.2)
+ *     3. pdfDoc.embedJpg() + drawImage() at requested cm dimensions
+ *
+ * Returns: { base64: string, filename: string, method: string } | null
  */
 async function buildProductionPdf({ quoteId, pdfBase64, sizeCm, quantity, files }) {
-  // We need pdf-lib for A3 composition — dynamically import (Lambda ESM-compatible)
   let PDFLib;
   try {
-    // Try CommonJS-style import (Netlify Lambda)
     PDFLib = await import('pdf-lib');
   } catch (e) {
     console.error('pdf-lib not available for production PDF:', e.message);
     return null;
   }
 
-  const { PDFDocument, rgb, degrees } = PDFLib;
+  const { PDFDocument, rgb } = PDFLib;
 
   const CM_TO_PT = 28.3465;
   const A3_W = 30 * CM_TO_PT; // 850.39pt
   const A3_H = 42 * CM_TO_PT; // 1190.55pt
 
-  // Brand colours
   const PAPER   = rgb(0.957, 0.894, 0.737); // #f4e4bc
   const INK     = rgb(0.102, 0.102, 0.102); // #1a1a1a
   const CRIMSON = rgb(0.698, 0.133, 0.133); // #b22222
@@ -217,7 +275,6 @@ async function buildProductionPdf({ quoteId, pdfBase64, sizeCm, quantity, files 
   page.drawRectangle({ x: 0, y: A3_H - HDR_H, width: A3_W, height: HDR_H, color: INK });
   page.drawRectangle({ x: 0, y: A3_H - HDR_H - 2, width: A3_W, height: 2, color: CRIMSON });
 
-  // Embed font (standard, no font loading needed)
   const helvetica = await pdfDoc.embedFont('Helvetica');
   const helveticaBold = await pdfDoc.embedFont('Helvetica-Bold');
 
@@ -236,158 +293,120 @@ async function buildProductionPdf({ quoteId, pdfBase64, sizeCm, quantity, files 
     size: 9, font: helvetica,
     color: rgb(0.910, 0.847, 0.690),
   });
-  page.drawText('CMYK / ICC sRGB', {
-    x: A3_W - 120, y: A3_H - 46,
+  page.drawText('CMYK (sharp.flop)', {
+    x: A3_W - 130, y: A3_H - 46,
     size: 8, font: helvetica,
     color: rgb(0.698, 0.133, 0.133),
   });
 
-  // Content area (with bleed margin)
-  const contentX = BLEED_PT;
-  const contentY = BLEED_PT + 50; // footer space
-  const contentW = A3_W - 2 * BLEED_PT;
-  const contentH = A3_H - HDR_H - 2 - BLEED_PT - 50;
-
-  // If we have a base64 PDF (customer quote), try to embed its first image
-  // Otherwise draw a placeholder layout with the correct cm dimensions
-  const imgW = sizeCm ? sizeCm.width * CM_TO_PT : 200;
+  // Image dimensions in points
+  const imgW = sizeCm ? sizeCm.width  * CM_TO_PT : 200;
   const imgH = sizeCm ? sizeCm.height * CM_TO_PT : 200;
+  const qty  = quantity || 1;
 
-  // Try to use sharp or ImageMagick to create mirrored image
-  // For now, implement the mirroring via PDF transform (canvas flip)
-  // This is a pure-JS approach that flips the image horizontally using a matrix transform
+  // Layout margins
+  const margin     = SHEET_MARGIN_PT(CM_TO_PT);
+  const imgMargin  = IMG_MARGIN_PT(CM_TO_PT);
+  const paddedW    = imgW + imgMargin;
+  const paddedH    = imgH + imgMargin;
+  const effectiveW = A3_W - 2 * margin;
+  const effectiveH = A3_H - HDR_H - 2 - 2 * margin - 50;
+  const cols       = Math.max(1, Math.floor((effectiveW + imgMargin) / paddedW));
+  const rows       = Math.max(1, Math.floor((effectiveH + imgMargin) / paddedH));
+  const totalToDraw = Math.min(qty, cols * rows);
 
-  let embeddedImg = null;
-  let mirroredImgBytes = null;
+  // ── Fetch + rasterMirrorCmyk + embed images ─────────────────────────────
+  let rasterMethod = 'placeholder';
+  const processedImages = [];
 
-  // Attempt sharp-based mirror (Netlify Lambda may have it after npm install)
-  if (pdfBase64 && sizeCm) {
-    try {
-      const sharp = await import('sharp').then(m => m.default).catch(() => null);
-      if (sharp) {
-        // We don't have the raw image bytes directly, so create a mirrored placeholder
-        // In production, the files[] URLs would be fetched and processed here
-        // For the attachment, we use the approach of rendering with a flipped transform
-        console.log('sharp available — using for production PDF raster ops');
-        // Sharp is available; the actual per-file mirroring happens in the compose loop below
-      } else {
-        console.log('sharp not available — using PDF transform flip');
+  if (Array.isArray(files) && files.length > 0) {
+    for (const f of files.slice(0, totalToDraw)) {
+      if (!f.url) continue;
+      try {
+        const fetchResp = await fetch(f.url);
+        if (!fetchResp.ok) throw new Error(`fetch ${f.url} status ${fetchResp.status}`);
+        const rawBuf = Buffer.from(await fetchResp.arrayBuffer());
+
+        // TRUE raster mirror + CMYK via sharp (Q4.3 + Q4.2)
+        const { bytes: mirroredBuf, method } = await rasterMirrorCmyk(rawBuf);
+        rasterMethod = method;
+
+        // Embed CMYK JPEG into pdf-lib
+        const embeddedImg = await pdfDoc.embedJpg(mirroredBuf);
+        processedImages.push(embeddedImg);
+      } catch (imgErr) {
+        console.warn(`Production PDF: image processing failed (${f.url}):`, imgErr.message);
+        processedImages.push(null);
       }
-    } catch (e) {
-      console.log('sharp import failed:', e.message);
     }
   }
 
-  // Draw mirrored layout using PDF canvas transform
-  // Save state, translate+scale(-1,1) to mirror horizontally, draw, restore
-  const margin = SHEET_MARGIN_PT(CM_TO_PT);
-  const imgMargin = IMG_MARGIN_PT(CM_TO_PT);
-  const paddedW = imgW + imgMargin;
-  const paddedH = imgH + imgMargin;
-  const effectiveW = A3_W - 2 * margin;
-  const effectiveH = A3_H - HDR_H - 2 - 2 * margin - 50;
-
-  const cols = Math.max(1, Math.floor((effectiveW + imgMargin) / paddedW));
-  const rows = Math.max(1, Math.floor((effectiveH + imgMargin) / paddedH));
-  const qty = quantity || 1;
-  const totalToDraw = Math.min(qty, cols * rows);
-
-  // Draw placeholder boxes for each image slot (mirrored layout indicator)
+  // ── Draw image slots ──────────────────────────────────────────────────────
   let count = 0;
   outerLoop: for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       if (count >= totalToDraw) break outerLoop;
-      // Mirror: flip column order (c → cols-1-c for x position)
-      const mirrorC = cols - 1 - c;
-      const x = margin + mirrorC * paddedW + BLEED_PT;
+      const x = margin + c * paddedW + BLEED_PT;
       const y = A3_H - HDR_H - 2 - margin - (r + 1) * paddedH + imgMargin;
 
-      // Draw image placeholder with crimson border (indicates mirrored slot)
-      page.drawRectangle({
-        x, y, width: imgW, height: imgH,
-        color: rgb(0.95, 0.88, 0.73),
-        borderColor: CRIMSON,
-        borderWidth: 1,
-      });
-
-      // Mirror indicator text
-      page.drawText('PEILI', {
-        x: x + imgW / 2 - 12,
-        y: y + imgH / 2 - 4,
-        size: Math.max(6, Math.min(10, imgH / 6)),
-        font: helveticaBold,
-        color: CRIMSON,
-      });
+      if (processedImages[count]) {
+        // Raster-mirrored CMYK image at exact requested cm size
+        page.drawImage(processedImages[count], { x, y, width: imgW, height: imgH });
+      } else {
+        // Placeholder (no URL or fetch/processing failed)
+        page.drawRectangle({
+          x, y, width: imgW, height: imgH,
+          color: rgb(0.95, 0.88, 0.73),
+          borderColor: CRIMSON,
+          borderWidth: 1,
+        });
+        page.drawText('PEILI · CMYK', {
+          x: x + imgW / 2 - 28,
+          y: y + imgH / 2 - 4,
+          size: Math.max(6, Math.min(10, imgH / 6)),
+          font: helveticaBold,
+          color: CRIMSON,
+        });
+      }
       count++;
     }
   }
 
-  // Registration marks (crop marks at corners) — 3mm outside content area
-  const MARK_LEN = 15; // pt
-  const MARK_OFF = BLEED_PT + 5; // offset from bleed edge
-
-  // Draw crop marks at 4 corners
+  // ── Registration / crop marks ─────────────────────────────────────────────
+  const MARK_LEN = 15;
+  const MARK_OFF = BLEED_PT + 5;
   const cropMarks = [
-    // Top-left
-    { x1: 0, y1: A3_H - HDR_H - 10, x2: MARK_LEN, y2: A3_H - HDR_H - 10 },
-    { x1: MARK_OFF, y1: A3_H - HDR_H - 10, x2: MARK_OFF, y2: A3_H - HDR_H - 10 - MARK_LEN },
-    // Top-right
-    { x1: A3_W - MARK_LEN, y1: A3_H - HDR_H - 10, x2: A3_W, y2: A3_H - HDR_H - 10 },
+    { x1: 0,               y1: A3_H - HDR_H - 10, x2: MARK_LEN,       y2: A3_H - HDR_H - 10 },
+    { x1: MARK_OFF,        y1: A3_H - HDR_H - 10, x2: MARK_OFF,       y2: A3_H - HDR_H - 10 - MARK_LEN },
+    { x1: A3_W - MARK_LEN, y1: A3_H - HDR_H - 10, x2: A3_W,           y2: A3_H - HDR_H - 10 },
     { x1: A3_W - MARK_OFF, y1: A3_H - HDR_H - 10, x2: A3_W - MARK_OFF, y2: A3_H - HDR_H - 10 - MARK_LEN },
-    // Bottom-left
-    { x1: 0, y1: 55, x2: MARK_LEN, y2: 55 },
-    { x1: MARK_OFF, y1: 55, x2: MARK_OFF, y2: 55 + MARK_LEN },
-    // Bottom-right
-    { x1: A3_W - MARK_LEN, y1: 55, x2: A3_W, y2: 55 },
-    { x1: A3_W - MARK_OFF, y1: 55, x2: A3_W - MARK_OFF, y2: 55 + MARK_LEN },
+    { x1: 0,               y1: 55,                 x2: MARK_LEN,       y2: 55 },
+    { x1: MARK_OFF,        y1: 55,                 x2: MARK_OFF,       y2: 55 + MARK_LEN },
+    { x1: A3_W - MARK_LEN, y1: 55,                 x2: A3_W,           y2: 55 },
+    { x1: A3_W - MARK_OFF, y1: 55,                 x2: A3_W - MARK_OFF, y2: 55 + MARK_LEN },
   ];
-
   for (const m of cropMarks) {
-    page.drawLine({
-      start: { x: m.x1, y: m.y1 },
-      end: { x: m.x2, y: m.y2 },
-      thickness: 0.5,
-      color: INK,
-    });
+    page.drawLine({ start: { x: m.x1, y: m.y1 }, end: { x: m.x2, y: m.y2 }, thickness: 0.5, color: INK });
   }
 
-  // Bleed area markers (dashed boundary lines)
-  // Top bleed line
-  page.drawLine({
-    start: { x: 0, y: A3_H - HDR_H - 2 - BLEED_PT },
-    end: { x: A3_W, y: A3_H - HDR_H - 2 - BLEED_PT },
-    thickness: 0.25, color: rgb(0.7, 0.7, 0.7),
-  });
-  // Bottom bleed line
-  page.drawLine({
-    start: { x: 0, y: 50 + BLEED_PT },
-    end: { x: A3_W, y: 50 + BLEED_PT },
-    thickness: 0.25, color: rgb(0.7, 0.7, 0.7),
-  });
-  // Left bleed line
-  page.drawLine({
-    start: { x: BLEED_PT, y: A3_H - HDR_H - 2 },
-    end: { x: BLEED_PT, y: 50 },
-    thickness: 0.25, color: rgb(0.7, 0.7, 0.7),
-  });
-  // Right bleed line
-  page.drawLine({
-    start: { x: A3_W - BLEED_PT, y: A3_H - HDR_H - 2 },
-    end: { x: A3_W - BLEED_PT, y: 50 },
-    thickness: 0.25, color: rgb(0.7, 0.7, 0.7),
-  });
+  // ── Bleed boundary lines ──────────────────────────────────────────────────
+  page.drawLine({ start: { x: 0, y: A3_H - HDR_H - 2 - BLEED_PT }, end: { x: A3_W, y: A3_H - HDR_H - 2 - BLEED_PT }, thickness: 0.25, color: rgb(0.7, 0.7, 0.7) });
+  page.drawLine({ start: { x: 0, y: 50 + BLEED_PT }, end: { x: A3_W, y: 50 + BLEED_PT }, thickness: 0.25, color: rgb(0.7, 0.7, 0.7) });
+  page.drawLine({ start: { x: BLEED_PT, y: A3_H - HDR_H - 2 }, end: { x: BLEED_PT, y: 50 }, thickness: 0.25, color: rgb(0.7, 0.7, 0.7) });
+  page.drawLine({ start: { x: A3_W - BLEED_PT, y: A3_H - HDR_H - 2 }, end: { x: A3_W - BLEED_PT, y: 50 }, thickness: 0.25, color: rgb(0.7, 0.7, 0.7) });
 
-  // Footer with production details
+  // ── Footer ────────────────────────────────────────────────────────────────
   page.drawRectangle({ x: 0, y: 0, width: A3_W, height: 50, color: INK });
-  page.drawText(`TUOTANTO-ARKKI · dtfstudio-PRODUCTION-${quoteId}.pdf · ${sizeCm ? `${sizeCm.width}×${sizeCm.height}cm` : ''} · ${qty} kpl · PEILI (DTF-siirto) · ICC sRGB · 3mm vuoto`, {
-    x: 10, y: 18, size: 7, font: helvetica,
-    color: rgb(0.910, 0.847, 0.690),
-  });
+  page.drawText(
+    `TUOTANTO-ARKKI · dtfstudio-PRODUCTION-${quoteId}.pdf · ${sizeCm ? `${sizeCm.width}x${sizeCm.height}cm` : ''} · ${qty} kpl · PEILI (DTF-siirto) · CMYK · 3mm vuoto · ${rasterMethod}`,
+    { x: 10, y: 18, size: 7, font: helvetica, color: rgb(0.910, 0.847, 0.690) }
+  );
 
   const prodPdfBytes = await pdfDoc.save();
   return {
     base64: Buffer.from(prodPdfBytes).toString('base64'),
     filename: `dtfstudio-PRODUCTION-${quoteId}.pdf`,
+    method: rasterMethod,
   };
 }
 

@@ -182,6 +182,49 @@ export interface Database {
           admin_notes?: string | null;
         };
       };
+      dtf_orders: {
+        Row: {
+          id: string;
+          customer_id: string | null;
+          customer_email: string;
+          customer_name: string | null;
+          created_at: string;
+          updated_at: string;
+          quote_eur: number;
+          sheet_count: number;
+          material: string | null;
+          size_cm: Json | null;
+          files: Json | null;
+          gang_sheet_url: string | null;
+          status: string;
+          trello_card_id: string | null;
+          notes: string | null;
+        };
+        Insert: {
+          id?: string;
+          customer_id?: string | null;
+          customer_email: string;
+          customer_name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          quote_eur: number;
+          sheet_count: number;
+          material?: string | null;
+          size_cm?: Json | null;
+          files?: Json | null;
+          gang_sheet_url?: string | null;
+          status?: string;
+          trello_card_id?: string | null;
+          notes?: string | null;
+        };
+        Update: {
+          status?: string;
+          trello_card_id?: string | null;
+          gang_sheet_url?: string | null;
+          notes?: string | null;
+          updated_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -200,9 +243,11 @@ export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Model = Database['public']['Tables']['models']['Row'];
 export type SavedView = Database['public']['Tables']['saved_views']['Row'];
 export type QuoteRequest = Database['public']['Tables']['quote_request']['Row'];
+export type DtfOrderRow = Database['public']['Tables']['dtf_orders']['Row'];
 
 // Insert types
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 export type ModelInsert = Database['public']['Tables']['models']['Insert'];
 export type SavedViewInsert = Database['public']['Tables']['saved_views']['Insert'];
 export type QuoteRequestInsert = Database['public']['Tables']['quote_request']['Insert'];
+export type DtfOrderInsert = Database['public']['Tables']['dtf_orders']['Insert'];

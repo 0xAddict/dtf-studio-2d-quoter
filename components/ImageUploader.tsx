@@ -7,7 +7,6 @@ interface ImageUploaderProps {
 }
 
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml', 'application/pdf'];
-const ACCEPT_STRING = 'image/png,image/jpeg,image/svg+xml,application/pdf';
 
 function fileThumbnailUrl(file: File): string | null {
   if (file.type === 'image/png' || file.type === 'image/jpeg') {
@@ -53,30 +52,56 @@ export function ImageUploader({ files, onChange }: ImageUploaderProps) {
   };
 
   return (
-    <div className="space-y-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {/* Drop zone */}
       <div
         onClick={() => inputRef.current?.click()}
         onDrop={onDrop}
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
-        className={`
-          relative flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed cursor-pointer
-          transition-all duration-200
-          ${dragOver
-            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
-            : 'border-gray-300 dark:border-slate-600 hover:border-indigo-400 hover:bg-gray-50 dark:hover:bg-slate-800/50'}
-        `}
+        style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          padding: '28px 16px',
+          border: dragOver ? '2px solid var(--crimson)' : '2px dashed var(--ink)',
+          background: dragOver ? 'var(--field)' : 'var(--paper)',
+          cursor: 'pointer',
+          transition: 'border-color 0.15s, background 0.15s',
+          borderRadius: '2px',
+          minHeight: '120px',
+        }}
       >
-        <div className="bg-indigo-100 dark:bg-indigo-900/40 p-4 rounded-full">
-          <Upload className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+        <div
+          style={{
+            width: '48px',
+            height: '48px',
+            border: '2px solid var(--ink)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: dragOver ? 'var(--crimson)' : 'var(--paper-2)',
+            transition: 'background 0.15s, border-color 0.15s',
+            borderColor: dragOver ? 'var(--crimson)' : 'var(--ink)',
+          }}
+        >
+          <Upload className="w-6 h-6" style={{ color: dragOver ? 'var(--paper)' : 'var(--ink)' }} />
         </div>
-        <div className="text-center">
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+        <div style={{ textAlign: 'center' }}>
+          <p style={{
+            fontFamily: 'var(--serif)',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: 'var(--ink)',
+            marginBottom: '2px',
+          }}>
             Lähetä kuva tarjouspyyntöön
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            PNG, JPG, SVG tai PDF · Useita tiedostoja kerrallaan
+          <p className="kicker" style={{ opacity: 0.7 }}>
+            PNG · JPG · SVG · PDF — useita tiedostoja
           </p>
         </div>
         <input
@@ -85,33 +110,53 @@ export function ImageUploader({ files, onChange }: ImageUploaderProps) {
           accept="image/png,image/jpeg,image/svg+xml,application/pdf"
           multiple
           onChange={onInputChange}
-          className="sr-only"
+          style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
         />
       </div>
 
       {/* Thumbnail strip */}
       {files.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {files.map((file, idx) => {
             const thumb = getThumbnail(file);
             return (
               <div
                 key={`${file.name}-${idx}`}
-                className="relative group w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 flex items-center justify-center"
+                style={{
+                  position: 'relative',
+                  width: '72px',
+                  height: '72px',
+                  border: '2px solid var(--ink)',
+                  overflow: 'hidden',
+                  background: 'var(--paper-2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                className="group"
               >
                 {thumb ? (
                   <img
                     src={thumb}
                     alt={file.name}
-                    className="w-full h-full object-cover"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 ) : (
-                  <div className="flex flex-col items-center gap-1 p-2">
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '4px' }}>
                     {file.type === 'application/pdf'
-                      ? <FileText className="w-6 h-6 text-red-500" />
-                      : <ImageIcon className="w-6 h-6 text-gray-400" />
+                      ? <FileText className="w-5 h-5" style={{ color: 'var(--crimson)' }} />
+                      : <ImageIcon className="w-5 h-5" style={{ color: 'var(--ink-soft)' }} />
                     }
-                    <span className="text-[9px] text-gray-500 text-center leading-tight truncate w-full">
+                    <span style={{
+                      fontFamily: 'var(--mono)',
+                      fontSize: '8px',
+                      color: 'var(--ink-soft)',
+                      textAlign: 'center',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      width: '100%',
+                      whiteSpace: 'nowrap',
+                    }}>
                       {file.name}
                     </span>
                   </div>
@@ -120,10 +165,30 @@ export function ImageUploader({ files, onChange }: ImageUploaderProps) {
                 <button
                   type="button"
                   onClick={e => { e.stopPropagation(); removeFile(idx); }}
-                  className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    position: 'absolute',
+                    top: '2px',
+                    right: '2px',
+                    width: '20px',
+                    height: '20px',
+                    background: 'var(--ink)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: 0,
+                    transition: 'opacity 0.15s',
+                    borderRadius: '0',
+                    minHeight: 'auto',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '0')}
+                  onFocus={e => (e.currentTarget.style.opacity = '1')}
+                  onBlur={e => (e.currentTarget.style.opacity = '0')}
                   aria-label={`Poista ${file.name}`}
                 >
-                  <X className="w-3 h-3 text-white" />
+                  <X className="w-3 h-3" style={{ color: 'var(--paper)' }} />
                 </button>
               </div>
             );

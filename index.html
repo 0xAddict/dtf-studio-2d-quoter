@@ -5,85 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="DTF Studio Helsinki — Tarjouspyyntölomake. Lähetä kuvasi ja saa välitön hinta-arvio gang sheet -painatukselle.">
   <title>DTF Studio Helsinki — Tarjouslaskuri</title>
+
+  <!-- Brand fonts — non-blocking (matches dtfstudio.fi pattern) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
-          fontFamily: {
-            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+          colors: {
+            paper:    '#f4e4bc',
+            'paper-2': '#e8d8b0',
+            'field':  '#fbf2d6',
+            ink:      '#1a1a1a',
+            'ink-soft': '#44423d',
+            crimson:  '#b22222',
+            'crimson-soft': '#c64a4a',
+            cure:     '#d4a017',
           },
-          // Semantic Typography Scale (Apple HIG inspired)
-          fontSize: {
-            'heading-xl': ['2.5rem', { lineHeight: '1.2', letterSpacing: '-0.02em', fontWeight: '700' }],
-            'heading-lg': ['2rem', { lineHeight: '1.25', letterSpacing: '-0.015em', fontWeight: '600' }],
-            'heading-md': ['1.5rem', { lineHeight: '1.3', letterSpacing: '-0.01em', fontWeight: '600' }],
-            'heading-sm': ['1.25rem', { lineHeight: '1.4', fontWeight: '600' }],
-            'body-lg': ['1.125rem', { lineHeight: '1.6' }],
-            'body': ['1rem', { lineHeight: '1.5' }],
-            'body-sm': ['0.875rem', { lineHeight: '1.5' }],
-            'caption': ['0.75rem', { lineHeight: '1.4' }],
+          fontFamily: {
+            serif: ["'Source Serif 4'", "'Source Serif Pro'", 'Georgia', 'serif'],
+            mono:  ["'IBM Plex Mono'", "'Courier New'", 'monospace'],
+            sans:  ["'Source Serif 4'", 'Georgia', 'serif'],
+          },
+          borderRadius: {
+            'none': '0px',
+            DEFAULT: '2px',
+            sm: '2px',
+            md: '4px',
           },
           animation: {
-            'fade-in': 'fadeIn 0.3s ease-out',
-            'slide-up': 'slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-            'slide-down': 'slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-            'scale-in': 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-            'scale-out': 'scaleOut 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-            'slide-in-right': 'slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-            'slide-out-right': 'slideOutRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-            'bounce-subtle': 'bounceSubtle 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            'spin': 'spin 1s linear infinite',
+            'fade-in': 'fadeIn 0.25s ease-out',
           },
           keyframes: {
             fadeIn: {
               '0%': { opacity: '0' },
               '100%': { opacity: '1' },
             },
-            slideUp: {
-              '0%': { transform: 'translateY(16px)', opacity: '0' },
-              '100%': { transform: 'translateY(0)', opacity: '1' },
-            },
-            slideDown: {
-              '0%': { transform: 'translateY(-16px)', opacity: '0' },
-              '100%': { transform: 'translateY(0)', opacity: '1' },
-            },
-            scaleIn: {
-              '0%': { transform: 'scale(0.95)', opacity: '0' },
-              '100%': { transform: 'scale(1)', opacity: '1' },
-            },
-            scaleOut: {
-              '0%': { transform: 'scale(1)', opacity: '1' },
-              '100%': { transform: 'scale(0.95)', opacity: '0' },
-            },
-            slideInRight: {
-              '0%': { transform: 'translateX(100%)', opacity: '0' },
-              '100%': { transform: 'translateX(0)', opacity: '1' },
-            },
-            slideOutRight: {
-              '0%': { transform: 'translateX(0)', opacity: '1' },
-              '100%': { transform: 'translateX(100%)', opacity: '0' },
-            },
-            bounceSubtle: {
-              '0%': { transform: 'scale(1)' },
-              '50%': { transform: 'scale(1.05)' },
-              '100%': { transform: 'scale(1)' },
-            },
           },
-          backdropBlur: {
-            xs: '2px',
-            '2xl': '40px',
-          },
-          boxShadow: {
-            // Apple-style layered shadows
-            'glass': '0 0 0 1px rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.1)',
-            'glass-lg': '0 0 0 1px rgba(255, 255, 255, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.12)',
-            'glass-dark': '0 0 0 1px rgba(255, 255, 255, 0.03), 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4)',
-            'glass-dark-lg': '0 0 0 1px rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.4)',
-            'elevated': '0 2px 4px rgba(0, 0, 0, 0.04), 0 8px 16px rgba(0, 0, 0, 0.08)',
-            'elevated-lg': '0 4px 8px rgba(0, 0, 0, 0.04), 0 16px 32px rgba(0, 0, 0, 0.12)',
-          },
-          // Ensure minimum touch targets (Apple HIG: 44x44px)
           minHeight: {
             'touch': '44px',
           },
@@ -95,90 +59,230 @@
     }
   </script>
   <style>
+    /* DTF Studio Helsinki — Brand tokens (locked, matches dtfstudio.fi) */
+    :root {
+      --paper:       #f4e4bc;
+      --paper-2:     #e8d8b0;
+      --field:       #fbf2d6;
+      --ink:         #1a1a1a;
+      --ink-soft:    #44423d;
+      --crimson:     #b22222;
+      --crimson-soft:#c64a4a;
+      --cure:        #d4a017;
+      --serif:       'Source Serif 4', 'Source Serif Pro', Georgia, serif;
+      --mono:        'IBM Plex Mono', 'Courier New', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      font-size: 16px;
+      -webkit-text-size-adjust: 100%;
+      overflow-x: clip;
+    }
+
     body, html {
-      margin: 0;
-      padding: 0;
-      overflow: auto;
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--paper);
+      color: var(--ink);
+      font-family: var(--serif);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      line-height: 1.6;
+      overflow-x: clip;
     }
+
     #root {
       width: 100%;
       min-height: 100vh;
     }
 
-    /* Custom scrollbar for dark mode */
-    ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
-    }
-    ::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.1);
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 5px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(0, 0, 0, 0.5);
-    }
-    .dark ::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .dark ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-    }
-    .dark ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.3);
+    :focus-visible {
+      outline: 2px solid var(--crimson);
+      outline-offset: 2px;
     }
 
-    /* Enhanced Glassmorphism 2.0 - Apple-style */
-    .glass {
-      background: rgba(255, 255, 255, 0.72);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      /* Subtle edge highlight for that "cut glass" effect */
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.5),
-        0 1px 3px rgba(0, 0, 0, 0.06),
-        0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-    .dark .glass {
-      background: rgba(15, 23, 42, 0.75);
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-        0 1px 3px rgba(0, 0, 0, 0.2),
-        0 4px 12px rgba(0, 0, 0, 0.25);
+    /* Minimum tap targets — WCAG 2.5.5 */
+    a, button, [role="button"], input[type="submit"], input[type="button"], select {
+      min-height: 44px;
     }
 
-    /* Glass variant with stronger blur for overlays */
-    .glass-heavy {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(40px) saturate(200%);
-      -webkit-backdrop-filter: blur(40px) saturate(200%);
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.6),
-        0 2px 8px rgba(0, 0, 0, 0.08),
-        0 8px 24px rgba(0, 0, 0, 0.12);
+    /* Scrollbar — understated manila palette */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--paper-2); }
+    ::-webkit-scrollbar-thumb { background: var(--ink-soft); border-radius: 0; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--ink); }
+
+    /* Kicker — mono uppercase label style */
+    .kicker {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      opacity: 0.85;
+      color: var(--ink);
     }
-    .dark .glass-heavy {
-      background: rgba(15, 23, 42, 0.88);
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-        0 2px 8px rgba(0, 0, 0, 0.3),
-        0 8px 24px rgba(0, 0, 0, 0.4);
+    .kicker--crimson { color: var(--crimson); opacity: 1; }
+
+    /* Section header with crimson 2px underline */
+    .section-header {
+      font-family: var(--serif);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--ink);
+      border-bottom: 2px solid var(--crimson);
+      padding-bottom: 4px;
+      display: inline-block;
+      margin-bottom: 12px;
     }
 
-    /* Respect user's motion preferences - WCAG 2.1 AA Compliance */
+    /* Card — paper-2 bg, 2px ink border */
+    .brand-card {
+      background: var(--paper-2);
+      border: 2px solid var(--ink);
+    }
+
+    /* Primary button — ink bg, manila text, 2px max radius */
+    .btn-primary {
+      background: var(--ink);
+      color: var(--paper);
+      border: 2px solid var(--ink);
+      border-radius: 2px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 12px 24px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      min-height: 44px;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--crimson);
+      border-color: var(--crimson);
+    }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Ghost button */
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 2px solid var(--ink);
+      border-radius: 2px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background 0.15s;
+      min-height: 44px;
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--paper-2); }
+
+    /* Text input */
+    .brand-input {
+      width: 100%;
+      background: var(--field);
+      color: var(--ink);
+      border: 2px solid var(--ink);
+      border-radius: 2px;
+      font-family: var(--serif);
+      font-size: 1rem;
+      padding: 10px 14px;
+      min-height: 44px;
+      outline: none;
+    }
+    .brand-input:focus { border-color: var(--crimson); }
+    .brand-input::placeholder { color: var(--ink-soft); opacity: 0.7; }
+
+    /* Status stamp — inline badge with 2px border */
+    .status-stamp {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border: 2px solid currentColor;
+      padding: 2px 6px;
+      border-radius: 0;
+      display: inline-block;
+    }
+    .status-stamp--pending  { color: var(--cure); }
+    .status-stamp--active   { color: var(--crimson); }
+    .status-stamp--done     { color: var(--ink); }
+    .status-stamp--error    { color: var(--crimson); }
+
+    /* Stat box — paper bg with ink border */
+    .stat-box {
+      background: var(--paper);
+      border: 1px solid var(--paper-2);
+      padding: 14px;
+    }
+    .stat-box__label {
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-soft);
+      margin-bottom: 4px;
+    }
+    .stat-box__value {
+      font-family: var(--serif);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.2;
+    }
+    .stat-box__sub {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-soft);
+      margin-top: 2px;
+    }
+
+    /* Total panel */
+    .total-panel {
+      background: var(--ink);
+      color: var(--paper);
+      border: 2px solid var(--ink);
+      padding: 20px 24px;
+    }
+    .total-panel__label {
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--paper-2);
+    }
+    .total-panel__amount {
+      font-family: var(--serif);
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: var(--paper);
+      line-height: 1.1;
+    }
+
+    /* Error panel */
+    .error-panel {
+      border: 2px solid var(--crimson);
+      background: #fff8f8;
+      color: var(--crimson);
+      padding: 12px 16px;
+      font-family: var(--serif);
+      font-size: 0.875rem;
+    }
+
+    /* Rule line */
+    .rule { border: none; border-top: 1px solid var(--paper-2); }
+
+    /* Respect reduced motion */
     @media (prefers-reduced-motion: reduce) {
-      *,
-      *::before,
-      *::after {
+      *, *::before, *::after {
         animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
       }
     }
   </style>

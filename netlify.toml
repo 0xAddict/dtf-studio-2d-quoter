@@ -5,6 +5,10 @@
   functions = "netlify/functions"
   environment = { NODE_VERSION = "18" }
 
+[functions]
+  node_bundler = "esbuild"
+
+
 # Redirect rules for SPA
 [[redirects]]
   from = "/*"
