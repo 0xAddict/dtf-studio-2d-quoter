@@ -720,7 +720,10 @@ export const handler = async (event) => {
   }
 
   // ── 3. Send admin email with PRODUCTION attachment ─────────────────────
-  if (adminEmail && adminEmail !== to) {
+  // Note: guard removed — admin email fires regardless of whether adminEmail === to,
+  // since [Admin] subject prefix distinguishes it from the customer copy.
+  // Previously `adminEmail !== to` was suppressing admin emails in test/self-send scenarios.
+  if (adminEmail) {
     const adminHtml = buildAdminEmail({
       quoteId, to, customerName, quoteEur, sheetCount, material, sizeCm, notes,
     });
