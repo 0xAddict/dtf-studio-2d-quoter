@@ -1,12 +1,8 @@
-# Netlify Configuration for Vite React App
+# DTF Studio Helsinki — 2D Image Quoter
 [build]
-  # Build command
   command = "npm run build"
-
-  # Output directory
   publish = "dist"
-
-  # Node version
+  functions = "netlify/functions"
   environment = { NODE_VERSION = "18" }
 
 # Redirect rules for SPA

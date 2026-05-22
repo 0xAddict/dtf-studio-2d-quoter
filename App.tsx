@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
-import ModelViewer from './components/ModelViewer';
+import DTFQuoter from './components/DTFQuoter';
 import { MyQuotesPage } from './components/MyQuotesPage';
 import { QuoteDetailsPage } from './components/QuoteDetailsPage';
 import { AuthCallback } from './components/AuthCallback';
@@ -16,14 +16,10 @@ function App() {
         <AuthProvider>
           <ToastProvider>
           <Routes>
-            {/* Main model viewer */}
+            {/* DTF 2D quoter — main page */}
             <Route
               path="/"
-              element={
-                <main className="w-full h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
-                  <ModelViewer />
-                </main>
-              }
+              element={<DTFQuoter />}
             />
 
             {/* My Quotes page (protected) */}
