@@ -77,6 +77,42 @@ Total: 16/16 PASS
 
 Running total (M1+M2): 36/36 PASS
 
+==========================================================
+M3 TDD RESULTS — admin-quote-flow.test.mjs
+==========================================================
+
+Runner: node tests/unit/admin-quote-flow.test.mjs
+Date: 2026-05-22
+
+FAIL baseline: tests assert created_by_admin=true, admin_id stored,
+assign-to-email override, internal_notes/discount_amount_cents, validation throws.
+
+POST-IMPLEMENTATION (PASS):
+
+  [PASS] 3a-1: created_by_admin=true on admin insert
+  [PASS] 3a-2: status=quote on admin insert
+  [PASS] 3a-3: payment_status=none on admin insert
+  [PASS] 3a-4: admin_id stored
+  [PASS] 3b-1: assign-to-email overrides customer_email
+  [PASS] 3b-2: no assign-to-email → uses customerEmail
+  [PASS] 3c-1: internal_notes stored
+  [PASS] 3c-2: discount_amount_cents stored
+  [PASS] 3d-1: empty customerEmail → throws
+  [PASS] 3d-2: zero quoteEur → throws
+  [PASS] 3d-3: missing adminId → throws
+  [PASS] 3e-1: phone order → created_by_admin=true
+  [PASS] 3e-2: phone order → size_cm=null (no canvas)
+  [PASS] 3e-3: phone order → internal_notes stored
+
+Total: 14/14 PASS
+
+Running total (M1+M2+M3): 50/50 PASS
+
+FAIL->PASS PAIRS (M3):
+  Pair 8: admin insert fields 4 cases FAIL->PASS (3a-1..4)
+  Pair 9: assign-to-email override FAIL->PASS (3b-1..2)
+  Pair 10: extra admin fields FAIL->PASS (3c-1..2)
+
 FAIL->PASS PAIRS (M2):
   Pair 4: requires_payment rule 5 cases FAIL->PASS (2a-1..5)
   Pair 5: one-click confirm state machine FAIL->PASS (2b-1..4)

@@ -216,3 +216,14 @@ Contract: implement Stripe call site with BLOCKED guard; one-click path fully fu
 ## 2026-05-22T01:01:00Z — M3 start
 Task: /quoter?admin=1 extra fields + /admin/quotes/new stripped form.
 
+## 2026-05-22T01:30:00Z — M3 COMPLETE
+- DTFQuoter.tsx: useSearchParams detects ?admin=1; shows admin extra fields panel
+  (assign-to-email, internal_notes, discount in €); payload includes createdByAdmin/adminId/internalNotes/discountAmountCents/assignToEmail
+- AdminNewQuotePage.tsx: full phone order form — customer email/name, price, sheets, material, dimensions, customer notes, internal notes, discount; on submit inserts to dtf_orders with created_by_admin=true
+- Both flows write: created_by_admin=true, admin_id=auth.uid()
+- TDD: 14/14 PASS (admin-quote-flow.test.mjs)
+- Build: clean (2.33s)
+
+## 2026-05-22T01:31:00Z — M4 start
+Task: /admin/orders list + /admin/orders/:id full detail + /admin stats grid.
+

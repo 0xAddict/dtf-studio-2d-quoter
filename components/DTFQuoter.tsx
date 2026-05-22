@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Send, Download, RefreshCw, Calculator, Layers, Euro, Loader2, CheckCircle, ShieldCheck } from 'lucide-react';
 import { confirmOrderOneClick, startStripeCheckout } from '../services/supabase/orders';
 import { ImageUploader } from './ImageUploader';
@@ -23,14 +24,23 @@ interface QuoteState {
 }
 
 export default function DTFQuoter() {
+  const [searchParams] = useSearchParams();
+  // Admin mode: /quoter?admin=1 or presence of JWT admin role
+  const isAdminMode = searchParams.get('admin') === '1';
+  const assignToEmail = searchParams.get('assign') ?? '';
+
   const [files, setFiles] = useState<File[]>([]);
   const [leveysStr, setLeveysStr] = useState('20');
   const [korkeusStr, setKorkeusStr] = useState('20');
   const [quantity, setQuantity] = useState(10);
   const [materiaali, setMateriaali] = useState('cotton');
   const [customerName, setCustomerName] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerEmail, setCustomerEmail] = useState(assignToEmail);
   const [notes, setNotes] = useState('');
+  // Admin-only extra fields
+  const [adminAssignEmail, setAdminAssignEmail] = useState(assignToEmail);
+  const [adminInternalNotes, setAdminInternalNotes] = useState('');
+  const [adminDiscountCents, setAdminDiscountCents] = useState(0);
 
   const [calculating, setCalculating] = useState(false);
   const [sending, setSending] = useState(false);
@@ -121,7 +131,7 @@ export default function DTFQuoter() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: customerEmail,
+          to: isAdminMode && adminAssignEmail ? adminAssignEmail : customerEmail,
           subject,
           html: htmlBody,
           pdfBase64,
@@ -136,6 +146,14 @@ export default function DTFQuoter() {
           files: filesPayload,
           gangSheetUrl: null,
           notes: notes || null,
+          // Admin-only fields
+          ...(isAdminMode ? {
+            createdByAdmin: true,
+            adminId: customerId,
+            internalNotes: adminInternalNotes || null,
+            discountAmountCents: adminDiscountCents || 0,
+            assignToEmail: adminAssignEmail || null,
+          } : {}),
         }),
       });
 
@@ -200,6 +218,9 @@ export default function DTFQuoter() {
     setCustomerName('');
     setCustomerEmail('');
     setNotes('');
+    setAdminAssignEmail('');
+    setAdminInternalNotes('');
+    setAdminDiscountCents(0);
     setQuantity(10);
     setLeveysStr('20');
     setKorkeusStr('20');
@@ -425,6 +446,76 @@ export default function DTFQuoter() {
                     resize: 'vertical',
                   }}
                 />
+
+                {/* Admin-only extra fields */}
+                {isAdminMode && (
+                  <div style={{
+                    border: '1px dashed #b22222',
+                    padding: '16px',
+                    background: 'var(--paper-2)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}>
+                    <p style={{
+                      fontFamily: 'var(--mono)',
+                      fontSize: '10px',
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      color: '#b22222',
+                      margin: 0,
+                    }}>
+                      Admin — lisäkentät
+                    </p>
+                    <input
+                      type="email"
+                      value={adminAssignEmail}
+                      onChange={e => setAdminAssignEmail(e.target.value)}
+                      placeholder="Asiakkaan sähköposti (kohdistus)"
+                      className="brand-input"
+                    />
+                    <textarea
+                      value={adminInternalNotes}
+                      onChange={e => setAdminInternalNotes(e.target.value)}
+                      placeholder="Sisäiset muistiinpanot (ei asiakkaalle)"
+                      rows={2}
+                      style={{
+                        width: '100%',
+                        background: 'var(--field)',
+                        color: 'var(--ink)',
+                        border: '2px solid var(--ink)',
+                        borderRadius: '2px',
+                        fontFamily: 'var(--serif)',
+                        fontSize: '1rem',
+                        padding: '10px 14px',
+                        outline: 'none',
+                        resize: 'vertical',
+                      }}
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <label style={{
+                        fontFamily: 'var(--mono)',
+                        fontSize: '11px',
+                        letterSpacing: '0.10em',
+                        textTransform: 'uppercase',
+                        color: 'var(--ink)',
+                        minWidth: '120px',
+                      }}>
+                        Alennus (€)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.50"
+                        value={adminDiscountCents / 100}
+                        onChange={e => setAdminDiscountCents(Math.round(parseFloat(e.target.value || '0') * 100))}
+                        placeholder="0.00"
+                        className="brand-input"
+                        style={{ width: '100px' }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
 
