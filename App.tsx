@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import DTFQuoter from './components/DTFQuoter';
+import { LoginRedirect } from './components/LoginRedirect';
 import { MyQuotesPage } from './components/MyQuotesPage';
 import { QuoteDetailsPage } from './components/QuoteDetailsPage';
 import { AccountPage } from './components/AccountPage';
@@ -74,6 +75,9 @@ function App() {
 
             {/* Auth callback for email verification */}
             <Route path="/auth/callback" element={<AuthCallback />} />
+
+            {/* /login — redirects to home and triggers sign-in modal, preserving ?next= param */}
+            <Route path="/login" element={<LoginRedirect />} />
 
             {/* ── Admin routes — gated by RequireAdmin (JWT app_metadata.role=admin) ── */}
             <Route

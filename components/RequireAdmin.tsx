@@ -4,7 +4,7 @@
  * No DB round-trip — JWT claim only (fast, no extra latency).
  *
  * Behaviour:
- *   - No session     → redirect /login?next=<current path>
+ *   - No session     → redirect /login?next=<encoded path> (literal Navigate, not state-only)
  *   - Session, not admin → redirect / + toast "Admin access required"
  *   - Session, admin → render children
  */
@@ -47,9 +47,10 @@ export const RequireAdmin: React.FC<RequireAdminProps> = ({ children }) => {
     );
   }
 
-  // No session → redirect to / (home opens sign-in modal) with return path in state
+  // No session → redirect to /login with next param so auth flow can return user
   if (!session) {
-    return <Navigate to="/" replace state={{ signInRequired: true, next: location.pathname + location.search }} />;
+    const next = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?next=${next}`} replace state={{ signInRequired: true }} />;
   }
 
   // Session exists but not admin → redirect home
