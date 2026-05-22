@@ -152,6 +152,45 @@ FAIL->PASS PAIRS (M4):
   Pair 12: stats grid 6 cases FAIL->PASS (4b-1..6)
   Pair 13: detail data shape 4 cases FAIL->PASS (4c-1..4)
 
+==========================================================
+M5 TDD RESULTS — admin-customers-files.test.mjs
+==========================================================
+
+Runner: node tests/unit/admin-customers-files.test.mjs
+Date: 2026-05-22
+
+FAIL baseline: tests assert LTV aggregation (paid only), file pagination+search,
+notification mark-read idempotency.
+
+POST-IMPLEMENTATION (PASS):
+
+  [PASS] 5a-1: 3 distinct customers
+  [PASS] 5a-2: alice LTV=143 (paid only)
+  [PASS] 5a-3: alice totalOrders=3 (all orders)
+  [PASS] 5a-4: alice lastOrderDate correct
+  [PASS] 5a-5: alice lastOrderStatus=quote
+  [PASS] 5a-6: bob sorted first (LTV=200 > alice 143)
+  [PASS] 5a-7: charlie LTV=0 (invoice_pending not counted)
+  [PASS] 5b-1: buildFileIndex returns 4 files
+  [PASS] 5b-2: search by .png → 3 results
+  [PASS] 5b-3: customer filter → alice has 3 files
+  [PASS] 5b-4: file pagination 20/page
+  [PASS] 5b-5: file pagination page 3 → 15 remaining
+  [PASS] 5c-1: countUnread=2
+  [PASS] 5c-2: mark single notification read
+  [PASS] 5c-3: other notifications unaffected
+  [PASS] 5c-4: mark-all-read → 0 unread
+  [PASS] 5c-5: already-read notifications read_at unchanged
+
+Total: 17/17 PASS
+
+Running total (M1..M5): 84/84 PASS
+
+FAIL->PASS PAIRS (M5):
+  Pair 14: LTV aggregation 7 cases FAIL->PASS (5a-1..7)
+  Pair 15: file browser 5 cases FAIL->PASS (5b-1..5)
+  Pair 16: notification mark-read 5 cases FAIL->PASS (5c-1..5)
+
 FAIL->PASS PAIRS (M2):
   Pair 4: requires_payment rule 5 cases FAIL->PASS (2a-1..5)
   Pair 5: one-click confirm state machine FAIL->PASS (2b-1..4)

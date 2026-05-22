@@ -243,3 +243,14 @@ Task: /admin/orders list + /admin/orders/:id full detail + /admin stats grid.
 ## 2026-05-22T02:01:00Z — M5 start
 Task: /admin/customers LTV list + /admin/files file browser + /admin/notifications full panel.
 
+## 2026-05-22T02:30:00Z — M5 COMPLETE
+- AdminCustomersPage: aggregates all orders by customer_email; LTV = sum(paid quote_eur only); columns: email, totalOrders, LTV, lastOrderDate, lastOrderStatus; sort by LTV/date/orders; click row → filtered /admin/orders?q=email
+- AdminFilesPage: fetches orders from last 90 days with non-null files; builds flat file index; search by name/email/orderId, filter by customer email; 24/page pagination; click → modal preview + open order link; isImageUrl helper for img tag vs placeholder
+- AdminNotificationsPage: full feed with unread/read state; mark-single-read + mark-all-read; type filter; Supabase Realtime subscription (INSERT listener adds to list, UPDATE re-fetches count); distinct bell icon with badge count
+- AdminLayout.tsx: bell icon + unread count badge in top nav; subscribes to Realtime INSERT+UPDATE on dtf_admin_notifications to keep badge live
+- TDD: 17/17 PASS (admin-customers-files.test.mjs)
+- Build: clean (2.37s)
+
+## 2026-05-22T02:31:00Z — FINAL
+All 5 milestones complete. Running build + final checks before deploy.
+

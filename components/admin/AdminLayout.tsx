@@ -4,9 +4,10 @@
  * Source Serif 4 (body) + IBM Plex Mono (kickers/labels)
  * 2px heavy edges, no gradients, no rounded-full.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../services/supabase/client';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -24,6 +25,30 @@ const NAV_ITEMS = [
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    // Fetch unread count
+    supabase.from('dtf_admin_notifications').select('id', { count: 'exact', head: true }).is('read_at', null).then(({ count }) => {
+      setUnreadCount(count ?? 0);
+    });
+
+    // Subscribe to new notifications
+    const channel = supabase
+      .channel('admin-layout-notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dtf_admin_notifications' }, () => {
+        setUnreadCount(c => c + 1);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dtf_admin_notifications' }, () => {
+        // Re-fetch count on any update (mark-read changes)
+        supabase.from('dtf_admin_notifications').select('id', { count: 'exact', head: true }).is('read_at', null).then(({ count }) => {
+          setUnreadCount(count ?? 0);
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   function isActive(href: string, exact = false): boolean {
     if (exact) return location.pathname === href;
@@ -94,6 +119,24 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           }}
         >
           <span>{user?.email}</span>
+
+          {/* Bell icon with unread count */}
+          <Link to="/admin/notifications" style={{ position: 'relative', textDecoration: 'none', display: 'flex', alignItems: 'center', minWidth: '44px', minHeight: '44px', justifyContent: 'center' }}>
+            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '16px', color: '#e8d8b0' }}>🔔</span>
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute', top: '4px', right: '2px',
+                background: '#b22222', color: '#f4e4bc',
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: '9px', fontWeight: 700,
+                padding: '1px 4px', borderRadius: '8px',
+                minWidth: '14px', textAlign: 'center',
+              }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Link>
+
           <button
             onClick={() => signOut()}
             style={{
