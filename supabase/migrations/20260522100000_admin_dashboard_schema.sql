@@ -13,6 +13,7 @@ ALTER TABLE public.dtf_orders
     CHECK (payment_status IN ('none','invoice_pending','paid','refunded','failed')),
   ADD COLUMN IF NOT EXISTS stripe_session_id      text,
   ADD COLUMN IF NOT EXISTS stripe_payment_intent  text,
+  ADD COLUMN IF NOT EXISTS trello_card_id          text,
   ADD COLUMN IF NOT EXISTS internal_notes         text,
   ADD COLUMN IF NOT EXISTS discount_amount_cents  int NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS confirmed_at           timestamptz,
