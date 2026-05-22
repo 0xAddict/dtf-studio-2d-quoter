@@ -1,0 +1,24 @@
+=== dtfstudio.fi TXT (SPF) ===
+"google-site-verification=K1qMKdPXkNJS453-dQv9BE4Y1zs9TOHOTaK007QPgkY"
+"google-site-verification=-daBASPg40RefHOgO1rQ7eESzVAKM5DHvPBt-67NPpg"
+"v=spf1 include:_spf.google.com ~all"
+
+=== _spf.google.com TXT (SPF include expansion) ===
+"v=spf1 ip4:74.125.0.0/16 ip4:209.85.128.0/17 ip6:2001:4860:4864::/56 ip6:2404:6800:4864::/56 ip6:2607:f8b0:4864::/56 ip6:2800:3f0:4864::/56 ip6:2a00:1450:4864::/56 ip6:2c0f:fb50:4864::/56 ~all"
+
+=== _dmarc.dtfstudio.fi TXT ===
+"v=DMARC1; p=none; rua=mailto:dmarc@alpha-performance.com"
+
+=== resend._domainkey.dtfstudio.fi TXT ===
+"p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDjO1HIAmxOYQI5CPMNljjms5ts1XfTNEurlvnOQGpJYx2z4eWtRLEjYg0OLY3+6k8NsUqJpJk7bhKahtPqL/B9VMRdrOWVpkufLODtWHPDo+AcD0q8lY7QWegA15WdE5yUPrbnEgA99jJamVlofEEZCvgdOOOFOFnJHixVZrBhswIDAQAB"
+
+=== dtfstudio.fi MX ===
+1 smtp.google.com.
+
+=== dtfstudio.fi NS ===
+dns1.p06.nsone.net.
+dns2.p06.nsone.net.
+dns3.p06.nsone.net.
+dns4.p06.nsone.net.
+
+Captured: 2026-05-22T21:31:42Z
