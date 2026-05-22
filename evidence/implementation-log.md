@@ -166,5 +166,53 @@ Supabase project: jqfudagohdkdtnplgtob (Speedo-Build MCP).
 
 ## 2026-05-22T00:01:00Z — M1 start
 Task: 8 new dtf_orders cols + 4 new tables + self-attach trigger + RLS.
-Writing migration file → applying via Speedo-Build MCP → committing.
+Writing migration file → applying via osteo-flow MCP → committing.
+
+## 2026-05-22T00:30:00Z — M1 COMPLETE
+- Migration applied: jqfudagohdkdtnplgtob (osteo-flow MCP)
+- 9 new cols on dtf_orders confirmed via execute_sql
+- 4 new tables confirmed: dtf_order_status_history, dtf_order_notes, dtf_trello_status_map, dtf_admin_notifications
+- RLS policies on all new tables + admin_all_orders on dtf_orders
+- Self-attach trigger: attach_guest_orders_on_signup installed on auth.users INSERT
+- RequireAdmin component: JWT-only gate, no DB round-trip
+- All /admin/* routes wired in App.tsx (7 routes)
+- Placeholder pages for all admin routes (M3/M4/M5 implement content)
+- evidence/admin-setup.md: 3 options for setting JWT role
+- TDD: 20/20 PASS (admin-schema.test.mjs)
+- Build: clean (2.33s)
+- Commit: 86c4d4d
+
+## 2026-05-22T00:31:00Z — M2 start
+Task: finalise-quote edge function + Stripe checkout + one-click confirm path + admin override.
+Checking STRIPE_SECRET_KEY in Netlify env — not found (netlify CLI not available).
+Contract: implement Stripe call site with BLOCKED guard; one-click path fully functional.
+
+## 2026-05-22T01:00:00Z — M2 COMPLETE
+- finalise-quote.js: 3 paths — one_click (invoice), admin_override, stripe_success
+  - decideRequiresPayment: 0 prior paid → true, ≥1 paid → false, admin override respected
+  - Trello card creation on confirm (TRELLO_CONFIRMED_LIST_ID env)
+  - dtf_order_status_history appended on every transition
+  - dtf_admin_notifications emitted on payment events
+  - Returns 402 if requires_payment=true on one_click path (UI redirects to Stripe)
+- stripe-checkout.js: BLOCKED guard (503 + Finnish message until STRIPE_SECRET_KEY set)
+  - Stripe Checkout session creation fully implemented (one-time charge, EUR)
+  - Stores stripe_session_id on order before redirect
+- stripe-webhook.js: BLOCKED guard + full implementation
+  - Verifies Stripe signature (HMAC-SHA256 via Web Crypto API, 5min tolerance)
+  - Idempotency: skips if payment_status=paid + same session ID
+  - Creates Trello card if not already done
+  - Appends status history + notification
+- DTFQuoter.tsx: "Vahvista tilaus" button shown after email sent + order in DB
+  - Captures orderId from send-quote response
+  - Tries one-click path first; if requires_payment → tries Stripe; if BLOCKED → Finnish message
+- AdminOrderDetailPage.tsx: admin override toggle (requires_payment true/false)
+  - Only shown when status=quote
+  - Calls /api/finalise-quote with path=admin_override
+- services/supabase/orders.ts: 3 new exports (confirmOrderOneClick, startStripeCheckout, adminSetRequiresPayment)
+- TDD: 16/16 PASS (finalise-quote.test.mjs)
+- Build: clean (2.45s)
+- STRIPE_SECRET_KEY: BLOCKED (not in Netlify env). Status.txt note added.
+
+## 2026-05-22T01:01:00Z — M3 start
+Task: /quoter?admin=1 extra fields + /admin/quotes/new stripped form.
 

@@ -1,4 +1,4 @@
-TDD LOG — sprint-admin-v1
+TDD LOG — sprint-admin-v1 (combined)
 Generated: 2026-05-22
 
 ==========================================================
@@ -41,6 +41,47 @@ FAIL->PASS PAIRS (≥2 per bead):
   Pair 1: JWT gate 5 cases FAIL->PASS (1a/1b/1c/1d/1e)
   Pair 2: Schema contract 13 cases FAIL->PASS (1f/1g)
   Pair 3: Self-attach trigger 2 cases FAIL->PASS (1h/1i)
+
+==========================================================
+M2 TDD RESULTS — finalise-quote.test.mjs
+==========================================================
+
+Runner: node tests/unit/finalise-quote.test.mjs
+Date: 2026-05-22
+
+FAIL baseline (written before implementation):
+  Tests assert: requires_payment rule (new vs returning customer),
+  one-click confirm state transitions, Stripe webhook idempotency,
+  admin override toggle correctness.
+
+POST-IMPLEMENTATION (PASS):
+
+  [PASS] 2a-1: new customer (0 paid orders) → requires_payment=true
+  [PASS] 2a-2: returning customer (1+ paid orders) → requires_payment=false
+  [PASS] 2a-3: returning customer (5 paid orders) → requires_payment=false
+  [PASS] 2a-4: adminOverride=true → requires_payment=true (even with 10 paid orders)
+  [PASS] 2a-5: adminOverride=false → requires_payment=false (even for new customer)
+  [PASS] 2b-1: one-click confirm → status=confirmed
+  [PASS] 2b-2: one-click confirm → payment_status=invoice_pending
+  [PASS] 2b-3: one-click confirm → confirmed_at set
+  [PASS] 2b-4: non-quote order → throws error
+  [PASS] 2c-1: duplicate webhook → idempotent no-op
+  [PASS] 2c-2: first webhook → status=confirmed
+  [PASS] 2c-3: first webhook → payment_status=paid
+  [PASS] 2c-4: first webhook → stripe_session_id stored
+  [PASS] 2c-5: first webhook → confirmed_at set
+  [PASS] 2d-1: admin override sets requires_payment=false
+  [PASS] 2d-2: admin override sets requires_payment=true
+
+Total: 16/16 PASS
+
+Running total (M1+M2): 36/36 PASS
+
+FAIL->PASS PAIRS (M2):
+  Pair 4: requires_payment rule 5 cases FAIL->PASS (2a-1..5)
+  Pair 5: one-click confirm state machine FAIL->PASS (2b-1..4)
+  Pair 6: Stripe webhook idempotency FAIL->PASS (2c-1..5)
+  Pair 7: Admin override toggle FAIL->PASS (2d-1..2)
 
 ==========================================================
 TDD LOG — sprint-quoter-branding-v1

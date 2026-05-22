@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { Send, Download, RefreshCw, Calculator, Layers, Euro, Loader2, CheckCircle } from 'lucide-react';
+import { Send, Download, RefreshCw, Calculator, Layers, Euro, Loader2, CheckCircle, ShieldCheck } from 'lucide-react';
+import { confirmOrderOneClick, startStripeCheckout } from '../services/supabase/orders';
 import { ImageUploader } from './ImageUploader';
-import { ThemeToggle } from './ThemeToggle';
 import { UserMenu } from './UserMenu';
 import { packGangSheet, getImageDimensionsCm } from '../src/lib/gangSheet';
 import { generateQuotePdf } from '../src/lib/generateQuotePdf';
@@ -14,7 +14,6 @@ const MATERIAALIT = [
   { value: 'blend', label: 'Sekoitekangas', surcharge: 1.5 },
 ];
 
-const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 const ADMIN_EMAIL = 'hello@dtfstudio.fi';
 
 interface QuoteState {
@@ -24,7 +23,6 @@ interface QuoteState {
 }
 
 export default function DTFQuoter() {
-  // Form fields
   const [files, setFiles] = useState<File[]>([]);
   const [leveysStr, setLeveysStr] = useState('20');
   const [korkeusStr, setKorkeusStr] = useState('20');
@@ -34,12 +32,15 @@ export default function DTFQuoter() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [notes, setNotes] = useState('');
 
-  // UI state
   const [calculating, setCalculating] = useState(false);
   const [sending, setSending] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [quote, setQuote] = useState<QuoteState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const [dbOrderId, setDbOrderId] = useState<string | null>(null);
+  const [orderConfirmed, setOrderConfirmed] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState<string | null>(null);
 
   const leveys = parseFloat(leveysStr) || 10;
   const korkeus = parseFloat(korkeusStr) || 10;
@@ -57,9 +58,7 @@ export default function DTFQuoter() {
     setCalculating(true);
 
     try {
-      // Get dimensions from uploaded files
       const dims = await Promise.all(files.map(f => getImageDimensionsCm(f)));
-      // Override with user-specified final size
       const finalDims = dims.map(() => ({ widthCm: leveys, heightCm: korkeus }));
 
       const gangSheet = packGangSheet(finalDims, quantity);
@@ -109,7 +108,6 @@ export default function DTFQuoter() {
       const pdfBase64 = btoa(String.fromCharCode(...quote.pdfBytes));
       const htmlBody = buildEmailHtml(quote, { customerName, customerEmail, leveys, korkeus, quantity, materiaali, notes });
 
-      // Resolve current Supabase user (if authenticated) for portal linkage
       let customerId: string | null = null;
       try {
         const { data } = await supabase.auth.getUser();
@@ -142,7 +140,11 @@ export default function DTFQuoter() {
       });
 
       if (resp.ok) {
+        const responseData = await resp.json().catch(() => ({}));
         setEmailSent(true);
+        if (responseData.orderId) {
+          setDbOrderId(responseData.orderId);
+        }
       } else {
         const txt = await resp.text();
         setError(`Sähköpostivirhe: ${txt}`);
@@ -154,11 +156,47 @@ export default function DTFQuoter() {
     }
   }, [quote, customerName, customerEmail, leveys, korkeus, quantity, materiaali, notes]);
 
+  const handleConfirmOrder = useCallback(async () => {
+    if (!dbOrderId) return;
+    setConfirming(true);
+    setError(null);
+
+    let userId: string | null = null;
+    try {
+      const { data } = await supabase.auth.getUser();
+      userId = data?.user?.id ?? null;
+    } catch { userId = null; }
+
+    const result = await confirmOrderOneClick(dbOrderId, userId);
+
+    if (result.ok) {
+      setOrderConfirmed(true);
+      setConfirmMessage('Tilaus vahvistettu. Otamme yhteyttä laskutuksesta.');
+    } else if (result.requires_payment) {
+      // Need to pay via Stripe — try Stripe checkout
+      const stripeResult = await startStripeCheckout(dbOrderId);
+      if (stripeResult.blocked) {
+        setError('Maksu ei ole vielä käytössä — käytä yhden klikkauksen vahvistusta tai ota yhteyttä meihin.');
+      } else if (stripeResult.ok && stripeResult.checkoutUrl) {
+        window.location.href = stripeResult.checkoutUrl;
+      } else {
+        setError(stripeResult.error ?? 'Maksun aloitus epäonnistui.');
+      }
+    } else {
+      setError(result.error ?? 'Vahvistus epäonnistui. Ota yhteyttä meihin.');
+    }
+
+    setConfirming(false);
+  }, [dbOrderId]);
+
   const handleReset = () => {
     setFiles([]);
     setQuote(null);
     setEmailSent(false);
     setError(null);
+    setDbOrderId(null);
+    setOrderConfirmed(false);
+    setConfirmMessage(null);
     setCustomerName('');
     setCustomerEmail('');
     setNotes('');
@@ -169,54 +207,72 @@ export default function DTFQuoter() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
-      {/* Nav */}
-      <header className="sticky top-0 z-30 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen" style={{ background: 'var(--paper)', fontFamily: 'var(--serif)' }}>
+
+      {/* Nav — ink border bottom, paper bg */}
+      <header
+        className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between"
+        style={{ background: 'var(--paper)', borderBottom: '2px solid var(--ink)' }}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-            <Layers className="w-5 h-5 text-white" />
+          <div
+            className="w-8 h-8 flex items-center justify-center"
+            style={{ background: 'var(--ink)' }}
+          >
+            <Layers className="w-5 h-5" style={{ color: 'var(--paper)' }} />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-none">DTF Studio</h1>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-none mt-0.5">Helsinki · Tarjouslaskuri</p>
+            <h1
+              className="text-lg font-bold leading-none"
+              style={{ fontFamily: 'var(--serif)', color: 'var(--ink)' }}
+            >
+              DTF Studio
+            </h1>
+            <p className="kicker leading-none mt-0.5">Helsinki · Tarjouslaskuri</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <UserMenu />
-        </div>
+        <UserMenu />
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      <main className="max-w-2xl mx-auto px-4 py-8" style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+
         {/* Hero */}
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            DTF-tarjouspyyntö
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p className="kicker kicker--crimson">TARJOUSPYYNTÖ</p>
+          <h2
+            className="text-2xl font-bold"
+            style={{ fontFamily: 'var(--serif)', color: 'var(--ink)' }}
+          >
+            DTF-painatuksen hinta-arvio
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
+          <p style={{ color: 'var(--ink-soft)', fontSize: '0.9rem', fontFamily: 'var(--serif)' }}>
             Lähetä kuva ja saa välitön hinta-arvio gang sheet -painatukselle.
           </p>
         </div>
 
         {!quote ? (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 space-y-6">
+          <div className="brand-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
-            {/* File upload */}
+            {/* Step 1 — Kuvat */}
             <section>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                1. Valitse kuvat
-              </h3>
+              <p className="kicker" style={{ marginBottom: '6px' }}>
+                <span style={{ color: 'var(--crimson)' }}>01 ·</span> KUVA
+              </p>
+              <div className="section-header">Valitse kuvat</div>
               <ImageUploader files={files} onChange={setFiles} />
             </section>
 
-            {/* Size */}
+            <hr className="rule" />
+
+            {/* Step 2 — Koko */}
             <section>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                2. Valitse koko (cm)
-              </h3>
-              <div className="flex gap-3 items-center">
-                <div className="flex-1">
-                  <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Leveys</label>
+              <p className="kicker" style={{ marginBottom: '6px' }}>
+                <span style={{ color: 'var(--crimson)' }}>02 ·</span> KOKO
+              </p>
+              <div className="section-header">Valitse koko (cm)</div>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="kicker" style={{ display: 'block', marginBottom: '4px' }}>Leveys</label>
                   <input
                     type="number"
                     min="1"
@@ -224,13 +280,13 @@ export default function DTFQuoter() {
                     step="0.5"
                     value={leveysStr}
                     onChange={e => setLeveysStr(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="brand-input"
                     placeholder="cm"
                   />
                 </div>
-                <span className="text-gray-400 mt-5">×</span>
-                <div className="flex-1">
-                  <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Korkeus</label>
+                <span style={{ color: 'var(--ink-soft)', marginTop: '22px', fontFamily: 'var(--mono)' }}>×</span>
+                <div style={{ flex: 1 }}>
+                  <label className="kicker" style={{ display: 'block', marginBottom: '4px' }}>Korkeus</label>
                   <input
                     type="number"
                     min="1"
@@ -238,48 +294,63 @@ export default function DTFQuoter() {
                     step="0.5"
                     value={korkeusStr}
                     onChange={e => setKorkeusStr(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="brand-input"
                     placeholder="cm"
                   />
                 </div>
-                <div className="flex-none mt-5">
-                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">cm</span>
+                <div style={{ marginTop: '22px' }}>
+                  <span className="kicker">cm</span>
                 </div>
               </div>
             </section>
 
-            {/* Quantity */}
+            <hr className="rule" />
+
+            {/* Step 3 — Kappalemäärä */}
             <section>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                3. Kappalemäärä (kpl)
-              </h3>
+              <p className="kicker" style={{ marginBottom: '6px' }}>
+                <span style={{ color: 'var(--crimson)' }}>03 ·</span> MÄÄRÄ
+              </p>
+              <div className="section-header">Kappalemäärä (kpl)</div>
               <input
                 type="number"
                 min="1"
                 max="5000"
                 value={quantity}
                 onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="brand-input"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p style={{ fontFamily: 'var(--mono)', fontSize: '11px', color: 'var(--ink-soft)', marginTop: '6px', letterSpacing: '0.02em' }}>
                 1–9 kpl: 18 € / A3 · 10–49 kpl: 15,50 € / A3 · 50+ kpl: 10,50 € / A3
               </p>
             </section>
 
-            {/* Material */}
+            <hr className="rule" />
+
+            {/* Step 4 — Materiaali */}
             <section>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                4. Valitse materiaali
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
+              <p className="kicker" style={{ marginBottom: '6px' }}>
+                <span style={{ color: 'var(--crimson)' }}>04 ·</span> MATERIAALI
+              </p>
+              <div className="section-header">Valitse materiaali</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                 {MATERIAALIT.map(m => (
                   <label
                     key={m.value}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all text-center ${
-                      materiaali === m.value
-                        ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
-                        : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
-                    }`}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '12px 8px',
+                      border: materiaali === m.value ? '2px solid var(--crimson)' : '2px solid var(--ink)',
+                      background: materiaali === m.value ? 'var(--ink)' : 'var(--paper)',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.1s',
+                      borderRadius: '2px',
+                      minHeight: '44px',
+                    }}
                   >
                     <input
                       type="radio"
@@ -287,29 +358,46 @@ export default function DTFQuoter() {
                       value={m.value}
                       checked={materiaali === m.value}
                       onChange={() => setMateriaali(m.value)}
-                      className="sr-only"
+                      style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
                     />
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{m.label}</span>
+                    <span style={{
+                      fontFamily: 'var(--serif)',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      color: materiaali === m.value ? 'var(--paper)' : 'var(--ink)',
+                    }}>
+                      {m.label}
+                    </span>
                     {m.surcharge > 0 && (
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">+{m.surcharge} €/arkki</span>
+                      <span style={{
+                        fontFamily: 'var(--mono)',
+                        fontSize: '10px',
+                        color: materiaali === m.value ? 'var(--paper-2)' : 'var(--ink-soft)',
+                        marginTop: '2px',
+                      }}>
+                        +{m.surcharge} €/arkki
+                      </span>
                     )}
                   </label>
                 ))}
               </div>
             </section>
 
-            {/* Customer info */}
+            <hr className="rule" />
+
+            {/* Step 5 — Yhteystiedot */}
             <section>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                5. Yhteystiedot
-              </h3>
-              <div className="space-y-3">
+              <p className="kicker" style={{ marginBottom: '6px' }}>
+                <span style={{ color: 'var(--crimson)' }}>05 ·</span> ASIAKAS
+              </p>
+              <div className="section-header">Yhteystiedot</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <input
                   type="text"
                   value={customerName}
                   onChange={e => setCustomerName(e.target.value)}
                   placeholder="Nimi (valinnainen)"
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="brand-input"
                 />
                 <input
                   type="email"
@@ -317,134 +405,238 @@ export default function DTFQuoter() {
                   onChange={e => setCustomerEmail(e.target.value)}
                   placeholder="Sähköpostiosoite *"
                   required
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="brand-input"
                 />
                 <textarea
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   placeholder="Lisätiedot tai erityistoiveet (valinnainen)"
                   rows={2}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  style={{
+                    width: '100%',
+                    background: 'var(--field)',
+                    color: 'var(--ink)',
+                    border: '2px solid var(--ink)',
+                    borderRadius: '2px',
+                    fontFamily: 'var(--serif)',
+                    fontSize: '1rem',
+                    padding: '10px 14px',
+                    outline: 'none',
+                    resize: 'vertical',
+                  }}
                 />
               </div>
             </section>
 
             {error && (
-              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3">
-                {error}
-              </p>
+              <div className="error-panel">{error}</div>
             )}
 
             <button
               onClick={handleCalculate}
               disabled={calculating}
-              className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary"
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             >
               {calculating ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> Lasketaan...</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> LASKETAAN…</>
               ) : (
-                <><Calculator className="w-5 h-5" /> Laske hinta</>
+                <><Calculator className="w-5 h-5" /> LASKE HINTA</>
               )}
             </button>
           </div>
         ) : (
           /* Quote result */
-          <div className="space-y-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="brand-card" style={{ overflow: 'hidden' }}>
+
               {/* Success header */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-b border-green-200 dark:border-green-800 px-6 py-5">
-                <div className="flex items-center gap-3">
-                  <div className="bg-green-100 dark:bg-green-900/50 p-2.5 rounded-full">
-                    <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                  </div>
+              <div style={{
+                background: 'var(--ink)',
+                color: 'var(--paper)',
+                padding: '20px 24px',
+                borderBottom: '2px solid var(--ink)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <CheckCircle className="w-6 h-6" style={{ color: 'var(--cure)' }} />
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Hinta-arvio valmis</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Tarjous #{quote.quoteId}</p>
+                    <p className="kicker" style={{ color: 'var(--paper-2)', marginBottom: '2px' }}>TARJOUS VALMIS</p>
+                    <h3 style={{ fontFamily: 'var(--serif)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--paper)' }}>
+                      Hinta-arvio #{quote.quoteId}
+                    </h3>
                   </div>
                 </div>
               </div>
 
               {/* Quote breakdown */}
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">A3-arkkeja</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{quote.gangSheet.sheets}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">kpl</p>
+              <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div className="stat-box">
+                    <p className="stat-box__label">A3-arkkeja</p>
+                    <p className="stat-box__value">{quote.gangSheet.sheets}</p>
+                    <p className="stat-box__sub">kpl</p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Käyttöaste</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{(quote.gangSheet.utilisation * 100).toFixed(0)}%</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">tehokkuus</p>
+                  <div className="stat-box">
+                    <p className="stat-box__label">Käyttöaste</p>
+                    <p className="stat-box__value">{(quote.gangSheet.utilisation * 100).toFixed(0)}%</p>
+                    <p className="stat-box__sub">tehokkuus</p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Hinta / A3</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{quote.gangSheet.pricePerSheet.toFixed(2)} €</p>
+                  <div className="stat-box">
+                    <p className="stat-box__label">Hinta / A3</p>
+                    <p className="stat-box__value">{quote.gangSheet.pricePerSheet.toFixed(2)} €</p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Kappalemäärä</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{quantity}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">kpl</p>
+                  <div className="stat-box">
+                    <p className="stat-box__label">Kappalemäärä</p>
+                    <p className="stat-box__value">{quantity}</p>
+                    <p className="stat-box__sub">kpl</p>
                   </div>
                 </div>
 
                 {/* Total */}
-                <div className="bg-black dark:bg-white rounded-xl p-5 flex items-center justify-between">
+                <div className="total-panel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <p className="text-sm text-gray-300 dark:text-gray-600">Yhteensä (ALV 0%)</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    <p className="total-panel__label">Yhteensä (ALV 0%)</p>
+                    <p style={{ fontFamily: 'var(--mono)', fontSize: '11px', color: 'var(--paper-2)', marginTop: '2px' }}>
                       {quote.gangSheet.sheets} × {quote.gangSheet.pricePerSheet.toFixed(2)} € + {quote.gangSheet.setupFee.toFixed(2)} € asennusmaksu
                     </p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Euro className="w-6 h-6 text-green-400 dark:text-green-600" />
-                    <span className="text-3xl font-bold text-white dark:text-black">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Euro className="w-6 h-6" style={{ color: 'var(--cure)' }} />
+                    <span className="total-panel__amount">
                       {quote.gangSheet.totalEur.toFixed(2)}
                     </span>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={handleDownloadPdf}
-                    className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 px-4 py-3 rounded-xl font-semibold border-2 border-gray-300 dark:border-slate-600 transition-all"
-                  >
-                    <Download className="w-5 h-5" />
-                    Lataa PDF
-                  </button>
-
-                  {!emailSent ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
-                      onClick={handleSendQuote}
-                      disabled={sending}
-                      className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-xl font-semibold transition-all disabled:opacity-50"
+                      onClick={handleDownloadPdf}
+                      className="btn-ghost"
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     >
-                      {sending ? (
-                        <><Loader2 className="w-5 h-5 animate-spin" /> Lähetetään...</>
+                      <Download className="w-4 h-4" />
+                      LATAA PDF
+                    </button>
+
+                    {!emailSent ? (
+                      <button
+                        onClick={handleSendQuote}
+                        disabled={sending}
+                        className="btn-primary"
+                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                      >
+                        {sending ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> LÄHETETÄÄN…</>
+                        ) : (
+                          <><Send className="w-4 h-4" /> LÄHETÄ SÄHKÖPOSTIIN</>
+                        )}
+                      </button>
+                    ) : (
+                      <div
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          border: '2px solid var(--ink)',
+                          padding: '10px 20px',
+                          fontFamily: 'var(--mono)',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.08em',
+                          color: 'var(--ink)',
+                          background: 'var(--paper-2)',
+                        }}
+                      >
+                        <CheckCircle className="w-4 h-4" style={{ color: 'var(--cure)' }} />
+                        LÄHETETTY
+                      </div>
+                    )}
+                  </div>
+
+                  {error && (
+                    <div className="error-panel">{error}</div>
+                  )}
+
+                  {/* Vahvista tilaus — shown after email is sent and order is in DB */}
+                  {emailSent && dbOrderId && !orderConfirmed && (
+                    <button
+                      onClick={handleConfirmOrder}
+                      disabled={confirming}
+                      className="btn-primary"
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        marginTop: '8px',
+                        background: 'var(--crimson)',
+                        border: '2px solid var(--crimson)',
+                        minHeight: '52px',
+                        fontSize: '14px',
+                      }}
+                    >
+                      {confirming ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> VAHVISTETAAN…</>
                       ) : (
-                        <><Send className="w-5 h-5" /> Lähetä sähköpostiin</>
+                        <><ShieldCheck className="w-4 h-4" /> VAHVISTA TILAUS</>
                       )}
                     </button>
-                  ) : (
-                    <div className="flex-1 flex items-center justify-center gap-2 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 px-4 py-3 rounded-xl font-semibold border-2 border-green-200 dark:border-green-800">
-                      <CheckCircle className="w-5 h-5" />
-                      Lähetetty sähköpostiin
+                  )}
+
+                  {/* Order confirmed state */}
+                  {orderConfirmed && confirmMessage && (
+                    <div style={{
+                      border: '2px solid var(--ink)',
+                      padding: '16px 20px',
+                      background: 'var(--paper-2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      marginTop: '8px',
+                    }}>
+                      <CheckCircle className="w-5 h-5" style={{ color: 'var(--cure)', flexShrink: 0 }} />
+                      <p style={{
+                        fontFamily: 'var(--mono)',
+                        fontSize: '12px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        color: 'var(--ink)',
+                        margin: 0,
+                      }}>
+                        {confirmMessage}
+                      </p>
                     </div>
                   )}
                 </div>
 
-                {error && (
-                  <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3">
-                    {error}
-                  </p>
-                )}
-
                 <button
                   onClick={handleReset}
-                  className="w-full flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm py-2 transition-colors"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--mono)',
+                    fontSize: '11px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    color: 'var(--ink-soft)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '8px',
+                    width: '100%',
+                    minHeight: '44px',
+                  }}
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="w-3 h-3" />
                   Uusi tarjouspyyntö
                 </button>
               </div>
@@ -464,31 +656,33 @@ function buildEmailHtml(
 <!DOCTYPE html>
 <html lang="fi">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; margin: 0; padding: 20px;">
-  <div style="max-width: 560px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-    <div style="background: #111; padding: 24px; color: white;">
-      <h1 style="margin: 0; font-size: 20px;">DTF Studio Helsinki</h1>
-      <p style="margin: 4px 0 0; color: #999; font-size: 14px;">Tarjous #${quote.quoteId}</p>
+<body style="font-family: Georgia, 'Times New Roman', serif; background: #f4e4bc; margin: 0; padding: 20px;">
+  <div style="max-width: 560px; margin: 0 auto; background: #e8d8b0; border: 2px solid #1a1a1a; overflow: hidden;">
+    <div style="background: #1a1a1a; padding: 24px; color: #f4e4bc;">
+      <p style="margin: 0 0 4px; font-family: 'Courier New', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.7;">DTF STUDIO HELSINKI</p>
+      <h1 style="margin: 0; font-size: 22px; font-family: Georgia, serif; font-weight: 700;">Tarjous #${quote.quoteId}</h1>
     </div>
     <div style="padding: 24px;">
-      <p style="color: #333; font-size: 15px;">Hei ${info.customerName || info.customerEmail},</p>
-      <p style="color: #555; font-size: 14px;">Tarjouspyyntösi on vastaanotettu. Hinta-arviosi:</p>
+      <p style="color: #1a1a1a; font-size: 15px; font-family: Georgia, serif; margin-bottom: 12px;">Hei ${info.customerName || info.customerEmail},</p>
+      <p style="color: #44423d; font-size: 14px; font-family: Georgia, serif; margin-bottom: 16px;">Tarjouspyyntösi on vastaanotettu. Hinta-arviosi alla.</p>
 
-      <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
-        <tr style="background: #f9f9f9;"><td style="padding: 8px 12px; color: #666;">Koko</td><td style="padding: 8px 12px; font-weight: 600;">${info.leveys} × ${info.korkeus} cm</td></tr>
-        <tr><td style="padding: 8px 12px; color: #666;">Kappalemäärä</td><td style="padding: 8px 12px; font-weight: 600;">${info.quantity} kpl</td></tr>
-        <tr style="background: #f9f9f9;"><td style="padding: 8px 12px; color: #666;">A3-arkkeja</td><td style="padding: 8px 12px; font-weight: 600;">${quote.gangSheet.sheets} kpl</td></tr>
-        <tr><td style="padding: 8px 12px; color: #666;">Käyttöaste</td><td style="padding: 8px 12px; font-weight: 600;">${(quote.gangSheet.utilisation * 100).toFixed(0)}%</td></tr>
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; font-family: Georgia, serif;">
+        <tr style="background: #f4e4bc;"><td style="padding: 8px 12px; color: #44423d; border-bottom: 1px solid #e8d8b0;">Koko</td><td style="padding: 8px 12px; font-weight: 600; border-bottom: 1px solid #e8d8b0;">${info.leveys} × ${info.korkeus} cm</td></tr>
+        <tr><td style="padding: 8px 12px; color: #44423d; border-bottom: 1px solid #e8d8b0;">Kappalemäärä</td><td style="padding: 8px 12px; font-weight: 600; border-bottom: 1px solid #e8d8b0;">${info.quantity} kpl</td></tr>
+        <tr style="background: #f4e4bc;"><td style="padding: 8px 12px; color: #44423d; border-bottom: 1px solid #e8d8b0;">A3-arkkeja</td><td style="padding: 8px 12px; font-weight: 600; border-bottom: 1px solid #e8d8b0;">${quote.gangSheet.sheets} kpl</td></tr>
+        <tr><td style="padding: 8px 12px; color: #44423d;">Käyttöaste</td><td style="padding: 8px 12px; font-weight: 600;">${(quote.gangSheet.utilisation * 100).toFixed(0)}%</td></tr>
       </table>
 
-      <div style="background: #111; color: white; border-radius: 8px; padding: 16px; text-align: center; margin: 16px 0;">
-        <p style="margin: 0; font-size: 12px; color: #999;">Yhteensä (ALV 0%)</p>
-        <p style="margin: 4px 0 0; font-size: 28px; font-weight: 700; color: #4ade80;">${quote.gangSheet.totalEur.toFixed(2)} €</p>
+      <div style="background: #1a1a1a; color: #f4e4bc; border: 2px solid #1a1a1a; padding: 20px 24px; margin: 16px 0; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <p style="margin: 0; font-family: 'Courier New', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #e8d8b0;">Yhteensä (ALV 0%)</p>
+        </div>
+        <p style="margin: 0; font-size: 28px; font-weight: 700; color: #f4e4bc; font-family: Georgia, serif;">${quote.gangSheet.totalEur.toFixed(2)} €</p>
       </div>
 
-      <p style="color: #555; font-size: 13px;">PDF-tarjous on liitetty tähän viestiin. Otamme yhteyttä vahvistaaksemme tilauksen.</p>
-      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-      <p style="color: #999; font-size: 12px; text-align: center;">DTF Studio Helsinki · <a href="mailto:hello@dtfstudio.fi" style="color: #6366f1;">hello@dtfstudio.fi</a> · <a href="https://dtfstudio.fi" style="color: #6366f1;">dtfstudio.fi</a></p>
+      <p style="color: #44423d; font-size: 13px; font-family: Georgia, serif; margin-bottom: 16px;">PDF-tarjous on liitetty tähän viestiin. Otamme yhteyttä vahvistaaksemme tilauksen.</p>
+      <hr style="border: none; border-top: 1px solid #e8d8b0; margin: 20px 0;">
+      <p style="color: #44423d; font-family: 'Courier New', monospace; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">DTF Studio Helsinki · <a href="mailto:hello@dtfstudio.fi" style="color: #b22222;">hello@dtfstudio.fi</a> · <a href="https://dtfstudio.fi" style="color: #b22222;">dtfstudio.fi</a></p>
     </div>
   </div>
 </body>
