@@ -1,5 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { SignInModal } from './SignInModal';
+import { SignUpModal } from './SignUpModal';
 import { Send, Download, RefreshCw, Calculator, Layers, Euro, Loader2, CheckCircle, ShieldCheck } from 'lucide-react';
 import { confirmOrderOneClick, startStripeCheckout } from '../services/supabase/orders';
 import { ImageUploader } from './ImageUploader';
@@ -28,6 +30,18 @@ export default function DTFQuoter() {
   // Admin mode: /quoter?admin=1 or presence of JWT admin role
   const isAdminMode = searchParams.get('admin') === '1';
   const assignToEmail = searchParams.get('assign') ?? '';
+
+  // Sign-in modal state — opened via custom event from UserMenu's "Kirjaudu" button
+  // OR automatically when a /login?next=... redirect lands here with signInRequired flag
+  const [signInModal, setSignInModal] = useState<null | 'signin' | 'signup'>(null);
+  useEffect(() => {
+    const open = () => setSignInModal('signin');
+    window.addEventListener('open-sign-in-modal', open);
+    // Auto-open if arrived via /login redirect
+    const state = (window.history.state && window.history.state.usr) as { signInRequired?: boolean } | undefined;
+    if (state?.signInRequired) setSignInModal('signin');
+    return () => window.removeEventListener('open-sign-in-modal', open);
+  }, []);
 
   const [files, setFiles] = useState<File[]>([]);
   const [leveysStr, setLeveysStr] = useState('20');
@@ -735,6 +749,25 @@ export default function DTFQuoter() {
           </div>
         )}
       </main>
+      <SignInModal
+        isOpen={signInModal === 'signin'}
+        onClose={() => setSignInModal(null)}
+        onSwitchToSignUp={() => setSignInModal('signup')}
+        onSuccess={() => {
+          setSignInModal(null);
+          // If arrived via /login?next=..., navigate there
+          const state = (window.history.state && window.history.state.usr) as { next?: string } | undefined;
+          if (state?.next && state.next !== '/') {
+            window.location.assign(state.next);
+          }
+        }}
+      />
+      <SignUpModal
+        isOpen={signInModal === 'signup'}
+        onClose={() => setSignInModal(null)}
+        onSwitchToSignIn={() => setSignInModal('signin')}
+        onSuccess={() => setSignInModal(null)}
+      />
     </div>
   );
 }

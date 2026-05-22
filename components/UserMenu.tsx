@@ -40,7 +40,30 @@ export const UserMenu: React.FC = () => {
     navigate('/my-quotes');
   };
 
-  if (!user) return null;
+  // Unauthenticated: brand-aligned "Kirjaudu" trigger
+  if (!user) {
+    return (
+      <button
+        onClick={() => window.dispatchEvent(new CustomEvent('open-sign-in-modal'))}
+        style={{
+          fontFamily: "'IBM Plex Mono', 'Courier New', monospace",
+          fontSize: '11px',
+          fontWeight: 600,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          background: '#1a1a1a',
+          color: '#f4e4bc',
+          border: '2px solid #1a1a1a',
+          padding: '10px 18px',
+          cursor: 'pointer',
+          minHeight: '44px',
+        }}
+        aria-label="Kirjaudu sisään"
+      >
+        Kirjaudu
+      </button>
+    );
+  }
 
   // Get initials for avatar
   const initials = user.name
