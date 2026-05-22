@@ -227,3 +227,19 @@ Task: /quoter?admin=1 extra fields + /admin/quotes/new stripped form.
 ## 2026-05-22T01:31:00Z — M4 start
 Task: /admin/orders list + /admin/orders/:id full detail + /admin stats grid.
 
+## 2026-05-22T02:00:00Z — M4 COMPLETE
+- AdminOrdersPage.tsx: full filterable table — status multi-select pills, payment pills, free-text search (email/id ilike), 50/page pagination, all columns (order#, email, status chip, payment chip, price, date), clickable rows → detail
+- AdminOrderDetailPage.tsx: full tabbed detail view
+  - Tabs: Tuote/Tiedostot/Historia/Muistiinpanot/Asiakas
+  - Sidebar: Trello link, Stripe link, requires_payment toggle (when status=quote), payment summary, metadata
+  - Notes thread: textarea + submit → inserts to dtf_order_notes + appends status_history row
+  - Customer tab: email, name, customer_id, link to filtered orders
+- AdminHomePage.tsx: 6 stats cards (today/week revenue/in-production/awaiting/cancelled/avg), each links to filtered orders; recent activity feed from dtf_admin_notifications (last 10)
+- All components: brand-aligned (manila #f4e4bc, crimson #b22222, Source Serif 4, IBM Plex Mono, 2px borders, no rounded-full, no gradients)
+- ≥44px touch targets on all interactive elements
+- TDD: 17/17 PASS (admin-dashboard-queries.test.mjs)
+- Build: clean (2.43s)
+
+## 2026-05-22T02:01:00Z — M5 start
+Task: /admin/customers LTV list + /admin/files file browser + /admin/notifications full panel.
+

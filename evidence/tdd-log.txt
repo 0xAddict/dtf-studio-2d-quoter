@@ -113,6 +113,45 @@ FAIL->PASS PAIRS (M3):
   Pair 9: assign-to-email override FAIL->PASS (3b-1..2)
   Pair 10: extra admin fields FAIL->PASS (3c-1..2)
 
+==========================================================
+M4 TDD RESULTS — admin-dashboard-queries.test.mjs
+==========================================================
+
+Runner: node tests/unit/admin-dashboard-queries.test.mjs
+Date: 2026-05-22
+
+FAIL baseline: tests assert filter/search/pagination logic correctness,
+stats grid count accuracy, and order detail data shape.
+
+POST-IMPLEMENTATION (PASS):
+
+  [PASS] 4a-1: status filter → 2 in_production
+  [PASS] 4a-2: email search → 2 results for alice
+  [PASS] 4a-3: partial ID search → correct order
+  [PASS] 4a-4: pagination page 1 → 50 items
+  [PASS] 4a-5: pagination page 3 → 20 items (remainder)
+  [PASS] 4a-6: total count = 120 regardless of pagination
+  [PASS] 4a-7: combined status+search filter
+  [PASS] 4b-1: todayOrders=4
+  [PASS] 4b-2: weekRevenue includes paid orders this week
+  [PASS] 4b-3: inProduction=2
+  [PASS] 4b-4: awaitingPayment=1
+  [PASS] 4b-5: cancelledThisMonth=1
+  [PASS] 4b-6: avgOrderValue correct
+  [PASS] 4c-1: order detail has order object
+  [PASS] 4c-2: order detail has status history
+  [PASS] 4c-3: order detail has notes
+  [PASS] 4c-4: order detail has customer email
+
+Total: 17/17 PASS
+
+Running total (M1+M2+M3+M4): 67/67 PASS
+
+FAIL->PASS PAIRS (M4):
+  Pair 11: list filter+search 7 cases FAIL->PASS (4a-1..7)
+  Pair 12: stats grid 6 cases FAIL->PASS (4b-1..6)
+  Pair 13: detail data shape 4 cases FAIL->PASS (4c-1..4)
+
 FAIL->PASS PAIRS (M2):
   Pair 4: requires_payment rule 5 cases FAIL->PASS (2a-1..5)
   Pair 5: one-click confirm state machine FAIL->PASS (2b-1..4)
