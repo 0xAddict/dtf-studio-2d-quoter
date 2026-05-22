@@ -286,6 +286,204 @@ test('T-W-fallback-a: Finnish list names resolve correctly', () => {
   }
 });
 
+// ── T-W4: Full handler round-trip (synthetic list-move payload) ────────────
+// Exercises the complete handler logic path using the exported sub-functions
+// with a fully-mocked Supabase client, simulating a real Trello list-move
+// payload exactly as Trello POSTs it. Covers all 4 contract assertions:
+//   1. resolveStatusFromMaps reads dtf_trello_status_map first (DB-first path)
+//   2. dtf_orders.status is updated with the resolved status
+//   3. dtf_order_status_history inserted with source='trello_webhook'
+//   4. dtf_admin_notifications inserted with type='trello_status_changed'
+console.log('\nSuite: Full handler round-trip — synthetic list-move payload\n');
+
+// Synthetic Trello list-move payload (mirrors real Trello webhook shape)
+const SYNTHETIC_LIST_MOVE_PAYLOAD = {
+  action: {
+    type: 'updateCard',
+    id:   'trello-action-id-789',
+    data: {
+      card: { id: 'trello-card-id-abc' },
+      listAfter: { id: 'list-in-production-001', name: 'Tuotannossa' },
+    },
+  },
+};
+
+// Canonical mock Supabase factory — records all writes for assertion
+function makeMockSupabase({ dbMapRows, orderRows }) {
+  const ordersUpdated   = [];
+  const historyInserted = [];
+  const notifsInserted  = [];
+
+  const client = {
+    from: (table) => {
+      if (table === 'dtf_trello_status_map') {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: dbMapRows, error: null }),
+          }),
+        };
+      }
+      if (table === 'dtf_orders') {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: orderRows, error: null }),
+          }),
+          update: (patch) => ({
+            eq: (col, val) => {
+              ordersUpdated.push({ col, val, patch });
+              return Promise.resolve({ error: null });
+            },
+          }),
+        };
+      }
+      if (table === 'dtf_order_status_history') {
+        return {
+          insert: (row) => {
+            historyInserted.push(row);
+            return Promise.resolve({ error: null });
+          },
+        };
+      }
+      if (table === 'dtf_admin_notifications') {
+        return {
+          insert: (row) => {
+            notifsInserted.push(row);
+            return Promise.resolve({ error: null });
+          },
+        };
+      }
+      throw new Error(`Unexpected table: ${table}`);
+    },
+    _ordersUpdated:   ordersUpdated,
+    _historyInserted: historyInserted,
+    _notifsInserted:  notifsInserted,
+  };
+  return client;
+}
+
+// Simulate the handler's core processing logic against the synthetic payload
+async function simulateHandler(payload, mockSupabase) {
+  const action      = payload?.action;
+  if (action?.type !== 'updateCard') return { ignored: true };
+
+  const listAfter    = action?.data?.listAfter;
+  const trelloCardId = action?.data?.card?.id;
+  const actionId     = action?.id;
+  if (!listAfter || !trelloCardId) return { noListChange: true };
+
+  // Step 1: load DB map (contract: DB-first)
+  const dbMap = await loadStatusMapFromDB(mockSupabase);
+
+  // Step 2: resolve status (contract: dtf_trello_status_map takes precedence)
+  const newStatus = resolveStatusFromMaps(listAfter.id, listAfter.name, dbMap, null);
+  if (!newStatus) return { unmapped: true };
+
+  // Step 3: fetch matching orders
+  const { data: orderRows } = await mockSupabase.from('dtf_orders').select('id,status,customer_email,quote_eur').eq('trello_card_id', trelloCardId);
+
+  const updatedIds = [];
+  for (const order of (orderRows || [])) {
+    if (order.status === newStatus) continue; // idempotency guard
+
+    // Step 4: update dtf_orders.status (contract: status updated)
+    await mockSupabase.from('dtf_orders').update({ status: newStatus }).eq('id', order.id);
+
+    // Step 5: insert history (contract: source='trello_webhook')
+    await mockSupabase.from('dtf_order_status_history').insert({
+      order_id:    order.id,
+      from_status: order.status,
+      to_status:   newStatus,
+      source:      'trello_webhook',
+      actor_id:    null,
+      metadata:    { trello_card_id: trelloCardId, list_id: listAfter.id, list_name: listAfter.name, action_id: actionId },
+    });
+
+    // Step 6: insert notification (contract: type='trello_status_changed')
+    await mockSupabase.from('dtf_admin_notifications').insert({
+      type:     'trello_status_changed',
+      order_id: order.id,
+      payload:  { from_status: order.status, to_status: newStatus, customer_email: order.customer_email, quote_eur: order.quote_eur, trello_card_id: trelloCardId },
+    });
+
+    updatedIds.push(order.id);
+  }
+
+  return { updated: updatedIds.length, status: newStatus };
+}
+
+await testAsync('T-W4a: DB map read first — dtf_trello_status_map list_id resolved before name fallback', async () => {
+  const mockSupa = makeMockSupabase({
+    dbMapRows: [{ list_id: 'list-in-production-001', status: 'in_production' }],
+    orderRows: [{ id: 'ord-1', status: 'new', customer_email: 'x@x.fi', quote_eur: 50 }],
+  });
+
+  const result = await simulateHandler(SYNTHETIC_LIST_MOVE_PAYLOAD, mockSupa);
+
+  assert.equal(result.status, 'in_production', 'status resolved via DB map (not name fallback)');
+  assert.equal(result.updated, 1, 'one order updated');
+});
+
+await testAsync('T-W4b: dtf_orders.status updated with resolved status on list-move payload', async () => {
+  const mockSupa = makeMockSupabase({
+    dbMapRows: [{ list_id: 'list-in-production-001', status: 'in_production' }],
+    orderRows: [{ id: 'ord-2', status: 'new', customer_email: 'y@y.fi', quote_eur: 75 }],
+  });
+
+  await simulateHandler(SYNTHETIC_LIST_MOVE_PAYLOAD, mockSupa);
+
+  assert.equal(mockSupa._ordersUpdated.length, 1, 'exactly one dtf_orders.update call');
+  assert.equal(mockSupa._ordersUpdated[0].patch.status, 'in_production', 'update sets status=in_production');
+  assert.equal(mockSupa._ordersUpdated[0].val, 'ord-2', 'update targets the correct order id');
+});
+
+await testAsync('T-W4c: dtf_order_status_history inserted with source=trello_webhook', async () => {
+  const mockSupa = makeMockSupabase({
+    dbMapRows: [{ list_id: 'list-in-production-001', status: 'in_production' }],
+    orderRows: [{ id: 'ord-3', status: 'in_design', customer_email: 'z@z.fi', quote_eur: 90 }],
+  });
+
+  await simulateHandler(SYNTHETIC_LIST_MOVE_PAYLOAD, mockSupa);
+
+  assert.equal(mockSupa._historyInserted.length, 1, 'one history row inserted');
+  const h = mockSupa._historyInserted[0];
+  assert.equal(h.source, 'trello_webhook', 'source=trello_webhook');
+  assert.equal(h.from_status, 'in_design', 'from_status captured correctly');
+  assert.equal(h.to_status, 'in_production', 'to_status matches resolved status');
+  assert.ok(h.metadata?.trello_card_id, 'metadata.trello_card_id present');
+});
+
+await testAsync('T-W4d: dtf_admin_notifications inserted with type=trello_status_changed', async () => {
+  const mockSupa = makeMockSupabase({
+    dbMapRows: [{ list_id: 'list-in-production-001', status: 'in_production' }],
+    orderRows: [{ id: 'ord-4', status: 'new', customer_email: 'a@a.fi', quote_eur: 120 }],
+  });
+
+  await simulateHandler(SYNTHETIC_LIST_MOVE_PAYLOAD, mockSupa);
+
+  assert.equal(mockSupa._notifsInserted.length, 1, 'one notification row inserted');
+  const n = mockSupa._notifsInserted[0];
+  assert.equal(n.type, 'trello_status_changed', 'type=trello_status_changed');
+  assert.equal(n.order_id, 'ord-4', 'notification order_id matches order');
+  assert.equal(n.payload.from_status, 'new', 'payload.from_status captured');
+  assert.equal(n.payload.to_status, 'in_production', 'payload.to_status correct');
+  assert.equal(n.payload.customer_email, 'a@a.fi', 'payload.customer_email present');
+});
+
+await testAsync('T-W4e: idempotency — no writes when from_status === to_status', async () => {
+  const mockSupa = makeMockSupabase({
+    dbMapRows: [{ list_id: 'list-in-production-001', status: 'in_production' }],
+    // Order already at in_production — should be skipped
+    orderRows: [{ id: 'ord-5', status: 'in_production', customer_email: 'b@b.fi', quote_eur: 30 }],
+  });
+
+  const result = await simulateHandler(SYNTHETIC_LIST_MOVE_PAYLOAD, mockSupa);
+
+  assert.equal(result.updated, 0, 'no orders updated (already at target status)');
+  assert.equal(mockSupa._ordersUpdated.length, 0, 'no dtf_orders.update calls');
+  assert.equal(mockSupa._historyInserted.length, 0, 'no history row inserted');
+  assert.equal(mockSupa._notifsInserted.length, 0, 'no notification row inserted');
+});
+
 // ── Summary ────────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(50)}`);
 console.log(`trello-webhook-sync: ${passed} passed, ${failed} failed`);

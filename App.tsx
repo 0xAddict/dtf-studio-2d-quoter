@@ -33,6 +33,12 @@ function App() {
               element={<DTFQuoter />}
             />
 
+            {/* /quoter alias — same component, supports ?admin=1&assign= param */}
+            <Route
+              path="/quoter"
+              element={<DTFQuoter />}
+            />
+
             {/* My Quotes page (protected) */}
             <Route
               path="/my-quotes"
