@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, Loader2, AlertCircle } from 'lucide-react';
+import { X, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SignUpModalProps {
@@ -8,6 +8,15 @@ interface SignUpModalProps {
   onSwitchToSignIn: () => void;
   onSuccess: () => void;
 }
+
+const PAPER = '#f4e4bc';
+const PAPER_2 = '#e8d8b0';
+const FIELD = '#fbf2d6';
+const INK = '#1a1a1a';
+const INK_SOFT = '#44423d';
+const CRIMSON = '#b22222';
+const SERIF = "'Source Serif 4','Source Serif Pro',Georgia,serif";
+const MONO = "'IBM Plex Mono','Courier New',monospace";
 
 export const SignUpModal: React.FC<SignUpModalProps> = ({
   isOpen,
@@ -26,203 +35,276 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-    // Clear error when user starts typing
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     if (error) setError('');
   };
 
   const validateForm = () => {
     if (!formData.name.trim()) {
-      setError('Please enter your name');
+      setError('Anna nimesi');
       return false;
     }
-
     if (!formData.email.trim()) {
-      setError('Please enter your email');
+      setError('Anna sähköpostiosoitteesi');
       return false;
     }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      setError('Please enter a valid email address');
+      setError('Anna kelvollinen sähköpostiosoite');
       return false;
     }
-
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError('Salasanan tulee olla vähintään 8 merkkiä');
       return false;
     }
-
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Salasanat eivät täsmää');
       return false;
     }
-
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
-
     setIsSubmitting(true);
     setError('');
-
     try {
-      const { data, error: signUpError } = await signUp({
+      const { error: signUpError } = await signUp({
         email: formData.email,
         password: formData.password,
         name: formData.name,
       });
-
       if (signUpError) {
-        setError(signUpError.message || 'Failed to create account');
+        setError(signUpError.message || 'Tilin luonti epäonnistui');
         setIsSubmitting(false);
         return;
       }
-
-      // Success - show verification modal
       onSuccess();
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      setError(err.message || 'Odottamaton virhe');
       setIsSubmitting(false);
     }
   };
 
   const handleBackdropClick = () => {
-    // Don't allow closing by clicking backdrop
-    // User must either sign up, switch to sign in, or close with X button
+    // Click-outside disabled
   };
-
-  const handleModalClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
+  const handleModalClick = (e: React.MouseEvent) => e.stopPropagation();
 
   if (!isOpen) return null;
 
-  // Password strength indicator
+  // Password strength
   const getPasswordStrength = () => {
-    const password = formData.password;
-    if (password.length === 0) return { strength: 0, label: '' };
-    if (password.length < 8) return { strength: 1, label: 'Weak', color: 'bg-red-500' };
-    if (password.length < 12) return { strength: 2, label: 'Fair', color: 'bg-yellow-500' };
-    if (password.length < 16) return { strength: 3, label: 'Good', color: 'bg-blue-500' };
-    return { strength: 4, label: 'Strong', color: 'bg-green-500' };
+    const p = formData.password;
+    if (p.length === 0) return { strength: 0, label: '', color: PAPER_2 };
+    if (p.length < 8) return { strength: 1, label: 'Heikko', color: CRIMSON };
+    if (p.length < 12) return { strength: 2, label: 'Kohtalainen', color: '#d4a017' };
+    if (p.length < 16) return { strength: 3, label: 'Hyvä', color: '#2d5a4f' };
+    return { strength: 4, label: 'Vahva', color: '#1a5a3f' };
   };
-
   const passwordStrength = getPasswordStrength();
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '10px 12px',
+    background: FIELD,
+    border: `2px solid ${INK}`,
+    borderRadius: 0,
+    fontFamily: SERIF,
+    fontSize: '15px',
+    color: INK,
+    outline: 'none',
+  };
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontFamily: MONO,
+    fontSize: '11px',
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: INK,
+    marginBottom: '6px',
+  };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-fade-in"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+        background: 'rgba(26,26,26,0.55)',
+      }}
       onClick={handleBackdropClick}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="signup-modal-title"
-        className="glass-heavy rounded-2xl shadow-2xl w-full max-w-md border border-gray-200/50 dark:border-slate-700/50 animate-scale-in"
         onClick={handleModalClick}
+        style={{
+          width: '100%',
+          maxWidth: '480px',
+          background: PAPER,
+          border: `2px solid ${INK}`,
+          borderRadius: 0,
+          boxShadow: `8px 8px 0 ${INK}`,
+          maxHeight: '90vh',
+          overflowY: 'auto',
+        }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-slate-700/50">
-          <h2 id="signup-modal-title" className="text-2xl font-bold text-gray-900 dark:text-white">
-            Create Account
-          </h2>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            padding: '20px 24px 16px',
+            borderBottom: `2px solid ${CRIMSON}`,
+          }}
+        >
+          <div>
+            <p
+              style={{
+                margin: 0,
+                fontFamily: MONO,
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: INK,
+                opacity: 0.7,
+              }}
+            >
+              DTF STUDIO HELSINKI
+            </p>
+            <h2
+              id="signup-modal-title"
+              style={{
+                margin: '4px 0 0',
+                fontFamily: SERIF,
+                fontSize: '24px',
+                fontWeight: 600,
+                color: INK,
+              }}
+            >
+              Rekisteröidy
+            </h2>
+          </div>
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="p-2.5 rounded-xl hover:bg-gray-100/80 dark:hover:bg-slate-800/80 transition-colors text-gray-500 dark:text-gray-400 disabled:opacity-50 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label="Close"
+            aria-label="Sulje"
+            style={{
+              minWidth: '44px',
+              minHeight: '44px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'transparent',
+              border: 'none',
+              color: INK,
+              cursor: 'pointer',
+              opacity: isSubmitting ? 0.4 : 1,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = PAPER_2)}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
-            <X className="w-5 h-5" />
+            <X style={{ width: '20px', height: '20px' }} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} style={{ padding: '20px 24px 24px' }}>
           {/* Name */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Name <span className="text-red-500">*</span>
+          <div style={{ marginBottom: '16px' }}>
+            <label htmlFor="name" style={labelStyle}>
+              Nimi <span style={{ color: CRIMSON }}>*</span>
             </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full pl-10 pr-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="John Doe"
-                required
-                disabled={isSubmitting}
-              />
-            </div>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Etunimi Sukunimi"
+              required
+              disabled={isSubmitting}
+              style={inputStyle}
+              onFocus={e => (e.currentTarget.style.outline = `2px solid ${CRIMSON}`)}
+              onBlur={e => (e.currentTarget.style.outline = 'none')}
+            />
           </div>
 
           {/* Email */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email <span className="text-red-500">*</span>
+          <div style={{ marginBottom: '16px' }}>
+            <label htmlFor="email" style={labelStyle}>
+              Sähköposti <span style={{ color: CRIMSON }}>*</span>
             </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full pl-10 pr-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="you@example.com"
-                required
-                disabled={isSubmitting}
-              />
-            </div>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="sinä@esimerkki.fi"
+              required
+              disabled={isSubmitting}
+              style={inputStyle}
+              onFocus={e => (e.currentTarget.style.outline = `2px solid ${CRIMSON}`)}
+              onBlur={e => (e.currentTarget.style.outline = 'none')}
+            />
           </div>
 
           {/* Password */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Password <span className="text-red-500">*</span>
+          <div style={{ marginBottom: '16px' }}>
+            <label htmlFor="password" style={labelStyle}>
+              Salasana <span style={{ color: CRIMSON }}>*</span>
             </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full pl-10 pr-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="••••••••"
-                required
-                minLength={8}
-                disabled={isSubmitting}
-              />
-            </div>
-            {/* Password Strength Indicator */}
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              required
+              minLength={8}
+              disabled={isSubmitting}
+              style={inputStyle}
+              onFocus={e => (e.currentTarget.style.outline = `2px solid ${CRIMSON}`)}
+              onBlur={e => (e.currentTarget.style.outline = 'none')}
+            />
             {formData.password && (
-              <div className="mt-2">
-                <div className="flex gap-1 mb-1">
-                  {[1, 2, 3, 4].map((level) => (
+              <div style={{ marginTop: '8px' }}>
+                <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                  {[1, 2, 3, 4].map(level => (
                     <div
                       key={level}
-                      className={`h-1 flex-1 rounded-full ${
-                        level <= passwordStrength.strength ? passwordStrength.color : 'bg-gray-200 dark:bg-slate-700'
-                      }`}
+                      style={{
+                        height: '3px',
+                        flex: 1,
+                        background: level <= passwordStrength.strength ? passwordStrength.color : PAPER_2,
+                      }}
                     />
                   ))}
                 </div>
                 {passwordStrength.label && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Password strength: {passwordStrength.label}
+                  <p
+                    style={{
+                      margin: 0,
+                      fontFamily: MONO,
+                      fontSize: '10px',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: INK_SOFT,
+                    }}
+                  >
+                    Vahvuus: {passwordStrength.label}
                   </p>
                 )}
               </div>
@@ -230,62 +312,110 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
           </div>
 
           {/* Confirm Password */}
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Confirm Password <span className="text-red-500">*</span>
+          <div style={{ marginBottom: '16px' }}>
+            <label htmlFor="confirmPassword" style={labelStyle}>
+              Vahvista salasana <span style={{ color: CRIMSON }}>*</span>
             </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="w-full pl-10 pr-3 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="••••••••"
-                required
-                disabled={isSubmitting}
-              />
-            </div>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="••••••••"
+              required
+              disabled={isSubmitting}
+              style={inputStyle}
+              onFocus={e => (e.currentTarget.style.outline = `2px solid ${CRIMSON}`)}
+              onBlur={e => (e.currentTarget.style.outline = 'none')}
+            />
           </div>
 
-          {/* Error Message */}
+          {/* Error */}
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2" role="alert">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+            <div
+              role="alert"
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                padding: '10px 12px',
+                background: PAPER_2,
+                borderLeft: `3px solid ${CRIMSON}`,
+                marginBottom: '16px',
+              }}
+            >
+              <AlertCircle style={{ width: '18px', height: '18px', color: CRIMSON, flexShrink: 0, marginTop: '1px' }} />
+              <p style={{ margin: 0, fontFamily: MONO, fontSize: '12px', color: INK, lineHeight: 1.5 }}>{error}</p>
             </div>
           )}
 
-          {/* Submit Button */}
+          {/* Submit */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-3.5 rounded-xl font-medium transition-all duration-200 disabled:cursor-not-allowed min-h-[48px] shadow-sm hover:shadow-md"
+            style={{
+              width: '100%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              minHeight: '48px',
+              padding: '12px 18px',
+              background: INK,
+              color: PAPER,
+              border: `2px solid ${INK}`,
+              borderRadius: 0,
+              fontFamily: MONO,
+              fontSize: '13px',
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              opacity: isSubmitting ? 0.6 : 1,
+            }}
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Creating account...
+                <Loader2 style={{ width: '16px', height: '16px' }} className="animate-spin" />
+                LADATAAN…
               </>
             ) : (
-              <>
-                Create Account
-              </>
+              <>LUO TILI</>
             )}
           </button>
 
-          {/* Switch to Sign In */}
-          <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-            Already have an account?{' '}
+          {/* Switch */}
+          <p
+            style={{
+              textAlign: 'center',
+              marginTop: '16px',
+              marginBottom: 0,
+              fontFamily: SERIF,
+              fontSize: '14px',
+              color: INK_SOFT,
+            }}
+          >
+            Onko jo tili?{' '}
             <button
               type="button"
               onClick={onSwitchToSignIn}
               disabled={isSubmitting}
-              className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium disabled:opacity-50"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: CRIMSON,
+                fontFamily: SERIF,
+                fontSize: '14px',
+                fontWeight: 600,
+                textDecoration: 'underline',
+                textUnderlineOffset: '3px',
+                cursor: 'pointer',
+                padding: 0,
+                opacity: isSubmitting ? 0.5 : 1,
+              }}
             >
-              Sign in
+              Kirjaudu sisään
             </button>
           </p>
         </form>
