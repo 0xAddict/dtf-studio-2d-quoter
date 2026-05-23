@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 // tokens.css owned by epic 02-admin-branding — this component is a read-only consumer
 // of --color-* aliases (set up in index.html :root from the canonical token values).
+// Font families via var(--mono) / var(--serif) (bare brand tokens, not color namespace).
 
 interface SignUpModalProps {
   isOpen: boolean;
@@ -26,6 +27,52 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap + ESC handler
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (!isSubmitting) onClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    // Move focus into dialog on open
+    const raf = requestAnimationFrame(() => {
+      const dialog = dialogRef.current;
+      const firstInput = dialog?.querySelector<HTMLElement>('input');
+      firstInput?.focus();
+    });
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      cancelAnimationFrame(raf);
+    };
+  }, [isOpen, isSubmitting, onClose]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -80,21 +127,19 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
     }
   };
 
-  const handleBackdropClick = () => {
-    // Click-outside disabled
-  };
   const handleModalClick = (e: React.MouseEvent) => e.stopPropagation();
 
   if (!isOpen) return null;
 
-  // Password strength — uses token-safe color expressions (no hardcoded hex for tokens)
+  // Password strength — all colors via brand tokens; no hardcoded hex
+  // Levels: empty → none; weak (<8) → accent/crimson; fair (8-11) → cure/gold; good (12-15) → ink (dark); strong (≥16) → ink
   const getPasswordStrength = () => {
     const p = formData.password;
     if (p.length === 0) return { strength: 0, label: '', colorVar: 'var(--color-paper-2)' };
-    if (p.length < 8)  return { strength: 1, label: 'Heikko',     colorVar: 'var(--color-accent)' };
-    if (p.length < 12) return { strength: 2, label: 'Kohtalainen', colorVar: '#d4a017' };
-    if (p.length < 16) return { strength: 3, label: 'Hyvä',       colorVar: '#2d5a4f' };
-    return               { strength: 4, label: 'Vahva',      colorVar: '#1a5a3f' };
+    if (p.length < 8)  return { strength: 1, label: 'Heikko',      colorVar: 'var(--color-accent)' };
+    if (p.length < 12) return { strength: 2, label: 'Kohtalainen', colorVar: 'var(--color-cure)' };
+    if (p.length < 16) return { strength: 3, label: 'Hyvä',        colorVar: 'var(--color-ink-soft)' };
+    return               { strength: 4, label: 'Vahva',       colorVar: 'var(--color-ink)' };
   };
   const passwordStrength = getPasswordStrength();
 
@@ -104,14 +149,14 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
     background: 'var(--color-field)',
     border: '2px solid var(--color-ink)',
     borderRadius: 0,
-    fontFamily: 'var(--color-serif)',
+    fontFamily: 'var(--serif)',
     fontSize: '15px',
     color: 'var(--color-ink)',
     outline: 'none',
   };
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    fontFamily: 'var(--color-mono)',
+    fontFamily: 'var(--mono)',
     fontSize: '11px',
     fontWeight: 600,
     letterSpacing: '0.12em',
@@ -132,9 +177,9 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
         padding: '16px',
         background: 'rgba(26,26,26,0.55)',
       }}
-      onClick={handleBackdropClick}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="signup-modal-title"
@@ -164,7 +209,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
             <p
               style={{
                 margin: 0,
-                fontFamily: 'var(--color-mono)',
+                fontFamily: 'var(--mono)',
                 fontSize: '11px',
                 fontWeight: 600,
                 letterSpacing: '0.12em',
@@ -175,12 +220,12 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
             >
               DTF STUDIO HELSINKI
             </p>
-            {/* Vahvista tilaus — branded Finnish for account creation */}
+            {/* Rekisteröidy — branded Finnish for account creation */}
             <h2
               id="signup-modal-title"
               style={{
                 margin: '4px 0 0',
-                fontFamily: 'var(--color-serif)',
+                fontFamily: 'var(--serif)',
                 fontSize: '24px',
                 fontWeight: 600,
                 color: 'var(--color-ink)',
@@ -212,21 +257,20 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '20px 24px 24px' }}>
+        {/* Form — noValidate so custom Finnish validation fires first */}
+        <form onSubmit={handleSubmit} noValidate style={{ padding: '20px 24px 24px' }}>
           {/* Name */}
           <div style={{ marginBottom: '16px' }}>
-            <label htmlFor="name" style={labelStyle}>
+            <label htmlFor="su-name" style={labelStyle}>
               Nimi <span style={{ color: 'var(--color-accent)' }}>*</span>
             </label>
             <input
               type="text"
-              id="name"
+              id="su-name"
               name="name"
               value={formData.name}
               onChange={handleChange}
               placeholder="Etunimi Sukunimi"
-              required
               disabled={isSubmitting}
               style={inputStyle}
               onFocus={e => (e.currentTarget.style.outline = '2px solid var(--color-accent)')}
@@ -236,17 +280,16 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
 
           {/* Email */}
           <div style={{ marginBottom: '16px' }}>
-            <label htmlFor="email" style={labelStyle}>
+            <label htmlFor="su-email" style={labelStyle}>
               Sähköposti <span style={{ color: 'var(--color-accent)' }}>*</span>
             </label>
             <input
               type="email"
-              id="email"
+              id="su-email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               placeholder="sinä@esimerkki.fi"
-              required
               disabled={isSubmitting}
               style={inputStyle}
               onFocus={e => (e.currentTarget.style.outline = '2px solid var(--color-accent)')}
@@ -256,18 +299,16 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
 
           {/* Password */}
           <div style={{ marginBottom: '16px' }}>
-            <label htmlFor="password" style={labelStyle}>
+            <label htmlFor="su-password" style={labelStyle}>
               Salasana <span style={{ color: 'var(--color-accent)' }}>*</span>
             </label>
             <input
               type="password"
-              id="password"
+              id="su-password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
-              required
-              minLength={8}
               disabled={isSubmitting}
               style={inputStyle}
               onFocus={e => (e.currentTarget.style.outline = '2px solid var(--color-accent)')}
@@ -291,7 +332,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
                   <p
                     style={{
                       margin: 0,
-                      fontFamily: 'var(--color-mono)',
+                      fontFamily: 'var(--mono)',
                       fontSize: '10px',
                       letterSpacing: '0.08em',
                       textTransform: 'uppercase',
@@ -307,17 +348,16 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
 
           {/* Confirm Password — Vahvista salasana */}
           <div style={{ marginBottom: '16px' }}>
-            <label htmlFor="confirmPassword" style={labelStyle}>
+            <label htmlFor="su-confirmPassword" style={labelStyle}>
               Vahvista salasana <span style={{ color: 'var(--color-accent)' }}>*</span>
             </label>
             <input
               type="password"
-              id="confirmPassword"
+              id="su-confirmPassword"
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
               placeholder="••••••••"
-              required
               disabled={isSubmitting}
               style={inputStyle}
               onFocus={e => (e.currentTarget.style.outline = '2px solid var(--color-accent)')}
@@ -340,7 +380,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
               }}
             >
               <AlertCircle style={{ width: '18px', height: '18px', color: 'var(--color-accent)', flexShrink: 0, marginTop: '1px' }} />
-              <p style={{ margin: 0, fontFamily: 'var(--color-mono)', fontSize: '12px', color: 'var(--color-ink)', lineHeight: 1.5 }}>{error}</p>
+              <p style={{ margin: 0, fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--color-ink)', lineHeight: 1.5 }}>{error}</p>
             </div>
           )}
 
@@ -360,7 +400,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
               color: 'var(--color-paper)',
               border: '2px solid var(--color-ink)',
               borderRadius: 0,
-              fontFamily: 'var(--color-mono)',
+              fontFamily: 'var(--mono)',
               fontSize: '13px',
               fontWeight: 600,
               letterSpacing: '0.08em',
@@ -385,7 +425,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
               textAlign: 'center',
               marginTop: '16px',
               marginBottom: 0,
-              fontFamily: 'var(--color-serif)',
+              fontFamily: 'var(--serif)',
               fontSize: '14px',
               color: 'var(--color-ink-soft)',
             }}
@@ -399,7 +439,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
                 background: 'transparent',
                 border: 'none',
                 color: 'var(--color-accent)',
-                fontFamily: 'var(--color-serif)',
+                fontFamily: 'var(--serif)',
                 fontSize: '14px',
                 fontWeight: 600,
                 textDecoration: 'underline',

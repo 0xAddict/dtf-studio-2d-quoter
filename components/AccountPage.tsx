@@ -66,12 +66,12 @@ export const AccountPage: React.FC = () => {
   return (
     <div
       className="min-h-screen"
-      style={{ background: 'var(--paper)', fontFamily: 'var(--serif)' }}
+      style={{ background: 'var(--color-paper)', fontFamily: 'var(--serif)' }}
     >
       {/* Header */}
       <header
         className="sticky top-0 z-10"
-        style={{ background: 'var(--paper)', borderBottom: '2px solid var(--ink)' }}
+        style={{ background: 'var(--color-paper)', borderBottom: '2px solid var(--color-ink)' }}
       >
         <div
           className="max-w-5xl mx-auto px-4"
@@ -81,7 +81,7 @@ export const AccountPage: React.FC = () => {
             onClick={() => navigate('/')}
             style={{
               background: 'transparent',
-              border: '2px solid var(--ink)',
+              border: '2px solid var(--color-ink)',
               borderRadius: '2px',
               cursor: 'pointer',
               width: '44px',
@@ -93,11 +93,11 @@ export const AccountPage: React.FC = () => {
             }}
             aria-label="Takaisin"
           >
-            <ArrowLeft className="w-5 h-5" style={{ color: 'var(--ink)' }} />
+            <ArrowLeft className="w-5 h-5" style={{ color: 'var(--color-ink)' }} />
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1
-              style={{ fontFamily: 'var(--serif)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--ink)' }}
+              style={{ fontFamily: 'var(--serif)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-ink)' }}
             >
               Tilaukset
             </h1>
@@ -110,7 +110,7 @@ export const AccountPage: React.FC = () => {
             disabled={loading}
             style={{
               background: 'transparent',
-              border: '2px solid var(--ink)',
+              border: '2px solid var(--color-ink)',
               borderRadius: '2px',
               cursor: 'pointer',
               width: '44px',
@@ -125,7 +125,7 @@ export const AccountPage: React.FC = () => {
           >
             <RefreshCw
               className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
-              style={{ color: 'var(--ink)' }}
+              style={{ color: 'var(--color-ink)' }}
             />
           </button>
         </div>
@@ -160,22 +160,22 @@ export const AccountPage: React.FC = () => {
               style={{
                 width: '64px',
                 height: '64px',
-                border: '2px solid var(--ink)',
+                border: '2px solid var(--color-ink)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <ShoppingBag className="w-8 h-8" style={{ color: 'var(--ink)' }} />
+              <ShoppingBag className="w-8 h-8" style={{ color: 'var(--color-ink)' }} />
             </div>
             <div>
               <p className="kicker kicker--crimson" style={{ marginBottom: '4px' }}>TILAUSHISTORIA</p>
               <h3
-                style={{ fontFamily: 'var(--serif)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '8px' }}
+                style={{ fontFamily: 'var(--serif)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '8px' }}
               >
                 Ei tilauksia vielä
               </h3>
-              <p style={{ color: 'var(--ink-soft)', fontSize: '0.875rem', maxWidth: '320px', margin: '0 auto' }}>
+              <p style={{ color: 'var(--color-ink-soft)', fontSize: '0.875rem', maxWidth: '320px', margin: '0 auto' }}>
                 Kun lähetät tarjouspyynnön, se näkyy täällä tilaushistoriana.
               </p>
             </div>
@@ -199,7 +199,7 @@ export const AccountPage: React.FC = () => {
             <div
               style={{
                 padding: '12px 20px',
-                borderBottom: '1px solid var(--paper-2)',
+                borderBottom: '1px solid var(--color-paper-2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -215,7 +215,7 @@ export const AccountPage: React.FC = () => {
             >
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid var(--ink)', background: 'var(--paper)' }}>
+                  <tr style={{ borderBottom: '2px solid var(--color-ink)', background: 'var(--color-paper)' }}>
                     {['TILAUS-ID', 'PÄIVÄMÄÄRÄ', 'HINTA (€)', 'TILA', 'GANG SHEET', ''].map((h, i) => (
                       <th
                         key={i}
@@ -227,7 +227,7 @@ export const AccountPage: React.FC = () => {
                           fontWeight: 600,
                           textTransform: 'uppercase',
                           letterSpacing: '0.1em',
-                          color: 'var(--ink-soft)',
+                          color: 'var(--color-ink-soft)',
                         }}
                       >
                         {h}
@@ -240,20 +240,20 @@ export const AccountPage: React.FC = () => {
                     <tr
                       key={order.id}
                       style={{
-                        borderBottom: i < orders.length - 1 ? '1px solid var(--paper-2)' : 'none',
-                        background: i % 2 === 0 ? 'transparent' : 'var(--paper)',
+                        borderBottom: i < orders.length - 1 ? '1px solid var(--color-paper-2)' : 'none',
+                        background: i % 2 === 0 ? 'transparent' : 'var(--color-paper)',
                         transition: 'background 0.1s',
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--field)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'var(--paper)')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-field)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'var(--color-paper)')}
                     >
-                      <td style={{ padding: '14px 20px', fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--ink)' }}>
+                      <td style={{ padding: '14px 20px', fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--color-ink)' }}>
                         DTF-{shortOrderId(order.id)}
                       </td>
-                      <td style={{ padding: '14px 20px', fontFamily: 'var(--serif)', color: 'var(--ink)' }}>
+                      <td style={{ padding: '14px 20px', fontFamily: 'var(--serif)', color: 'var(--color-ink)' }}>
                         {formatDate(order.created_at)}
                       </td>
-                      <td style={{ padding: '14px 20px', textAlign: 'right', fontFamily: 'var(--serif)', fontWeight: 600, color: 'var(--ink)' }}>
+                      <td style={{ padding: '14px 20px', textAlign: 'right', fontFamily: 'var(--serif)', fontWeight: 600, color: 'var(--color-ink)' }}>
                         {Number(order.quote_eur).toFixed(2)}
                       </td>
                       <td style={{ padding: '14px 20px', textAlign: 'center' }}>
@@ -283,7 +283,7 @@ export const AccountPage: React.FC = () => {
                             Lataa PDF
                           </a>
                         ) : (
-                          <span style={{ color: 'var(--ink-soft)', fontFamily: 'var(--mono)', fontSize: '11px' }}>—</span>
+                          <span style={{ color: 'var(--color-ink-soft)', fontFamily: 'var(--mono)', fontSize: '11px' }}>—</span>
                         )}
                       </td>
                       <td style={{ padding: '14px 20px', textAlign: 'right' }}>
@@ -314,7 +314,7 @@ export const AccountPage: React.FC = () => {
             {/* Mobile card list */}
             <div
               className="sm:hidden"
-              style={{ borderTop: '1px solid var(--paper-2)' }}
+              style={{ borderTop: '1px solid var(--color-paper-2)' }}
             >
               {orders.map((order, i) => (
                 <Link
@@ -325,7 +325,7 @@ export const AccountPage: React.FC = () => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '14px 16px',
-                    borderBottom: i < orders.length - 1 ? '1px solid var(--paper-2)' : 'none',
+                    borderBottom: i < orders.length - 1 ? '1px solid var(--color-paper-2)' : 'none',
                     textDecoration: 'none',
                     background: 'transparent',
                     transition: 'background 0.1s',
@@ -337,14 +337,14 @@ export const AccountPage: React.FC = () => {
                       fontFamily: 'var(--mono)',
                       fontSize: '12px',
                       fontWeight: 600,
-                      color: 'var(--ink)',
+                      color: 'var(--color-ink)',
                       marginBottom: '4px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.06em',
                     }}>
                       DTF-{shortOrderId(order.id)}
                     </p>
-                    <p style={{ fontFamily: 'var(--mono)', fontSize: '11px', color: 'var(--ink-soft)' }}>
+                    <p style={{ fontFamily: 'var(--mono)', fontSize: '11px', color: 'var(--color-ink-soft)' }}>
                       {formatDate(order.created_at)} · {order.sheet_count} A3
                     </p>
                   </div>
@@ -356,11 +356,11 @@ export const AccountPage: React.FC = () => {
                       fontFamily: 'var(--serif)',
                       fontSize: '1rem',
                       fontWeight: 700,
-                      color: 'var(--ink)',
+                      color: 'var(--color-ink)',
                     }}>
                       {Number(order.quote_eur).toFixed(0)} €
                     </span>
-                    <ExternalLink className="w-4 h-4" style={{ color: 'var(--ink-soft)', flexShrink: 0 }} />
+                    <ExternalLink className="w-4 h-4" style={{ color: 'var(--color-ink-soft)', flexShrink: 0 }} />
                   </div>
                 </Link>
               ))}

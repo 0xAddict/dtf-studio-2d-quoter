@@ -29,10 +29,10 @@ import {
 // ── Status timeline — 4-step order progress tracker ──────────────
 // Steps: Tilaus vastaanotettu → Maksu vahvistettu → Tuotannossa → Lähetetty
 const TIMELINE_STEPS = [
-  { key: 'received',  label: 'Tilaus\nvastaanotettu' },
-  { key: 'paid',      label: 'Maksu\nvahvistettu' },
+  { key: 'received',   label: 'Tilaus\nvastaanotettu' },
+  { key: 'paid',       label: 'Maksu\nvahvistettu' },
   { key: 'production', label: 'Tuotannossa' },
-  { key: 'shipped',  label: 'Lähetetty' },
+  { key: 'shipped',    label: 'Lähetetty' },
 ] as const;
 
 type TimelineStepKey = typeof TIMELINE_STEPS[number]['key'];
@@ -48,6 +48,16 @@ function statusToTimelineStep(status: string): TimelineStepKey {
 
 const STEP_ORDER: TimelineStepKey[] = ['received', 'paid', 'production', 'shipped'];
 
+/** Human-readable Finnish caption for the active timeline step */
+function activeStepCaption(step: TimelineStepKey): string {
+  switch (step) {
+    case 'received':   return 'Tilaus vastaanotettu — odottaa maksuvahvistusta';
+    case 'paid':       return 'Maksu vahvistettu — tilauksesi siirretään tuotantoon';
+    case 'production': return 'Tuotannossa — valmistuu noin 2 päivän kuluessa';
+    case 'shipped':    return 'Lähetetty — tarkista sähköpostisi seurantatiedoista';
+  }
+}
+
 interface StatusTimelineProps {
   status: string;
 }
@@ -57,34 +67,47 @@ const StatusTimeline: React.FC<StatusTimelineProps> = ({ status }) => {
   const activeIdx = STEP_ORDER.indexOf(activeStep);
 
   return (
-    <div className="status-timeline" aria-label="Tilauksen eteneminen" role="list">
-      {TIMELINE_STEPS.map((step, idx) => {
-        const isDone = idx < activeIdx;
-        const isActive = idx === activeIdx;
-        const stepClass = [
-          'status-timeline__step',
-          isDone ? 'status-timeline__step--done' : '',
-          isActive ? 'status-timeline__step--active' : '',
-        ].filter(Boolean).join(' ');
+    <div>
+      <div className="status-timeline" aria-label="Tilauksen eteneminen" role="list">
+        {TIMELINE_STEPS.map((step, idx) => {
+          const isDone = idx < activeIdx;
+          const isActive = idx === activeIdx;
+          const stepClass = [
+            'status-timeline__step',
+            isDone ? 'status-timeline__step--done' : '',
+            isActive ? 'status-timeline__step--active' : '',
+          ].filter(Boolean).join(' ');
 
-        return (
-          <div key={step.key} className={stepClass} role="listitem" aria-current={isActive ? 'step' : undefined}>
-            <div className="status-timeline__dot">
-              {isDone && (
-                <Check
-                  style={{ width: '12px', height: '12px', color: 'var(--color-paper)', strokeWidth: 3 }}
-                />
-              )}
-              {isActive && (
-                <div
-                  style={{ width: '8px', height: '8px', background: 'var(--color-accent)' }}
-                />
-              )}
+          return (
+            <div key={step.key} className={stepClass} role="listitem" aria-current={isActive ? 'step' : undefined}>
+              <div className="status-timeline__dot">
+                {isDone && (
+                  <Check
+                    style={{ width: '12px', height: '12px', color: 'var(--color-paper)', strokeWidth: 3 }}
+                  />
+                )}
+                {isActive && (
+                  <div
+                    style={{ width: '8px', height: '8px', background: 'var(--color-accent)' }}
+                  />
+                )}
+              </div>
+              <span className="status-timeline__label">{step.label}</span>
             </div>
-            <span className="status-timeline__label">{step.label}</span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+      {/* Active step caption — plain-language description of current state */}
+      <p style={{
+        marginTop: '10px',
+        fontFamily: 'var(--mono)',
+        fontSize: '11px',
+        letterSpacing: '0.04em',
+        color: 'var(--color-ink-soft)',
+        fontStyle: 'italic',
+      }}>
+        {activeStepCaption(activeStep)}
+      </p>
     </div>
   );
 };
@@ -143,12 +166,12 @@ export const OrderDetailPage: React.FC = () => {
   return (
     <div
       className="min-h-screen"
-      style={{ background: 'var(--paper)', fontFamily: 'var(--serif)' }}
+      style={{ background: 'var(--color-paper)', fontFamily: 'var(--serif)' }}
     >
       {/* Header */}
       <header
         className="sticky top-0 z-10"
-        style={{ background: 'var(--paper)', borderBottom: '2px solid var(--ink)' }}
+        style={{ background: 'var(--color-paper)', borderBottom: '2px solid var(--color-ink)' }}
       >
         <div
           className="max-w-3xl mx-auto"
@@ -158,7 +181,7 @@ export const OrderDetailPage: React.FC = () => {
             onClick={() => navigate('/account')}
             style={{
               background: 'transparent',
-              border: '2px solid var(--ink)',
+              border: '2px solid var(--color-ink)',
               borderRadius: '2px',
               cursor: 'pointer',
               width: '44px',
@@ -170,10 +193,10 @@ export const OrderDetailPage: React.FC = () => {
             }}
             aria-label="Takaisin tilauslistaan"
           >
-            <ArrowLeft className="w-5 h-5" style={{ color: 'var(--ink)' }} />
+            <ArrowLeft className="w-5 h-5" style={{ color: 'var(--color-ink)' }} />
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 style={{ fontFamily: 'var(--serif)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--ink)' }}>
+            <h1 style={{ fontFamily: 'var(--serif)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-ink)' }}>
               {order ? `DTF-${shortOrderId(order.id)}` : 'Tilauksen tiedot'}
             </h1>
             {order && (
@@ -223,9 +246,42 @@ export const OrderDetailPage: React.FC = () => {
               <StatusTimeline status={order.status} />
             </div>
 
-            {/* Summary card */}
+            {/* Summary card — price lifted into total-panel for hierarchy */}
             <div className="brand-card" style={{ padding: '20px 24px' }}>
               <p className="kicker kicker--crimson" style={{ marginBottom: '4px' }}>YHTEENVETO</p>
+
+              {/* Total panel — price dominant, visually separated */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: '8px',
+                  padding: '12px 0 16px',
+                  borderBottom: '2px solid var(--color-ink)',
+                  marginBottom: '16px',
+                }}
+              >
+                <span style={{
+                  fontFamily: 'var(--mono)',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: 'var(--color-ink-soft)',
+                }}>
+                  YHTEISHINTA
+                </span>
+                <span style={{
+                  fontFamily: 'var(--serif)',
+                  fontSize: '2rem',
+                  fontWeight: 700,
+                  color: 'var(--color-accent)',
+                  lineHeight: 1,
+                }}>
+                  {Number(order.quote_eur).toFixed(2)} €
+                </span>
+              </div>
+
               <div className="section-header">Tilauksen tiedot</div>
               <div
                 style={{
@@ -237,12 +293,6 @@ export const OrderDetailPage: React.FC = () => {
               >
                 <InfoItem icon={<Tag className="w-4 h-4" />} label="Tilaus-ID" value={`DTF-${shortOrderId(order.id)}`} mono />
                 <InfoItem icon={<Calendar className="w-4 h-4" />} label="Tilauspäivä" value={formatDate(order.created_at)} />
-                <InfoItem
-                  icon={<Tag className="w-4 h-4" />}
-                  label="Hinta"
-                  value={`${Number(order.quote_eur).toFixed(2)} €`}
-                  highlight
-                />
                 <InfoItem icon={<Layers className="w-4 h-4" />} label="A3-arkkeja" value={`${order.sheet_count} kpl`} />
                 {order.material && (
                   <InfoItem icon={<Package className="w-4 h-4" />} label="Materiaali" value={order.material} />
@@ -257,8 +307,8 @@ export const OrderDetailPage: React.FC = () => {
               </div>
 
               {order.notes && (
-                <div style={{ paddingTop: '12px', borderTop: '1px solid var(--paper)', marginTop: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontFamily: 'var(--serif)', fontSize: '0.875rem', color: 'var(--ink-soft)' }}>
+                <div style={{ paddingTop: '12px', borderTop: '1px solid var(--color-paper-2)', marginTop: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontFamily: 'var(--serif)', fontSize: '0.875rem', color: 'var(--color-ink-soft)' }}>
                     <MessageSquare className="w-4 h-4" style={{ marginTop: '2px', flexShrink: 0 }} />
                     <p>{order.notes}</p>
                   </div>
@@ -321,18 +371,18 @@ export const OrderDetailPage: React.FC = () => {
                         alignItems: 'center',
                         gap: '6px',
                         padding: '10px',
-                        border: '2px solid var(--ink)',
-                        background: 'var(--paper)',
+                        border: '2px solid var(--color-ink)',
+                        background: 'var(--color-paper)',
                         textDecoration: 'none',
                         transition: 'border-color 0.1s, background 0.1s',
                       }}
                       onMouseEnter={e => {
                         (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--color-accent)';
-                        (e.currentTarget as HTMLAnchorElement).style.background = 'var(--field)';
+                        (e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-field)';
                       }}
                       onMouseLeave={e => {
                         (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--color-ink)';
-                        (e.currentTarget as HTMLAnchorElement).style.background = 'var(--paper)';
+                        (e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-paper)';
                       }}
                     >
                       {isImage(file.url) ? (
@@ -350,16 +400,16 @@ export const OrderDetailPage: React.FC = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: 'var(--paper-2)',
+                            background: 'var(--color-paper-2)',
                           }}
                         >
-                          <FileText className="w-8 h-8" style={{ color: 'var(--ink-soft)' }} />
+                          <FileText className="w-8 h-8" style={{ color: 'var(--color-ink-soft)' }} />
                         </div>
                       )}
                       <span style={{
                         fontFamily: 'var(--mono)',
                         fontSize: '10px',
-                        color: 'var(--ink-soft)',
+                        color: 'var(--color-ink-soft)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -389,9 +439,9 @@ const InfoItem: React.FC<{
   value: string;
   mono?: boolean;
   highlight?: boolean;
-}> = ({ icon, label, value, mono, highlight }) => (
+}> = ({ icon, label, value, mono }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontFamily: 'var(--mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink-soft)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontFamily: 'var(--mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-ink-soft)' }}>
       {icon}
       {label}
     </div>
@@ -399,7 +449,7 @@ const InfoItem: React.FC<{
       fontFamily: mono ? 'var(--mono)' : 'var(--serif)',
       fontSize: '0.9rem',
       fontWeight: 600,
-      color: highlight ? 'var(--color-accent)' : 'var(--ink)',
+      color: 'var(--color-ink)',
     }}>
       {value}
     </p>
