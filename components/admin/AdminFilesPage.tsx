@@ -137,7 +137,7 @@ export const AdminFilesPage: React.FC = () => {
         </div>
       ) : paginated.length === 0 ? (
         <div style={{ border: '2px solid #1a1a1a', padding: '32px', textAlign: 'center', ...MONO, fontSize: '11px', color: '#666' }}>
-          Ei tiedostoja hakuehdoilla
+          Ei tiedostoja näillä suodattimilla
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>

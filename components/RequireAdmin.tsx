@@ -42,7 +42,7 @@ export const RequireAdmin: React.FC<RequireAdminProps> = ({ children }) => {
           color: '#1a1a1a',
         }}
       >
-        Ladataan...
+        Haetaan käyttäjätietoja …
       </div>
     );
   }

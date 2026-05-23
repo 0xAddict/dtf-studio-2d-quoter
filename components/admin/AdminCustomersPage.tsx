@@ -157,7 +157,7 @@ export const AdminCustomersPage: React.FC = () => {
         </div>
       ) : displayed.length === 0 ? (
         <div style={{ border: '2px solid #1a1a1a', padding: '32px', textAlign: 'center', ...MONO, fontSize: '11px', color: '#666' }}>
-          Ei asiakkaita hakuehdoilla
+          Ei asiakkaita näillä suodattimilla
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>

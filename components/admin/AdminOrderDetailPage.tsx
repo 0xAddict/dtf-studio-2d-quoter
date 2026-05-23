@@ -62,6 +62,7 @@ export const AdminOrderDetailPage: React.FC = () => {
   // Override
   const [overrideLoading, setOverrideLoading] = useState(false);
   const [overrideMsg, setOverrideMsg] = useState<string | null>(null);
+  const [overrideSeverity, setOverrideSeverity] = useState<'success' | 'error'>('success');
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -118,8 +119,10 @@ export const AdminOrderDetailPage: React.FC = () => {
     const result = await adminSetRequiresPayment(id, newValue);
     if (result.ok) {
       setOrder(prev => prev ? { ...prev, requires_payment: newValue } : prev);
-      setOverrideMsg(newValue ? 'Maksu vaaditaan' : 'Laskutus (ei maksua)');
+      setOverrideSeverity('success');
+      setOverrideMsg(newValue ? 'Päivitetty: maksu vaaditaan' : 'Päivitetty: laskutus (ei maksua)');
     } else {
+      setOverrideSeverity('error');
       setOverrideMsg(`Hups — maksutilan muutos epäonnistui: ${result.error}`);
     }
     setOverrideLoading(false);
@@ -484,7 +487,7 @@ export const AdminOrderDetailPage: React.FC = () => {
                 </button>
               </div>
               {overrideMsg && (
-                <div style={{ ...MONO, fontSize: '10px', color: overrideMsg.startsWith('Virhe') ? '#b22222' : '#14532d', marginTop: '8px' }}>
+                <div style={{ ...MONO, fontSize: '10px', color: overrideSeverity === 'error' ? '#b22222' : '#14532d', marginTop: '8px' }}>
                   {overrideMsg}
                 </div>
               )}

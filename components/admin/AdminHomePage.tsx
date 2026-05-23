@@ -160,7 +160,7 @@ export const AdminHomePage: React.FC = () => {
             <StatCard label="Tuotannossa" value={stats.inProduction} href="/admin/orders?status=in_production" />
             <StatCard label="Odottaa maksua" value={stats.awaitingPayment} href="/admin/orders?payment=invoice_pending" />
             <StatCard label="Peruutettuja (30pv)" value={stats.cancelledThisMonth} href="/admin/orders?status=cancelled" />
-            <StatCard label="Tilausarvo keskimäärin (30 pv)" value={`€${stats.avgOrderValue.toFixed(0)}`} href="/admin/orders?payment=paid" unit="/ tilaus" />
+            <StatCard label="Tilauksen keskihinta (30 pv)" value={`€${stats.avgOrderValue.toFixed(0)}`} href="/admin/orders?payment=paid" unit="/ tilaus" />
           </div>
 
           {/* Recent activity */}

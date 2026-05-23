@@ -277,7 +277,7 @@ export const AdminOrdersPage: React.FC = () => {
         </div>
       ) : orders.length === 0 ? (
         <div style={{ border: '2px solid #1a1a1a', padding: '32px', background: '#e8d8b0', textAlign: 'center', ...MONO, fontSize: '11px', color: '#666' }}>
-          Ei tilauksia valituilla suodattimilla.
+          Ei tilauksia näillä suodattimilla
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>

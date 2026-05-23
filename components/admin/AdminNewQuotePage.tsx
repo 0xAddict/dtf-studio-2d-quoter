@@ -87,7 +87,7 @@ export const AdminNewQuotePage: React.FC = () => {
     const priceNum = parseFloat(quoteEur);
     if (!priceNum || priceNum <= 0) return setError('Anna hinta (yli 0 €)');
     const sheetsNum = parseInt(sheetCount);
-    if (!sheetsNum || sheetsNum < 1) return setError('Arkkeja pitää olla vähintään yksi');
+    if (!sheetsNum || sheetsNum < 1) return setError('Lisää vähintään yksi arkki');
     if (!adminId) return setError('Admin-istunto ei löydy — kirjaudu uudelleen');
 
     setSaving(true);
