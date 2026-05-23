@@ -2,7 +2,7 @@
  * AdminHomePage — /admin root
  * M4: Stats grid (6 cards) + recent activity feed from dtf_admin_notifications.
  * Each stat card links to pre-filtered /admin/orders.
- * Brand: manila/crimson/serif/mono, 2px borders.
+ * Brand tokens: var(--paper), var(--paper-2), var(--ink), var(--accent), var(--serif), var(--mono)
  */
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -27,8 +27,8 @@ interface NotificationRow {
   created_at: string;
 }
 
-const MONO: React.CSSProperties = { fontFamily: "'IBM Plex Mono', monospace" };
-const SERIF: React.CSSProperties = { fontFamily: "'Source Serif 4', Georgia, serif" };
+const MONO: React.CSSProperties = { fontFamily: 'var(--mono)' };
+const SERIF: React.CSSProperties = { fontFamily: 'var(--serif)' };
 
 const TYPE_LABELS: Record<string, string> = {
   new_quote: 'Uusi tarjous',
@@ -42,21 +42,21 @@ function StatCard({ label, value, href, unit }: { label: string; value: string |
     <Link to={href} style={{ display: 'block', textDecoration: 'none' }}>
       <div
         style={{
-          border: '2px solid #1a1a1a',
-          background: '#f4e4bc',
+          border: '2px solid var(--ink)',
+          background: 'var(--paper)',
           padding: '20px 24px',
           minHeight: '88px',
           transition: 'background 0.1s',
         }}
-        onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.background = '#e8d8b0')}
-        onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.background = '#f4e4bc')}
+        onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.background = 'var(--paper-2)')}
+        onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.background = 'var(--paper)')}
       >
         <div style={{
           ...MONO,
           fontSize: '10px',
           letterSpacing: '0.14em',
           textTransform: 'uppercase',
-          color: '#1a1a1a',
+          color: 'var(--ink)',
           marginBottom: '12px',
         }}>
           {label}
@@ -66,13 +66,13 @@ function StatCard({ label, value, href, unit }: { label: string; value: string |
             ...MONO,
             fontSize: '28px',
             fontWeight: 700,
-            color: '#b22222',
+            color: 'var(--accent)',
             lineHeight: 1,
           }}>
             {value}
           </div>
           {unit && (
-            <div style={{ ...MONO, fontSize: '11px', color: '#666' }}>{unit}</div>
+            <div style={{ ...MONO, fontSize: '11px', color: 'var(--muted)' }}>{unit}</div>
           )}
         </div>
       </div>
@@ -97,25 +97,12 @@ export const AdminHomePage: React.FC = () => {
     const monthAgoStr = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
     const [todayRes, weekRes, inProdRes, awaitingRes, cancelledRes, avg30Res, notifRes] = await Promise.all([
-      // Today new quotes count
       supabase.from('dtf_orders').select('id', { count: 'exact', head: true }).gte('created_at', todayStr),
-
-      // This week paid revenue
       supabase.from('dtf_orders').select('quote_eur').eq('payment_status', 'paid').gte('created_at', weekAgoStr),
-
-      // In production count
       supabase.from('dtf_orders').select('id', { count: 'exact', head: true }).eq('status', 'in_production'),
-
-      // Awaiting payment (invoice_pending)
       supabase.from('dtf_orders').select('id', { count: 'exact', head: true }).eq('payment_status', 'invoice_pending'),
-
-      // Cancelled this month
       supabase.from('dtf_orders').select('id', { count: 'exact', head: true }).eq('status', 'cancelled').gte('created_at', monthAgoStr),
-
-      // Avg order value last 30d (paid only)
       supabase.from('dtf_orders').select('quote_eur').eq('payment_status', 'paid').gte('created_at', monthAgoStr),
-
-      // Recent notifications (last 10)
       supabase.from('dtf_admin_notifications').select('*').order('created_at', { ascending: false }).limit(10),
     ]);
 
@@ -141,17 +128,17 @@ export const AdminHomePage: React.FC = () => {
   return (
     <AdminLayout>
       {/* Page header */}
-      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#b22222', marginBottom: '8px' }}>
+      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '8px' }}>
         01 · Yleiskatsaus
       </div>
-      <h1 style={{ ...SERIF, fontSize: '28px', fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px 0' }}>
+      <h1 style={{ ...SERIF, fontSize: '28px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 8px 0' }}>
         DTF Studio — Admin
       </h1>
-      <div style={{ width: '48px', height: '2px', background: '#b22222', marginBottom: '32px' }} />
+      <div style={{ width: '48px', height: '2px', background: 'var(--accent)', marginBottom: '32px' }} />
 
       {/* Stats grid */}
       {loading ? (
-        <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px 0' }}>Ladataan…</div>
+        <div style={{ ...MONO, fontSize: '11px', color: 'var(--muted)', padding: '24px 0' }}>Ladataan…</div>
       ) : stats && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px', marginBottom: '40px' }}>
@@ -165,35 +152,35 @@ export const AdminHomePage: React.FC = () => {
 
           {/* Recent activity */}
           <div>
-            <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#1a1a1a', marginBottom: '16px', borderBottom: '1px solid #1a1a1a', paddingBottom: '8px' }}>
+            <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: '16px', borderBottom: '1px solid var(--ink)', paddingBottom: '8px' }}>
               Viimeisimmät tapahtumat
             </div>
 
             {notifications.length === 0 ? (
-              <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '16px', border: '1px solid #e8d8b0', background: '#f4e4bc' }}>
+              <div style={{ ...MONO, fontSize: '11px', color: 'var(--muted)', padding: '16px', border: '1px solid var(--paper-2)', background: 'var(--paper)' }}>
                 Ei tapahtumia.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {notifications.map(n => (
-                  <div key={n.id} style={{ border: '1px solid #e8d8b0', padding: '12px 16px', background: n.read_at ? '#f4e4bc' : '#fffbf0', display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'center' }}>
+                  <div key={n.id} style={{ border: '1px solid var(--paper-2)', padding: '12px 16px', background: n.read_at ? 'var(--paper)' : 'var(--field)', display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'center' }}>
                     <div>
-                      <div style={{ ...MONO, fontSize: '11px', fontWeight: n.read_at ? 400 : 700, color: '#1a1a1a' }}>
+                      <div style={{ ...MONO, fontSize: '11px', fontWeight: n.read_at ? 400 : 700, color: 'var(--ink)' }}>
                         {TYPE_LABELS[n.type] ?? n.type}
                         {n.payload?.customer_email && (
-                          <span style={{ color: '#666', fontWeight: 400 }}> — {n.payload.customer_email}</span>
+                          <span style={{ color: 'var(--muted)', fontWeight: 400 }}> — {n.payload.customer_email}</span>
                         )}
                         {n.payload?.quote_eur && (
-                          <span style={{ color: '#b22222', fontWeight: 700 }}> €{Number(n.payload.quote_eur).toFixed(2)}</span>
+                          <span style={{ color: 'var(--accent)', fontWeight: 700 }}> €{Number(n.payload.quote_eur).toFixed(2)}</span>
                         )}
                       </div>
                       {n.order_id && (
-                        <Link to={`/admin/orders/${n.order_id}`} style={{ ...MONO, fontSize: '10px', color: '#b22222', textDecoration: 'underline' }}>
+                        <Link to={`/admin/orders/${n.order_id}`} style={{ ...MONO, fontSize: '10px', color: 'var(--accent)', textDecoration: 'underline' }}>
                           Tilaus #{n.order_id.slice(0, 8).toUpperCase()}
                         </Link>
                       )}
                     </div>
-                    <div style={{ ...MONO, fontSize: '10px', color: '#999', whiteSpace: 'nowrap' }}>
+                    <div style={{ ...MONO, fontSize: '10px', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
                       {new Date(n.created_at).toLocaleString('fi')}
                     </div>
                   </div>
@@ -201,7 +188,7 @@ export const AdminHomePage: React.FC = () => {
               </div>
             )}
 
-            <Link to="/admin/notifications" style={{ ...MONO, fontSize: '11px', color: '#b22222', textDecoration: 'underline', display: 'block', marginTop: '16px' }}>
+            <Link to="/admin/notifications" style={{ ...MONO, fontSize: '11px', color: 'var(--accent)', textDecoration: 'underline', display: 'block', marginTop: '16px' }}>
               Kaikki ilmoitukset →
             </Link>
           </div>

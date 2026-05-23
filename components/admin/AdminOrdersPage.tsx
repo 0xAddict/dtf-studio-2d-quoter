@@ -4,7 +4,7 @@
  * Columns: order#, email, status, total, payment, created_at
  * Filters: status (multi-select), payment status, search by email/order#
  * Pagination: 50/page, cursor-based via offset
- * Brand: manila/crimson/serif/mono, ≥44px touch targets
+ * Brand tokens: var(--paper), var(--paper-2), var(--ink), var(--accent), var(--serif), var(--mono)
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -28,22 +28,27 @@ const PAYMENT_LABELS: Record<DtfPaymentStatus, string> = {
   refunded: 'Hyvitetty', failed: 'Epäonnistui',
 };
 
-const MONO: React.CSSProperties = { fontFamily: "'IBM Plex Mono', monospace" };
-const SERIF: React.CSSProperties = { fontFamily: "'Source Serif 4', Georgia, serif" };
+const MONO: React.CSSProperties = { fontFamily: 'var(--mono)' };
+const SERIF: React.CSSProperties = { fontFamily: 'var(--serif)' };
 
+/**
+ * StatusChip — uses CSS custom property backgrounds.
+ * Non-brand semantic colors (blue, green, purple) are kept as named CSS colors
+ * so they remain accessible; only the brand palette uses var(--token).
+ */
 function StatusChip({ status }: { status: DtfOrderStatus }) {
   const colors: Record<DtfOrderStatus, { bg: string; color: string }> = {
-    quote: { bg: '#e8d8b0', color: '#1a1a1a' },
-    new: { bg: '#dbeafe', color: '#1e3a8a' },
-    confirmed: { bg: '#d1fae5', color: '#064e3b' },
-    in_design: { bg: '#ede9fe', color: '#4c1d95' },
-    in_production: { bg: '#fef9c3', color: '#78350f' },
-    packed: { bg: '#e0e7ff', color: '#1e1b4b' },
-    shipped: { bg: '#ffedd5', color: '#7c2d12' },
-    delivered: { bg: '#dcfce7', color: '#14532d' },
-    cancelled: { bg: '#fee2e2', color: '#7f1d1d' },
+    quote:         { bg: 'var(--paper-2)',   color: 'var(--ink)' },
+    new:           { bg: '#dbeafe',          color: '#1e3a8a' },
+    confirmed:     { bg: '#d1fae5',          color: '#064e3b' },
+    in_design:     { bg: '#ede9fe',          color: '#4c1d95' },
+    in_production: { bg: '#fef9c3',          color: '#78350f' },
+    packed:        { bg: '#e0e7ff',          color: '#1e1b4b' },
+    shipped:       { bg: '#ffedd5',          color: '#7c2d12' },
+    delivered:     { bg: '#dcfce7',          color: '#14532d' },
+    cancelled:     { bg: '#fee2e2',          color: '#7f1d1d' },
   };
-  const c = colors[status] ?? { bg: '#e8d8b0', color: '#1a1a1a' };
+  const c = colors[status] ?? { bg: 'var(--paper-2)', color: 'var(--ink)' };
   return (
     <span style={{
       ...MONO,
@@ -63,13 +68,13 @@ function StatusChip({ status }: { status: DtfOrderStatus }) {
 
 function PaymentChip({ status }: { status: DtfPaymentStatus }) {
   const colors: Record<DtfPaymentStatus, { bg: string; color: string }> = {
-    none: { bg: '#f4e4bc', color: '#666' },
-    invoice_pending: { bg: '#fef9c3', color: '#92400e' },
-    paid: { bg: '#dcfce7', color: '#14532d' },
-    refunded: { bg: '#e0e7ff', color: '#312e81' },
-    failed: { bg: '#fee2e2', color: '#7f1d1d' },
+    none:            { bg: 'var(--paper)',   color: 'var(--muted)' },
+    invoice_pending: { bg: '#fef9c3',        color: '#92400e' },
+    paid:            { bg: '#dcfce7',        color: '#14532d' },
+    refunded:        { bg: '#e0e7ff',        color: '#312e81' },
+    failed:          { bg: '#fee2e2',        color: '#7f1d1d' },
   };
-  const c = colors[status] ?? { bg: '#f4e4bc', color: '#666' };
+  const c = colors[status] ?? { bg: 'var(--paper)', color: 'var(--muted)' };
   return (
     <span style={{
       ...MONO,
@@ -91,7 +96,6 @@ export const AdminOrdersPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Read filters from URL
   const statusFilter = searchParams.getAll('status') as DtfOrderStatus[];
   const paymentFilter = searchParams.getAll('payment') as DtfPaymentStatus[];
   const searchQuery = searchParams.get('q') ?? '';
@@ -112,16 +116,9 @@ export const AdminOrdersPage: React.FC = () => {
       .order('created_at', { ascending: false })
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-    if (statusFilter.length > 0) {
-      query = query.in('status', statusFilter);
-    }
-    if (paymentFilter.length > 0) {
-      query = query.in('payment_status', paymentFilter);
-    }
-    if (searchQuery) {
-      // Search by email or UUID prefix
-      query = query.or(`customer_email.ilike.%${searchQuery}%,id.ilike.${searchQuery}%`);
-    }
+    if (statusFilter.length > 0) query = query.in('status', statusFilter);
+    if (paymentFilter.length > 0) query = query.in('payment_status', paymentFilter);
+    if (searchQuery) query = query.or(`customer_email.ilike.%${searchQuery}%,id.ilike.${searchQuery}%`);
 
     const { data, count, error: fetchErr } = await query;
 
@@ -178,17 +175,16 @@ export const AdminOrdersPage: React.FC = () => {
   return (
     <AdminLayout>
       {/* Header */}
-      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#b22222', marginBottom: '8px' }}>
+      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '8px' }}>
         02 · Tilaukset
       </div>
-      <h1 style={{ ...SERIF, fontSize: '24px', fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px 0' }}>
+      <h1 style={{ ...SERIF, fontSize: '24px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 8px 0' }}>
         Tilaukset
       </h1>
-      <div style={{ width: '48px', height: '2px', background: '#b22222', marginBottom: '24px' }} />
+      <div style={{ width: '48px', height: '2px', background: 'var(--accent)', marginBottom: '24px' }} />
 
       {/* Search + filters */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-        {/* Search */}
         <input
           type="text"
           value={searchQuery}
@@ -198,9 +194,9 @@ export const AdminOrdersPage: React.FC = () => {
             ...SERIF,
             fontSize: '1rem',
             padding: '10px 14px',
-            border: '2px solid #1a1a1a',
-            background: '#f4e4bc',
-            color: '#1a1a1a',
+            border: '2px solid var(--ink)',
+            background: 'var(--paper)',
+            color: 'var(--ink)',
             outline: 'none',
             borderRadius: '2px',
             maxWidth: '400px',
@@ -209,7 +205,7 @@ export const AdminOrdersPage: React.FC = () => {
 
         {/* Status filter pills */}
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#666', marginRight: '4px' }}>Tila:</span>
+          <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginRight: '4px' }}>Tila:</span>
           {ALL_STATUSES.map(s => (
             <button
               key={s}
@@ -221,9 +217,9 @@ export const AdminOrdersPage: React.FC = () => {
                 textTransform: 'uppercase',
                 padding: '4px 10px',
                 minHeight: '28px',
-                border: '1px solid #1a1a1a',
-                background: statusFilter.includes(s) ? '#1a1a1a' : '#f4e4bc',
-                color: statusFilter.includes(s) ? '#f4e4bc' : '#1a1a1a',
+                border: '1px solid var(--ink)',
+                background: statusFilter.includes(s) ? 'var(--ink)' : 'var(--paper)',
+                color: statusFilter.includes(s) ? 'var(--paper)' : 'var(--ink)',
                 cursor: 'pointer',
               }}
             >
@@ -231,7 +227,7 @@ export const AdminOrdersPage: React.FC = () => {
             </button>
           ))}
           {statusFilter.length > 0 && (
-            <button onClick={() => setFilter('status', [])} style={{ ...MONO, fontSize: '10px', color: '#b22222', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+            <button onClick={() => setFilter('status', [])} style={{ ...MONO, fontSize: '10px', color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
               Tyhjennä
             </button>
           )}
@@ -239,7 +235,7 @@ export const AdminOrdersPage: React.FC = () => {
 
         {/* Payment filter pills */}
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#666', marginRight: '4px' }}>Maksu:</span>
+          <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginRight: '4px' }}>Maksu:</span>
           {ALL_PAYMENT.map(p => (
             <button
               key={p}
@@ -251,9 +247,9 @@ export const AdminOrdersPage: React.FC = () => {
                 textTransform: 'uppercase',
                 padding: '4px 10px',
                 minHeight: '28px',
-                border: '1px solid #1a1a1a',
-                background: paymentFilter.includes(p) ? '#1a1a1a' : '#f4e4bc',
-                color: paymentFilter.includes(p) ? '#f4e4bc' : '#1a1a1a',
+                border: '1px solid var(--ink)',
+                background: paymentFilter.includes(p) ? 'var(--ink)' : 'var(--paper)',
+                color: paymentFilter.includes(p) ? 'var(--paper)' : 'var(--ink)',
                 cursor: 'pointer',
               }}
             >
@@ -264,26 +260,26 @@ export const AdminOrdersPage: React.FC = () => {
       </div>
 
       {/* Count + pagination info */}
-      <div style={{ ...MONO, fontSize: '11px', color: '#666', marginBottom: '12px' }}>
+      <div style={{ ...MONO, fontSize: '11px', color: 'var(--muted)', marginBottom: '12px' }}>
         {total} tilausta {totalPages > 1 ? `· sivu ${page}/${totalPages}` : ''}
       </div>
 
       {/* Table */}
       {loading ? (
-        <div style={{ ...MONO, fontSize: '11px', padding: '24px 0', color: '#666' }}>Ladataan…</div>
+        <div style={{ ...MONO, fontSize: '11px', padding: '24px 0', color: 'var(--muted)' }}>Ladataan…</div>
       ) : error ? (
-        <div style={{ border: '1px solid #b22222', padding: '16px', background: '#fff0f0', ...MONO, fontSize: '11px', color: '#b22222' }}>
+        <div style={{ border: '1px solid var(--accent)', padding: '16px', background: 'var(--field)', ...MONO, fontSize: '11px', color: 'var(--accent)' }}>
           Virhe: {error}
         </div>
       ) : orders.length === 0 ? (
-        <div style={{ border: '2px solid #1a1a1a', padding: '32px', background: '#e8d8b0', textAlign: 'center', ...MONO, fontSize: '11px', color: '#666' }}>
+        <div style={{ border: '2px solid var(--ink)', padding: '32px', background: 'var(--paper-2)', textAlign: 'center', ...MONO, fontSize: '11px', color: 'var(--muted)' }}>
           Ei tilauksia valituilla suodattimilla.
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', ...MONO }}>
             <thead>
-              <tr style={{ borderBottom: '2px solid #1a1a1a' }}>
+              <tr style={{ borderBottom: '2px solid var(--ink)' }}>
                 {['Tilaus #', 'Asiakas', 'Tila', 'Maksu', 'Hinta', 'Luotu'].map(col => (
                   <th key={col} style={{
                     ...MONO,
@@ -292,14 +288,14 @@ export const AdminOrdersPage: React.FC = () => {
                     textTransform: 'uppercase',
                     padding: '8px 12px',
                     textAlign: 'left',
-                    background: '#e8d8b0',
+                    background: 'var(--paper-2)',
                     fontWeight: 700,
                     whiteSpace: 'nowrap',
                   }}>
                     {col}
                   </th>
                 ))}
-                <th style={{ padding: '8px 12px', background: '#e8d8b0', width: '44px' }} />
+                <th style={{ padding: '8px 12px', background: 'var(--paper-2)', width: '44px' }} />
               </tr>
             </thead>
             <tbody>
@@ -308,12 +304,12 @@ export const AdminOrdersPage: React.FC = () => {
                   key={order.id}
                   onClick={() => navigate(`/admin/orders/${order.id}`)}
                   style={{
-                    borderBottom: '1px solid #e8d8b0',
-                    background: i % 2 === 0 ? '#f4e4bc' : '#faf0d8',
+                    borderBottom: '1px solid var(--paper-2)',
+                    background: i % 2 === 0 ? 'var(--paper)' : 'var(--field)',
                     cursor: 'pointer',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#e8d8b0')}
-                  onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? '#f4e4bc' : '#faf0d8')}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--paper-2)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? 'var(--paper)' : 'var(--field)')}
                 >
                   <td style={{ padding: '10px 12px', ...MONO, fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     {order.id.slice(0, 8).toUpperCase()}
@@ -327,14 +323,14 @@ export const AdminOrdersPage: React.FC = () => {
                   <td style={{ padding: '10px 12px' }}>
                     <PaymentChip status={order.payment_status} />
                   </td>
-                  <td style={{ padding: '10px 12px', ...MONO, fontSize: '12px', fontWeight: 700, color: '#b22222', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '10px 12px', ...MONO, fontSize: '12px', fontWeight: 700, color: 'var(--accent)', whiteSpace: 'nowrap' }}>
                     €{Number(order.quote_eur).toFixed(2)}
                   </td>
-                  <td style={{ padding: '10px 12px', ...MONO, fontSize: '10px', color: '#666', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '10px 12px', ...MONO, fontSize: '10px', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
                     {new Date(order.created_at).toLocaleDateString('fi')}
                   </td>
                   <td style={{ padding: '10px 12px', textAlign: 'center', minWidth: '44px', minHeight: '44px' }}>
-                    <span style={{ color: '#b22222', fontSize: '14px' }}>→</span>
+                    <span style={{ color: 'var(--accent)', fontSize: '14px' }}>→</span>
                   </td>
                 </tr>
               ))}
@@ -352,15 +348,15 @@ export const AdminOrdersPage: React.FC = () => {
             style={{
               ...MONO, fontSize: '11px', letterSpacing: '0.10em', textTransform: 'uppercase',
               padding: '8px 16px', minHeight: '44px',
-              border: '2px solid #1a1a1a',
-              background: page <= 1 ? '#e8d8b0' : '#1a1a1a',
-              color: page <= 1 ? '#aaa' : '#f4e4bc',
+              border: '2px solid var(--ink)',
+              background: page <= 1 ? 'var(--paper-2)' : 'var(--ink)',
+              color: page <= 1 ? 'var(--ink-soft)' : 'var(--paper)',
               cursor: page <= 1 ? 'default' : 'pointer',
             }}
           >
             ← Edellinen
           </button>
-          <span style={{ ...MONO, fontSize: '11px', color: '#666', padding: '0 8px' }}>
+          <span style={{ ...MONO, fontSize: '11px', color: 'var(--muted)', padding: '0 8px' }}>
             {page} / {totalPages}
           </span>
           <button
@@ -369,9 +365,9 @@ export const AdminOrdersPage: React.FC = () => {
             style={{
               ...MONO, fontSize: '11px', letterSpacing: '0.10em', textTransform: 'uppercase',
               padding: '8px 16px', minHeight: '44px',
-              border: '2px solid #1a1a1a',
-              background: page >= totalPages ? '#e8d8b0' : '#1a1a1a',
-              color: page >= totalPages ? '#aaa' : '#f4e4bc',
+              border: '2px solid var(--ink)',
+              background: page >= totalPages ? 'var(--paper-2)' : 'var(--ink)',
+              color: page >= totalPages ? 'var(--ink-soft)' : 'var(--paper)',
               cursor: page >= totalPages ? 'default' : 'pointer',
             }}
           >

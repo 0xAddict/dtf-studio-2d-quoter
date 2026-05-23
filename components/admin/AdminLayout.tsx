@@ -1,7 +1,6 @@
 /**
  * AdminLayout — shared chrome for all /admin/* pages.
- * Brand: Paper #f4e4bc, Ink #1a1a1a, Crimson #b22222
- * Source Serif 4 (body) + IBM Plex Mono (kickers/labels)
+ * Brand tokens: var(--paper), var(--paper-2), var(--ink), var(--accent), var(--serif), var(--mono)
  * 2px heavy edges, no gradients, no rounded-full.
  */
 import React, { useEffect, useState } from 'react';
@@ -59,16 +58,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     <div
       style={{
         minHeight: '100vh',
-        background: '#f4e4bc',
-        fontFamily: "'Source Serif 4', Georgia, serif",
-        color: '#1a1a1a',
+        background: 'var(--paper)',
+        fontFamily: 'var(--serif)',
+        color: 'var(--ink)',
       }}
     >
       {/* Top nav bar */}
       <header
         style={{
-          borderBottom: '2px solid #1a1a1a',
-          background: '#1a1a1a',
+          borderBottom: '2px solid var(--ink)',
+          background: 'var(--ink)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -81,12 +80,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <Link
             to="/admin"
             style={{
-              fontFamily: "'IBM Plex Mono', monospace",
+              fontFamily: 'var(--mono)',
               fontSize: '13px',
               fontWeight: 700,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              color: '#f4e4bc',
+              color: 'var(--paper)',
               textDecoration: 'none',
             }}
           >
@@ -94,12 +93,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </Link>
           <span
             style={{
-              fontFamily: "'IBM Plex Mono', monospace",
+              fontFamily: 'var(--mono)',
               fontSize: '10px',
               letterSpacing: '0.14em',
               textTransform: 'uppercase',
-              color: '#b22222',
-              border: '1px solid #b22222',
+              color: 'var(--accent)',
+              border: '1px solid var(--accent)',
               padding: '1px 6px',
             }}
           >
@@ -113,21 +112,21 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             display: 'flex',
             alignItems: 'center',
             gap: '16px',
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: 'var(--mono)',
             fontSize: '11px',
-            color: '#e8d8b0',
+            color: 'var(--paper-2)',
           }}
         >
           <span>{user?.email}</span>
 
           {/* Bell icon with unread count */}
           <Link to="/admin/notifications" style={{ position: 'relative', textDecoration: 'none', display: 'flex', alignItems: 'center', minWidth: '44px', minHeight: '44px', justifyContent: 'center' }}>
-            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '16px', color: '#e8d8b0' }}>🔔</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: '16px', color: 'var(--paper-2)' }}>🔔</span>
             {unreadCount > 0 && (
               <span style={{
                 position: 'absolute', top: '4px', right: '2px',
-                background: '#b22222', color: '#f4e4bc',
-                fontFamily: "'IBM Plex Mono', monospace",
+                background: 'var(--accent)', color: 'var(--paper)',
+                fontFamily: 'var(--mono)',
                 fontSize: '9px', fontWeight: 700,
                 padding: '1px 4px', borderRadius: '8px',
                 minWidth: '14px', textAlign: 'center',
@@ -140,13 +139,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <button
             onClick={() => signOut()}
             style={{
-              fontFamily: "'IBM Plex Mono', monospace",
+              fontFamily: 'var(--mono)',
               fontSize: '10px',
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              color: '#e8d8b0',
+              color: 'var(--paper-2)',
               background: 'transparent',
-              border: '1px solid #e8d8b0',
+              border: '1px solid var(--paper-2)',
               padding: '3px 10px',
               cursor: 'pointer',
               minWidth: '44px',
@@ -161,8 +160,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       {/* Secondary nav */}
       <nav
         style={{
-          borderBottom: '1px solid #1a1a1a',
-          background: '#e8d8b0',
+          borderBottom: '1px solid var(--ink)',
+          background: 'var(--paper-2)',
           display: 'flex',
           alignItems: 'center',
           padding: '0 24px',
@@ -177,14 +176,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               key={href}
               to={href}
               style={{
-                fontFamily: "'IBM Plex Mono', monospace",
+                fontFamily: 'var(--mono)',
                 fontSize: '11px',
                 letterSpacing: '0.10em',
                 textTransform: 'uppercase',
                 textDecoration: 'none',
-                color: active ? '#b22222' : '#1a1a1a',
+                color: active ? 'var(--accent)' : 'var(--ink)',
                 padding: '12px 16px',
-                borderBottom: active ? '2px solid #b22222' : '2px solid transparent',
+                borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent',
                 whiteSpace: 'nowrap',
                 display: 'flex',
                 minHeight: '44px',

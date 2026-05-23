@@ -5,6 +5,7 @@
  * Filter by customer email, order #, filename.
  * Click → preview modal + "Open order" link.
  * Capped at last 90 days orders.
+ * Brand tokens: var(--paper), var(--paper-2), var(--ink), var(--accent), var(--serif), var(--mono)
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -21,8 +22,8 @@ interface FileRecord {
 
 const PAGE_SIZE = 24;
 
-const MONO: React.CSSProperties = { fontFamily: "'IBM Plex Mono', monospace" };
-const SERIF: React.CSSProperties = { fontFamily: "'Source Serif 4', Georgia, serif" };
+const MONO: React.CSSProperties = { fontFamily: 'var(--mono)' };
+const SERIF: React.CSSProperties = { fontFamily: 'var(--serif)' };
 
 function isImageUrl(url: string): boolean {
   return /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(url);
@@ -43,7 +44,6 @@ export const AdminFilesPage: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    // Fetch orders from last 90 days with files
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     const { data, error: fetchErr } = await supabase
       .from('dtf_orders')
@@ -76,7 +76,6 @@ export const AdminFilesPage: React.FC = () => {
     setLoading(false);
   }
 
-  // Filter client-side
   const filtered = allFiles.filter(f => {
     if (customerFilter && !f.customerEmail.toLowerCase().includes(customerFilter.toLowerCase())) return false;
     if (search) {
@@ -91,13 +90,13 @@ export const AdminFilesPage: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#b22222', marginBottom: '8px' }}>
+      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '8px' }}>
         05 · Tiedostot
       </div>
-      <h1 style={{ ...SERIF, fontSize: '24px', fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px 0' }}>
+      <h1 style={{ ...SERIF, fontSize: '24px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 8px 0' }}>
         Tiedostot
       </h1>
-      <div style={{ width: '48px', height: '2px', background: '#b22222', marginBottom: '24px' }} />
+      <div style={{ width: '48px', height: '2px', background: 'var(--accent)', marginBottom: '24px' }} />
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
@@ -108,7 +107,7 @@ export const AdminFilesPage: React.FC = () => {
           placeholder="Hae tiedostonimellä tai tilauksella…"
           style={{
             ...SERIF, fontSize: '1rem', padding: '10px 14px',
-            border: '2px solid #1a1a1a', background: '#f4e4bc', color: '#1a1a1a',
+            border: '2px solid var(--ink)', background: 'var(--paper)', color: 'var(--ink)',
             outline: 'none', borderRadius: '2px', maxWidth: '320px',
           }}
         />
@@ -119,24 +118,24 @@ export const AdminFilesPage: React.FC = () => {
           placeholder="Suodata sähköpostilla…"
           style={{
             ...SERIF, fontSize: '1rem', padding: '10px 14px',
-            border: '2px solid #1a1a1a', background: '#f4e4bc', color: '#1a1a1a',
+            border: '2px solid var(--ink)', background: 'var(--paper)', color: 'var(--ink)',
             outline: 'none', borderRadius: '2px', maxWidth: '280px',
           }}
         />
       </div>
 
-      <div style={{ ...MONO, fontSize: '11px', color: '#666', marginBottom: '16px' }}>
+      <div style={{ ...MONO, fontSize: '11px', color: 'var(--muted)', marginBottom: '16px' }}>
         {filtered.length} tiedostoa{totalPages > 1 ? ` · sivu ${page}/${totalPages}` : ''}
       </div>
 
       {loading ? (
-        <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px 0' }}>Ladataan…</div>
+        <div style={{ ...MONO, fontSize: '11px', color: 'var(--muted)', padding: '24px 0' }}>Ladataan…</div>
       ) : error ? (
-        <div style={{ border: '1px solid #b22222', padding: '16px', background: '#fff0f0', ...MONO, fontSize: '11px', color: '#b22222' }}>
+        <div style={{ border: '1px solid var(--accent)', padding: '16px', background: 'var(--field)', ...MONO, fontSize: '11px', color: 'var(--accent)' }}>
           Virhe: {error}
         </div>
       ) : paginated.length === 0 ? (
-        <div style={{ border: '2px solid #1a1a1a', padding: '32px', textAlign: 'center', ...MONO, fontSize: '11px', color: '#666' }}>
+        <div style={{ border: '2px solid var(--ink)', padding: '32px', textAlign: 'center', ...MONO, fontSize: '11px', color: 'var(--muted)' }}>
           Ei tiedostoja.
         </div>
       ) : (
@@ -146,17 +145,17 @@ export const AdminFilesPage: React.FC = () => {
               key={`${f.orderId}-${i}`}
               onClick={() => setPreview(f)}
               style={{
-                border: '2px solid #1a1a1a',
-                background: '#f4e4bc',
+                border: '2px solid var(--ink)',
+                background: 'var(--paper)',
                 padding: '0',
                 cursor: 'pointer',
                 overflow: 'hidden',
               }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = '#b22222')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = '#1a1a1a')}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--ink)')}
             >
               {/* Preview area */}
-              <div style={{ height: '120px', background: '#e8d8b0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <div style={{ height: '120px', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 {isImageUrl(f.url) ? (
                   <img
                     src={f.url}
@@ -165,7 +164,7 @@ export const AdminFilesPage: React.FC = () => {
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 ) : (
-                  <div style={{ ...MONO, fontSize: '24px', color: '#999' }}>📄</div>
+                  <div style={{ ...MONO, fontSize: '24px', color: 'var(--ink-soft)' }}>📄</div>
                 )}
               </div>
               {/* Info */}
@@ -173,10 +172,10 @@ export const AdminFilesPage: React.FC = () => {
                 <div style={{ ...MONO, fontSize: '11px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '4px' }}>
                   {f.name}
                 </div>
-                <div style={{ ...MONO, fontSize: '10px', color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ ...MONO, fontSize: '10px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {f.customerEmail}
                 </div>
-                <div style={{ ...MONO, fontSize: '10px', color: '#b22222', marginTop: '2px' }}>
+                <div style={{ ...MONO, fontSize: '10px', color: 'var(--accent)', marginTop: '2px' }}>
                   #{f.orderId.slice(0, 8).toUpperCase()}
                 </div>
               </div>
@@ -194,24 +193,24 @@ export const AdminFilesPage: React.FC = () => {
             style={{
               ...MONO, fontSize: '11px', letterSpacing: '0.10em', textTransform: 'uppercase',
               padding: '8px 16px', minHeight: '44px',
-              border: '2px solid #1a1a1a',
-              background: page <= 1 ? '#e8d8b0' : '#1a1a1a',
-              color: page <= 1 ? '#aaa' : '#f4e4bc',
+              border: '2px solid var(--ink)',
+              background: page <= 1 ? 'var(--paper-2)' : 'var(--ink)',
+              color: page <= 1 ? 'var(--ink-soft)' : 'var(--paper)',
               cursor: page <= 1 ? 'default' : 'pointer',
             }}
           >
             ← Edellinen
           </button>
-          <span style={{ ...MONO, fontSize: '11px', color: '#666', padding: '0 8px' }}>{page}/{totalPages}</span>
+          <span style={{ ...MONO, fontSize: '11px', color: 'var(--muted)', padding: '0 8px' }}>{page}/{totalPages}</span>
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
             style={{
               ...MONO, fontSize: '11px', letterSpacing: '0.10em', textTransform: 'uppercase',
               padding: '8px 16px', minHeight: '44px',
-              border: '2px solid #1a1a1a',
-              background: page >= totalPages ? '#e8d8b0' : '#1a1a1a',
-              color: page >= totalPages ? '#aaa' : '#f4e4bc',
+              border: '2px solid var(--ink)',
+              background: page >= totalPages ? 'var(--paper-2)' : 'var(--ink)',
+              color: page >= totalPages ? 'var(--ink-soft)' : 'var(--paper)',
               cursor: page >= totalPages ? 'default' : 'pointer',
             }}
           >
@@ -231,13 +230,13 @@ export const AdminFilesPage: React.FC = () => {
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: '#f4e4bc', border: '2px solid #1a1a1a', maxWidth: '700px', width: '100%', maxHeight: '90vh', overflow: 'auto' }}
+            style={{ background: 'var(--paper)', border: '2px solid var(--ink)', maxWidth: '700px', width: '100%', maxHeight: '90vh', overflow: 'auto' }}
           >
             {/* Modal header */}
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e8d8b0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--paper-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ ...MONO, fontSize: '11px', fontWeight: 700 }}>{preview.name}</div>
-                <div style={{ ...MONO, fontSize: '10px', color: '#666' }}>{preview.customerEmail}</div>
+                <div style={{ ...MONO, fontSize: '10px', color: 'var(--muted)' }}>{preview.customerEmail}</div>
               </div>
               <button onClick={() => setPreview(null)} style={{ ...MONO, fontSize: '14px', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 8px', minHeight: '44px' }}>×</button>
             </div>
@@ -250,7 +249,7 @@ export const AdminFilesPage: React.FC = () => {
               )}
             </div>
             {/* Actions */}
-            <div style={{ padding: '16px 20px', borderTop: '1px solid #e8d8b0', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--paper-2)', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <a
                 href={preview.url}
                 target="_blank"
@@ -258,7 +257,7 @@ export const AdminFilesPage: React.FC = () => {
                 style={{
                   ...MONO, fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase',
                   padding: '10px 20px', minHeight: '44px',
-                  border: '2px solid #1a1a1a', background: '#1a1a1a', color: '#f4e4bc',
+                  border: '2px solid var(--ink)', background: 'var(--ink)', color: 'var(--paper)',
                   textDecoration: 'none', display: 'flex', alignItems: 'center',
                 }}
               >
@@ -269,7 +268,7 @@ export const AdminFilesPage: React.FC = () => {
                 style={{
                   ...MONO, fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase',
                   padding: '10px 20px', minHeight: '44px',
-                  border: '2px solid #1a1a1a', background: '#f4e4bc', color: '#1a1a1a',
+                  border: '2px solid var(--ink)', background: 'var(--paper)', color: 'var(--ink)',
                   textDecoration: 'none', display: 'flex', alignItems: 'center',
                 }}
               >

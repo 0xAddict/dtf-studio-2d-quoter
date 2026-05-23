@@ -2,7 +2,7 @@
  * AdminNewQuotePage — /admin/quotes/new
  * M3: Stripped line-item form for phone orders (no canvas/image upload).
  * Same dtf_orders insert path as DTFQuoter, with created_by_admin=true.
- * Brand: Paper/Ink/Crimson + IBM Plex Mono + Source Serif 4
+ * Brand tokens: var(--paper), var(--paper-2), var(--ink), var(--accent), var(--serif), var(--mono)
  */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -17,31 +17,31 @@ const MATERIAALIT = [
 ];
 
 const KICKER: React.CSSProperties = {
-  fontFamily: "'IBM Plex Mono', monospace",
+  fontFamily: 'var(--mono)',
   fontSize: '10px',
   letterSpacing: '0.14em',
   textTransform: 'uppercase',
-  color: '#b22222',
+  color: 'var(--accent)',
   marginBottom: '6px',
 };
 
 const SECTION_HEADER: React.CSSProperties = {
-  fontFamily: "'Source Serif 4', Georgia, serif",
+  fontFamily: 'var(--serif)',
   fontSize: '18px',
   fontWeight: 700,
-  color: '#1a1a1a',
+  color: 'var(--ink)',
   paddingBottom: '8px',
-  borderBottom: '2px solid #b22222',
+  borderBottom: '2px solid var(--accent)',
   marginBottom: '16px',
 };
 
 const INPUT: React.CSSProperties = {
   width: '100%',
-  background: '#f4e4bc',
-  color: '#1a1a1a',
-  border: '2px solid #1a1a1a',
+  background: 'var(--paper)',
+  color: 'var(--ink)',
+  border: '2px solid var(--ink)',
   borderRadius: '2px',
-  fontFamily: "'Source Serif 4', Georgia, serif",
+  fontFamily: 'var(--serif)',
   fontSize: '1rem',
   padding: '10px 14px',
   outline: 'none',
@@ -49,11 +49,11 @@ const INPUT: React.CSSProperties = {
 };
 
 const LABEL: React.CSSProperties = {
-  fontFamily: "'IBM Plex Mono', monospace",
+  fontFamily: 'var(--mono)',
   fontSize: '11px',
   letterSpacing: '0.10em',
   textTransform: 'uppercase',
-  color: '#1a1a1a',
+  color: 'var(--ink)',
   display: 'block',
   marginBottom: '4px',
 };
@@ -135,16 +135,16 @@ export const AdminNewQuotePage: React.FC = () => {
     return (
       <AdminLayout>
         <div style={KICKER}>05C · Uusi tarjous</div>
-        <h1 style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: '24px', fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px 0' }}>
+        <h1 style={{ fontFamily: 'var(--serif)', fontSize: '24px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 8px 0' }}>
           Tarjous luotu
         </h1>
-        <div style={{ width: '48px', height: '2px', background: '#b22222', marginBottom: '32px' }} />
+        <div style={{ width: '48px', height: '2px', background: 'var(--accent)', marginBottom: '32px' }} />
 
-        <div style={{ border: '2px solid #1a1a1a', padding: '24px', background: '#e8d8b0', marginBottom: '24px' }}>
-          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '11px', color: '#1a1a1a' }}>
+        <div style={{ border: '2px solid var(--ink)', padding: '24px', background: 'var(--paper-2)', marginBottom: '24px' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: '11px', color: 'var(--ink)' }}>
             Tarjous tallennettu onnistuneesti.
           </div>
-          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '11px', color: '#b22222', marginTop: '8px' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: '11px', color: 'var(--accent)', marginTop: '8px' }}>
             ID: {success.orderId}
           </div>
         </div>
@@ -153,15 +153,15 @@ export const AdminNewQuotePage: React.FC = () => {
           <button
             onClick={() => navigate(`/admin/orders/${success.orderId}`)}
             style={{
-              fontFamily: "'IBM Plex Mono', monospace",
+              fontFamily: 'var(--mono)',
               fontSize: '11px',
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
               padding: '10px 20px',
               minHeight: '44px',
-              border: '2px solid #1a1a1a',
-              background: '#1a1a1a',
-              color: '#f4e4bc',
+              border: '2px solid var(--ink)',
+              background: 'var(--ink)',
+              color: 'var(--paper)',
               cursor: 'pointer',
             }}
           >
@@ -170,15 +170,15 @@ export const AdminNewQuotePage: React.FC = () => {
           <button
             onClick={() => { setSuccess(null); setCustomerEmail(''); setCustomerName(''); setQuoteEur(''); setSheetCount('1'); setNotes(''); setInternalNotes(''); setDiscountEur('0'); }}
             style={{
-              fontFamily: "'IBM Plex Mono', monospace",
+              fontFamily: 'var(--mono)',
               fontSize: '11px',
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
               padding: '10px 20px',
               minHeight: '44px',
-              border: '2px solid #1a1a1a',
-              background: '#f4e4bc',
-              color: '#1a1a1a',
+              border: '2px solid var(--ink)',
+              background: 'var(--paper)',
+              color: 'var(--ink)',
               cursor: 'pointer',
             }}
           >
@@ -192,10 +192,10 @@ export const AdminNewQuotePage: React.FC = () => {
   return (
     <AdminLayout>
       <div style={KICKER}>05C · Uusi tarjous</div>
-      <h1 style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: '24px', fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px 0' }}>
+      <h1 style={{ fontFamily: 'var(--serif)', fontSize: '24px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 8px 0' }}>
         Uusi tarjous — puhelintilaus
       </h1>
-      <div style={{ width: '48px', height: '2px', background: '#b22222', marginBottom: '32px' }} />
+      <div style={{ width: '48px', height: '2px', background: 'var(--accent)', marginBottom: '32px' }} />
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '32px', maxWidth: '560px' }}>
 
@@ -242,7 +242,7 @@ export const AdminNewQuotePage: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div>
               <label style={LABEL}>Materiaali</label>
-              <select value={material} onChange={e => setMaterial(e.target.value)} style={{ ...INPUT, fontFamily: "'IBM Plex Mono', monospace" }}>
+              <select value={material} onChange={e => setMaterial(e.target.value)} style={{ ...INPUT, fontFamily: 'var(--mono)' }}>
                 {MATERIAALIT.map(m => (
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
@@ -274,21 +274,21 @@ export const AdminNewQuotePage: React.FC = () => {
               <label style={LABEL}>Asiakkaalle näkyvät muistiinpanot</label>
               <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...INPUT, resize: 'vertical' }} placeholder="Lisätiedot asiakkaalle" />
             </div>
-            <div style={{ borderTop: '1px dashed #b22222', paddingTop: '12px' }}>
-              <label style={{ ...LABEL, color: '#b22222' }}>Sisäiset muistiinpanot (vain admin)</label>
-              <textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={3} style={{ ...INPUT, resize: 'vertical', borderColor: '#b22222' }} placeholder="Puhelun muistiinpanot, erikoisehdot, jne." />
+            <div style={{ borderTop: '1px dashed var(--accent)', paddingTop: '12px' }}>
+              <label style={{ ...LABEL, color: 'var(--accent)' }}>Sisäiset muistiinpanot (vain admin)</label>
+              <textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={3} style={{ ...INPUT, resize: 'vertical', borderColor: 'var(--accent)' }} placeholder="Puhelun muistiinpanot, erikoisehdot, jne." />
             </div>
           </div>
         </section>
 
         {error && (
           <div style={{
-            border: '2px solid #b22222',
+            border: '2px solid var(--accent)',
             padding: '12px 16px',
-            background: '#fff0f0',
-            fontFamily: "'IBM Plex Mono', monospace",
+            background: 'var(--field)',
+            fontFamily: 'var(--mono)',
             fontSize: '11px',
-            color: '#b22222',
+            color: 'var(--accent)',
           }}>
             {error}
           </div>
@@ -298,15 +298,15 @@ export const AdminNewQuotePage: React.FC = () => {
           type="submit"
           disabled={saving}
           style={{
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: 'var(--mono)',
             fontSize: '13px',
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
             padding: '16px 24px',
             minHeight: '52px',
-            border: '2px solid #1a1a1a',
-            background: '#1a1a1a',
-            color: '#f4e4bc',
+            border: '2px solid var(--ink)',
+            background: 'var(--ink)',
+            color: 'var(--paper)',
             cursor: saving ? 'wait' : 'pointer',
             opacity: saving ? 0.7 : 1,
             width: '100%',

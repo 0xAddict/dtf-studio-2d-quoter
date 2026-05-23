@@ -3,6 +3,7 @@
  * M4: Full order detail — lines/files/customer/payment/Trello link/status history/notes.
  * Tabs: Line items, Files, Status history, Notes, Customer info
  * Sidebar: Trello link, Stripe link, admin actions (requires_payment toggle, cancel)
+ * Brand tokens: var(--paper), var(--paper-2), var(--ink), var(--accent), var(--serif), var(--mono)
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -32,8 +33,8 @@ interface NoteRow {
   created_at: string;
 }
 
-const MONO: React.CSSProperties = { fontFamily: "'IBM Plex Mono', monospace" };
-const SERIF: React.CSSProperties = { fontFamily: "'Source Serif 4', Georgia, serif" };
+const MONO: React.CSSProperties = { fontFamily: 'var(--mono)' };
+const SERIF: React.CSSProperties = { fontFamily: 'var(--serif)' };
 
 const SOURCE_LABELS: Record<string, string> = {
   customer: 'Asiakas',
@@ -128,7 +129,7 @@ export const AdminOrderDetailPage: React.FC = () => {
   if (loading) {
     return (
       <AdminLayout>
-        <div style={{ ...MONO, fontSize: '11px', padding: '32px 0', color: '#666' }}>Ladataan…</div>
+        <div style={{ ...MONO, fontSize: '11px', padding: '32px 0', color: 'var(--muted)' }}>Ladataan…</div>
       </AdminLayout>
     );
   }
@@ -136,10 +137,10 @@ export const AdminOrderDetailPage: React.FC = () => {
   if (!order) {
     return (
       <AdminLayout>
-        <div style={{ border: '1px solid #b22222', padding: '16px', background: '#fff0f0', ...MONO, fontSize: '11px', color: '#b22222' }}>
+        <div style={{ border: '1px solid var(--accent)', padding: '16px', background: 'var(--field)', ...MONO, fontSize: '11px', color: 'var(--accent)' }}>
           Tilausta ei löydy: {id}
         </div>
-        <Link to="/admin/orders" style={{ ...MONO, fontSize: '11px', color: '#b22222', textDecoration: 'underline', display: 'block', marginTop: '16px' }}>
+        <Link to="/admin/orders" style={{ ...MONO, fontSize: '11px', color: 'var(--accent)', textDecoration: 'underline', display: 'block', marginTop: '16px' }}>
           ← Takaisin tilauksiin
         </Link>
       </AdminLayout>
@@ -152,25 +153,25 @@ export const AdminOrderDetailPage: React.FC = () => {
   return (
     <AdminLayout>
       {/* Breadcrumb */}
-      <Link to="/admin/orders" style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#b22222', textDecoration: 'none', display: 'block', marginBottom: '8px' }}>
+      <Link to="/admin/orders" style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent)', textDecoration: 'none', display: 'block', marginBottom: '8px' }}>
         ← Tilaukset
       </Link>
 
       {/* Order header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
         <div>
-          <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#b22222', marginBottom: '4px' }}>
+          <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '4px' }}>
             Tilaus
           </div>
-          <h1 style={{ ...SERIF, fontSize: '24px', fontWeight: 700, color: '#1a1a1a', margin: '0 0 4px 0' }}>
+          <h1 style={{ ...SERIF, fontSize: '24px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 4px 0' }}>
             #{order.id.slice(0, 8).toUpperCase()}
           </h1>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ ...MONO, fontSize: '11px', color: '#666' }}>{order.customer_email}</span>
-            <span style={{ ...MONO, fontSize: '10px', padding: '2px 8px', border: '1px solid #1a1a1a', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <span style={{ ...MONO, fontSize: '11px', color: 'var(--muted)' }}>{order.customer_email}</span>
+            <span style={{ ...MONO, fontSize: '10px', padding: '2px 8px', border: '1px solid var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               {statusLabel(order.status)}
             </span>
-            <span style={{ ...MONO, fontSize: '12px', fontWeight: 700, color: '#b22222' }}>
+            <span style={{ ...MONO, fontSize: '12px', fontWeight: 700, color: 'var(--accent)' }}>
               €{Number(order.quote_eur).toFixed(2)}
             </span>
           </div>
@@ -185,8 +186,8 @@ export const AdminOrderDetailPage: React.FC = () => {
               rel="noopener noreferrer"
               style={{
                 ...MONO, fontSize: '10px', letterSpacing: '0.10em', textTransform: 'uppercase',
-                padding: '8px 12px', minHeight: '44px', border: '2px solid #1a1a1a',
-                background: '#f4e4bc', color: '#1a1a1a', textDecoration: 'none',
+                padding: '8px 12px', minHeight: '44px', border: '2px solid var(--ink)',
+                background: 'var(--paper)', color: 'var(--ink)', textDecoration: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
               }}
             >
@@ -201,7 +202,7 @@ export const AdminOrderDetailPage: React.FC = () => {
               style={{
                 ...MONO, fontSize: '10px', letterSpacing: '0.10em', textTransform: 'uppercase',
                 padding: '8px 12px', minHeight: '44px', border: '2px solid #635bff',
-                background: '#f4e4bc', color: '#635bff', textDecoration: 'none',
+                background: 'var(--paper)', color: '#635bff', textDecoration: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
               }}
             >
@@ -211,7 +212,7 @@ export const AdminOrderDetailPage: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ width: '48px', height: '2px', background: '#b22222', marginBottom: '24px' }} />
+      <div style={{ width: '48px', height: '2px', background: 'var(--accent)', marginBottom: '24px' }} />
 
       {/* Main layout: content + sidebar */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '24px', alignItems: 'start' }}>
@@ -219,7 +220,7 @@ export const AdminOrderDetailPage: React.FC = () => {
         {/* Tabs */}
         <div>
           {/* Tab bar */}
-          <div style={{ display: 'flex', borderBottom: '2px solid #1a1a1a', marginBottom: '20px', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', borderBottom: '2px solid var(--ink)', marginBottom: '20px', overflowX: 'auto' }}>
             {(['lines','files','history','notes','customer'] as Tab[]).map(t => {
               const labels = { lines: 'Tuote', files: 'Tiedostot', history: 'Historia', notes: 'Muistiinpanot', customer: 'Asiakas' };
               return (
@@ -230,15 +231,15 @@ export const AdminOrderDetailPage: React.FC = () => {
                     ...MONO, fontSize: '11px', letterSpacing: '0.10em', textTransform: 'uppercase',
                     padding: '10px 16px', minHeight: '44px', border: 'none',
                     background: 'transparent', cursor: 'pointer',
-                    color: tab === t ? '#b22222' : '#1a1a1a',
-                    borderBottom: tab === t ? '2px solid #b22222' : '2px solid transparent',
+                    color: tab === t ? 'var(--accent)' : 'var(--ink)',
+                    borderBottom: tab === t ? '2px solid var(--accent)' : '2px solid transparent',
                     marginBottom: '-2px',
                     whiteSpace: 'nowrap',
                   }}
                 >
                   {labels[t]}
                   {t === 'notes' && notes.length > 0 && (
-                    <span style={{ marginLeft: '6px', background: '#b22222', color: '#f4e4bc', borderRadius: '9px', padding: '0 5px', fontSize: '9px' }}>
+                    <span style={{ marginLeft: '6px', background: 'var(--accent)', color: 'var(--paper)', borderRadius: '9px', padding: '0 5px', fontSize: '9px' }}>
                       {notes.length}
                     </span>
                   )}
@@ -250,8 +251,8 @@ export const AdminOrderDetailPage: React.FC = () => {
           {/* Tab: Lines */}
           {tab === 'lines' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ border: '2px solid #1a1a1a', background: '#e8d8b0', padding: '16px 20px' }}>
-                <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#666', marginBottom: '12px' }}>Tilauksen tiedot</div>
+              <div style={{ border: '2px solid var(--ink)', background: 'var(--paper-2)', padding: '16px 20px' }}>
+                <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '12px' }}>Tilauksen tiedot</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
                   {[
                     ['Arkkeja', `${order.sheet_count} kpl`],
@@ -264,22 +265,22 @@ export const AdminOrderDetailPage: React.FC = () => {
                     ['Maksu', order.payment_status],
                   ].map(([label, val]) => (
                     <div key={label as string}>
-                      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.10em', textTransform: 'uppercase', color: '#666', marginBottom: '2px' }}>{label}</div>
-                      <div style={{ ...MONO, fontSize: '12px', fontWeight: 600, color: '#1a1a1a' }}>{val}</div>
+                      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '2px' }}>{label}</div>
+                      <div style={{ ...MONO, fontSize: '12px', fontWeight: 600, color: 'var(--ink)' }}>{val}</div>
                     </div>
                   ))}
                 </div>
               </div>
               {order.notes && (
-                <div style={{ border: '1px solid #1a1a1a', padding: '12px 16px', background: '#f4e4bc' }}>
-                  <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Asiakkaan muistiinpanot</div>
-                  <div style={{ ...SERIF, fontSize: '14px', color: '#1a1a1a' }}>{order.notes}</div>
+                <div style={{ border: '1px solid var(--ink)', padding: '12px 16px', background: 'var(--paper)' }}>
+                  <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '8px' }}>Asiakkaan muistiinpanot</div>
+                  <div style={{ ...SERIF, fontSize: '14px', color: 'var(--ink)' }}>{order.notes}</div>
                 </div>
               )}
               {order.internal_notes && (
-                <div style={{ border: '1px dashed #b22222', padding: '12px 16px', background: '#f4e4bc' }}>
-                  <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#b22222', marginBottom: '8px' }}>Sisäiset muistiinpanot</div>
-                  <div style={{ ...SERIF, fontSize: '14px', color: '#1a1a1a' }}>{order.internal_notes}</div>
+                <div style={{ border: '1px dashed var(--accent)', padding: '12px 16px', background: 'var(--paper)' }}>
+                  <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '8px' }}>Sisäiset muistiinpanot</div>
+                  <div style={{ ...SERIF, fontSize: '14px', color: 'var(--ink)' }}>{order.internal_notes}</div>
                 </div>
               )}
             </div>
@@ -289,7 +290,7 @@ export const AdminOrderDetailPage: React.FC = () => {
           {tab === 'files' && (
             <div>
               {lineItems.length === 0 ? (
-                <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px', border: '1px solid #e8d8b0', textAlign: 'center' }}>
+                <div style={{ ...MONO, fontSize: '11px', color: 'var(--muted)', padding: '24px', border: '1px solid var(--paper-2)', textAlign: 'center' }}>
                   Ei tiedostoja tallennettu.
                 </div>
               ) : (
@@ -302,14 +303,14 @@ export const AdminOrderDetailPage: React.FC = () => {
                       rel="noopener noreferrer"
                       style={{
                         display: 'block',
-                        border: '2px solid #1a1a1a',
+                        border: '2px solid var(--ink)',
                         padding: '12px',
-                        background: '#f4e4bc',
+                        background: 'var(--paper)',
                         textDecoration: 'none',
-                        color: '#1a1a1a',
+                        color: 'var(--ink)',
                       }}
                     >
-                      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#b22222', marginBottom: '4px' }}>Tiedosto {i + 1}</div>
+                      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '4px' }}>Tiedosto {i + 1}</div>
                       <div style={{ ...MONO, fontSize: '11px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
                     </a>
                   ))}
@@ -322,21 +323,21 @@ export const AdminOrderDetailPage: React.FC = () => {
           {tab === 'history' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {history.length === 0 ? (
-                <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px', border: '1px solid #e8d8b0', textAlign: 'center' }}>
+                <div style={{ ...MONO, fontSize: '11px', color: 'var(--muted)', padding: '24px', border: '1px solid var(--paper-2)', textAlign: 'center' }}>
                   Ei tilahistoriaa.
                 </div>
               ) : (
                 history.map(row => (
-                  <div key={row.id} style={{ border: '1px solid #e8d8b0', padding: '12px 16px', background: '#f4e4bc', display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'start' }}>
+                  <div key={row.id} style={{ border: '1px solid var(--paper-2)', padding: '12px 16px', background: 'var(--paper)', display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'start' }}>
                     <div>
                       <div style={{ ...MONO, fontSize: '11px', fontWeight: 600 }}>
                         {row.from_status ? `${row.from_status} → ${row.to_status}` : `→ ${row.to_status}`}
                       </div>
-                      <div style={{ ...MONO, fontSize: '10px', color: '#666', marginTop: '2px' }}>
+                      <div style={{ ...MONO, fontSize: '10px', color: 'var(--muted)', marginTop: '2px' }}>
                         {SOURCE_LABELS[row.source] ?? row.source}
                       </div>
                     </div>
-                    <div style={{ ...MONO, fontSize: '10px', color: '#999', whiteSpace: 'nowrap' }}>
+                    <div style={{ ...MONO, fontSize: '10px', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
                       {new Date(row.created_at).toLocaleString('fi')}
                     </div>
                   </div>
@@ -349,17 +350,17 @@ export const AdminOrderDetailPage: React.FC = () => {
           {tab === 'notes' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {notes.map(note => (
-                <div key={note.id} style={{ border: '1px solid #e8d8b0', padding: '12px 16px', background: '#f4e4bc' }}>
-                  <div style={{ ...SERIF, fontSize: '14px', color: '#1a1a1a', marginBottom: '8px' }}>{note.body}</div>
-                  <div style={{ ...MONO, fontSize: '10px', color: '#999' }}>
+                <div key={note.id} style={{ border: '1px solid var(--paper-2)', padding: '12px 16px', background: 'var(--paper)' }}>
+                  <div style={{ ...SERIF, fontSize: '14px', color: 'var(--ink)', marginBottom: '8px' }}>{note.body}</div>
+                  <div style={{ ...MONO, fontSize: '10px', color: 'var(--ink-soft)' }}>
                     {new Date(note.created_at).toLocaleString('fi')}
                   </div>
                 </div>
               ))}
 
               {/* Add note */}
-              <div style={{ border: '2px solid #1a1a1a', padding: '16px', background: '#e8d8b0' }}>
-                <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1a1a1a', marginBottom: '10px' }}>Lisää muistiinpano</div>
+              <div style={{ border: '2px solid var(--ink)', padding: '16px', background: 'var(--paper-2)' }}>
+                <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: '10px' }}>Lisää muistiinpano</div>
                 <textarea
                   value={noteBody}
                   onChange={e => setNoteBody(e.target.value)}
@@ -367,18 +368,18 @@ export const AdminOrderDetailPage: React.FC = () => {
                   placeholder="Sisäinen muistiinpano…"
                   style={{
                     ...SERIF, fontSize: '14px', width: '100%', padding: '10px 14px',
-                    border: '2px solid #1a1a1a', background: '#f4e4bc', color: '#1a1a1a',
+                    border: '2px solid var(--ink)', background: 'var(--paper)', color: 'var(--ink)',
                     outline: 'none', resize: 'vertical', borderRadius: '2px', boxSizing: 'border-box',
                   }}
                 />
-                {noteError && <div style={{ ...MONO, fontSize: '11px', color: '#b22222', marginTop: '6px' }}>{noteError}</div>}
+                {noteError && <div style={{ ...MONO, fontSize: '11px', color: 'var(--accent)', marginTop: '6px' }}>{noteError}</div>}
                 <button
                   onClick={handleAddNote}
                   disabled={savingNote || !noteBody.trim()}
                   style={{
                     ...MONO, fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase',
                     padding: '8px 16px', minHeight: '44px', marginTop: '8px',
-                    border: '2px solid #1a1a1a', background: '#1a1a1a', color: '#f4e4bc',
+                    border: '2px solid var(--ink)', background: 'var(--ink)', color: 'var(--paper)',
                     cursor: savingNote || !noteBody.trim() ? 'default' : 'pointer',
                     opacity: savingNote || !noteBody.trim() ? 0.5 : 1,
                   }}
@@ -391,8 +392,8 @@ export const AdminOrderDetailPage: React.FC = () => {
 
           {/* Tab: Customer */}
           {tab === 'customer' && (
-            <div style={{ border: '2px solid #1a1a1a', padding: '20px', background: '#e8d8b0' }}>
-              <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#666', marginBottom: '16px' }}>Asiakastiedot</div>
+            <div style={{ border: '2px solid var(--ink)', padding: '20px', background: 'var(--paper-2)' }}>
+              <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '16px' }}>Asiakastiedot</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {[
                   ['Sähköposti', order.customer_email],
@@ -401,13 +402,13 @@ export const AdminOrderDetailPage: React.FC = () => {
                   ['Admin tilaus', order.created_by_admin ? 'Kyllä' : 'Ei'],
                 ].map(([label, val]) => (
                   <div key={label as string} style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '8px' }}>
-                    <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.10em', textTransform: 'uppercase', color: '#666' }}>{label}</div>
+                    <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--muted)' }}>{label}</div>
                     <div style={{ ...MONO, fontSize: '12px', fontWeight: 600 }}>{val}</div>
                   </div>
                 ))}
                 <Link
                   to={`/admin/orders?q=${encodeURIComponent(order.customer_email)}`}
-                  style={{ ...MONO, fontSize: '11px', color: '#b22222', textDecoration: 'underline', display: 'block', marginTop: '8px' }}
+                  style={{ ...MONO, fontSize: '11px', color: 'var(--accent)', textDecoration: 'underline', display: 'block', marginTop: '8px' }}
                 >
                   Kaikki tilaukset → {order.customer_email}
                 </Link>
@@ -420,35 +421,35 @@ export const AdminOrderDetailPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
           {/* Payment + status summary */}
-          <div style={{ border: '2px solid #1a1a1a', padding: '16px', background: '#e8d8b0' }}>
-            <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#666', marginBottom: '12px' }}>Maksutilanne</div>
+          <div style={{ border: '2px solid var(--ink)', padding: '16px', background: 'var(--paper-2)' }}>
+            <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '12px' }}>Maksutilanne</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div>
-                <div style={{ ...MONO, fontSize: '10px', color: '#999', marginBottom: '2px' }}>Maksu</div>
-                <div style={{ ...MONO, fontSize: '12px', fontWeight: 700, color: order.payment_status === 'paid' ? '#14532d' : '#1a1a1a' }}>
+                <div style={{ ...MONO, fontSize: '10px', color: 'var(--ink-soft)', marginBottom: '2px' }}>Maksu</div>
+                <div style={{ ...MONO, fontSize: '12px', fontWeight: 700, color: order.payment_status === 'paid' ? '#14532d' : 'var(--ink)' }}>
                   {order.payment_status === 'paid' ? 'Maksettu ✓' : order.payment_status === 'invoice_pending' ? 'Lasku odottaa' : order.payment_status === 'none' ? 'Ei maksettu' : order.payment_status}
                 </div>
               </div>
               {order.confirmed_at && (
                 <div>
-                  <div style={{ ...MONO, fontSize: '10px', color: '#999', marginBottom: '2px' }}>Vahvistettu</div>
+                  <div style={{ ...MONO, fontSize: '10px', color: 'var(--ink-soft)', marginBottom: '2px' }}>Vahvistettu</div>
                   <div style={{ ...MONO, fontSize: '12px' }}>{new Date(order.confirmed_at).toLocaleString('fi')}</div>
                 </div>
               )}
               <div>
-                <div style={{ ...MONO, fontSize: '10px', color: '#999', marginBottom: '2px' }}>Hinta</div>
-                <div style={{ ...MONO, fontSize: '16px', fontWeight: 700, color: '#b22222' }}>€{Number(order.quote_eur).toFixed(2)}</div>
+                <div style={{ ...MONO, fontSize: '10px', color: 'var(--ink-soft)', marginBottom: '2px' }}>Hinta</div>
+                <div style={{ ...MONO, fontSize: '16px', fontWeight: 700, color: 'var(--accent)' }}>€{Number(order.quote_eur).toFixed(2)}</div>
               </div>
             </div>
           </div>
 
           {/* Admin override: requires_payment */}
           {order.status === 'quote' && (
-            <div style={{ border: '1px dashed #b22222', padding: '16px', background: '#f4e4bc' }}>
-              <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#b22222', marginBottom: '10px' }}>
+            <div style={{ border: '1px dashed var(--accent)', padding: '16px', background: 'var(--paper)' }}>
+              <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '10px' }}>
                 Admin — maksun vaatimus
               </div>
-              <div style={{ ...MONO, fontSize: '11px', color: '#1a1a1a', marginBottom: '10px' }}>
+              <div style={{ ...MONO, fontSize: '11px', color: 'var(--ink)', marginBottom: '10px' }}>
                 {order.requires_payment ? 'Vaaditaan maksu' : 'Laskutus (ei maksua)'}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -458,9 +459,9 @@ export const AdminOrderDetailPage: React.FC = () => {
                   style={{
                     ...MONO, fontSize: '10px', letterSpacing: '0.10em', textTransform: 'uppercase',
                     padding: '8px 12px', minHeight: '44px',
-                    border: '2px solid #1a1a1a',
-                    background: order.requires_payment ? '#1a1a1a' : '#f4e4bc',
-                    color: order.requires_payment ? '#f4e4bc' : '#1a1a1a',
+                    border: '2px solid var(--ink)',
+                    background: order.requires_payment ? 'var(--ink)' : 'var(--paper)',
+                    color: order.requires_payment ? 'var(--paper)' : 'var(--ink)',
                     cursor: overrideLoading ? 'wait' : 'pointer',
                     opacity: overrideLoading ? 0.6 : 1,
                   }}
@@ -473,9 +474,9 @@ export const AdminOrderDetailPage: React.FC = () => {
                   style={{
                     ...MONO, fontSize: '10px', letterSpacing: '0.10em', textTransform: 'uppercase',
                     padding: '8px 12px', minHeight: '44px',
-                    border: '2px solid #1a1a1a',
-                    background: !order.requires_payment ? '#1a1a1a' : '#f4e4bc',
-                    color: !order.requires_payment ? '#f4e4bc' : '#1a1a1a',
+                    border: '2px solid var(--ink)',
+                    background: !order.requires_payment ? 'var(--ink)' : 'var(--paper)',
+                    color: !order.requires_payment ? 'var(--paper)' : 'var(--ink)',
                     cursor: overrideLoading ? 'wait' : 'pointer',
                     opacity: overrideLoading ? 0.6 : 1,
                   }}
@@ -484,7 +485,7 @@ export const AdminOrderDetailPage: React.FC = () => {
                 </button>
               </div>
               {overrideMsg && (
-                <div style={{ ...MONO, fontSize: '10px', color: overrideMsg.startsWith('Virhe') ? '#b22222' : '#14532d', marginTop: '8px' }}>
+                <div style={{ ...MONO, fontSize: '10px', color: overrideMsg.startsWith('Virhe') ? 'var(--accent)' : '#14532d', marginTop: '8px' }}>
                   {overrideMsg}
                 </div>
               )}
@@ -492,8 +493,8 @@ export const AdminOrderDetailPage: React.FC = () => {
           )}
 
           {/* Metadata */}
-          <div style={{ border: '1px solid #e8d8b0', padding: '12px', background: '#f4e4bc' }}>
-            <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#666', marginBottom: '8px' }}>Metatiedot</div>
+          <div style={{ border: '1px solid var(--paper-2)', padding: '12px', background: 'var(--paper)' }}>
+            <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '8px' }}>Metatiedot</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {[
                 ['Luotu', new Date(order.created_at).toLocaleString('fi')],
@@ -501,8 +502,8 @@ export const AdminOrderDetailPage: React.FC = () => {
                 ['Admin tilaus', order.created_by_admin ? 'Kyllä' : 'Ei'],
               ].map(([label, val]) => (
                 <div key={label as string} style={{ display: 'grid', gridTemplateColumns: '80px 1fr' }}>
-                  <div style={{ ...MONO, fontSize: '9px', letterSpacing: '0.10em', textTransform: 'uppercase', color: '#999' }}>{label}</div>
-                  <div style={{ ...MONO, fontSize: '10px', color: '#1a1a1a' }}>{val}</div>
+                  <div style={{ ...MONO, fontSize: '9px', letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>{label}</div>
+                  <div style={{ ...MONO, fontSize: '10px', color: 'var(--ink)' }}>{val}</div>
                 </div>
               ))}
             </div>

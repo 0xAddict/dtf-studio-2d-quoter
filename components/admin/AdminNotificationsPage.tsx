@@ -2,6 +2,7 @@
  * AdminNotificationsPage — /admin/notifications
  * M5: Full notification feed with read/unread state, mark-as-read,
  * mark-all-read, filter by type. Realtime via Supabase subscription.
+ * Brand tokens: var(--paper), var(--paper-2), var(--ink), var(--accent), var(--serif), var(--mono)
  */
 import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
@@ -17,8 +18,8 @@ interface NotificationRow {
   created_at: string;
 }
 
-const MONO: React.CSSProperties = { fontFamily: "'IBM Plex Mono', monospace" };
-const SERIF: React.CSSProperties = { fontFamily: "'Source Serif 4', Georgia, serif" };
+const MONO: React.CSSProperties = { fontFamily: 'var(--mono)' };
+const SERIF: React.CSSProperties = { fontFamily: 'var(--serif)' };
 
 const TYPE_LABELS: Record<string, string> = {
   new_quote: 'Uusi tarjous',
@@ -105,15 +106,15 @@ export const AdminNotificationsPage: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#b22222', marginBottom: '8px' }}>
+      <div style={{ ...MONO, fontSize: '10px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '8px' }}>
         06 · Ilmoitukset
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '8px' }}>
-        <h1 style={{ ...SERIF, fontSize: '24px', fontWeight: 700, color: '#1a1a1a', margin: 0 }}>
+        <h1 style={{ ...SERIF, fontSize: '24px', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
           Ilmoitukset
           {unreadCount > 0 && (
             <span style={{
-              ...MONO, fontSize: '12px', background: '#b22222', color: '#f4e4bc',
+              ...MONO, fontSize: '12px', background: 'var(--accent)', color: 'var(--paper)',
               padding: '2px 8px', marginLeft: '12px', verticalAlign: 'middle',
             }}>
               {unreadCount} lukematta
@@ -126,7 +127,7 @@ export const AdminNotificationsPage: React.FC = () => {
             style={{
               ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase',
               padding: '8px 16px', minHeight: '44px',
-              border: '2px solid #1a1a1a', background: '#f4e4bc', color: '#1a1a1a',
+              border: '2px solid var(--ink)', background: 'var(--paper)', color: 'var(--ink)',
               cursor: 'pointer',
             }}
           >
@@ -134,19 +135,19 @@ export const AdminNotificationsPage: React.FC = () => {
           </button>
         )}
       </div>
-      <div style={{ width: '48px', height: '2px', background: '#b22222', marginBottom: '24px' }} />
+      <div style={{ width: '48px', height: '2px', background: 'var(--accent)', marginBottom: '24px' }} />
 
       {/* Type filter */}
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '20px' }}>
-        <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#666', marginRight: '4px' }}>Tyyppi:</span>
+        <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginRight: '4px' }}>Tyyppi:</span>
         <button
           onClick={() => setTypeFilter('')}
           style={{
             ...MONO, fontSize: '10px', letterSpacing: '0.10em', textTransform: 'uppercase',
             padding: '4px 10px', minHeight: '28px',
-            border: '1px solid #1a1a1a',
-            background: !typeFilter ? '#1a1a1a' : '#f4e4bc',
-            color: !typeFilter ? '#f4e4bc' : '#1a1a1a',
+            border: '1px solid var(--ink)',
+            background: !typeFilter ? 'var(--ink)' : 'var(--paper)',
+            color: !typeFilter ? 'var(--paper)' : 'var(--ink)',
             cursor: 'pointer',
           }}
         >
@@ -159,9 +160,9 @@ export const AdminNotificationsPage: React.FC = () => {
             style={{
               ...MONO, fontSize: '10px', letterSpacing: '0.10em', textTransform: 'uppercase',
               padding: '4px 10px', minHeight: '28px',
-              border: '1px solid #1a1a1a',
-              background: typeFilter === t ? '#1a1a1a' : '#f4e4bc',
-              color: typeFilter === t ? '#f4e4bc' : '#1a1a1a',
+              border: '1px solid var(--ink)',
+              background: typeFilter === t ? 'var(--ink)' : 'var(--paper)',
+              color: typeFilter === t ? 'var(--paper)' : 'var(--ink)',
               cursor: 'pointer',
             }}
           >
@@ -171,11 +172,11 @@ export const AdminNotificationsPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px 0' }}>Ladataan…</div>
+        <div style={{ ...MONO, fontSize: '11px', color: 'var(--muted)', padding: '24px 0' }}>Ladataan…</div>
       ) : error ? (
-        <div style={{ border: '1px solid #b22222', padding: '16px', background: '#fff0f0', ...MONO, fontSize: '11px', color: '#b22222' }}>Virhe: {error}</div>
+        <div style={{ border: '1px solid var(--accent)', padding: '16px', background: 'var(--field)', ...MONO, fontSize: '11px', color: 'var(--accent)' }}>Virhe: {error}</div>
       ) : filtered.length === 0 ? (
-        <div style={{ border: '2px solid #1a1a1a', padding: '32px', textAlign: 'center', ...MONO, fontSize: '11px', color: '#666' }}>
+        <div style={{ border: '2px solid var(--ink)', padding: '32px', textAlign: 'center', ...MONO, fontSize: '11px', color: 'var(--muted)' }}>
           Ei ilmoituksia.
         </div>
       ) : (
@@ -184,9 +185,9 @@ export const AdminNotificationsPage: React.FC = () => {
             <div
               key={n.id}
               style={{
-                border: `2px solid ${n.read_at ? '#e8d8b0' : '#1a1a1a'}`,
+                border: `2px solid ${n.read_at ? 'var(--paper-2)' : 'var(--ink)'}`,
                 padding: '16px 20px',
-                background: n.read_at ? '#f4e4bc' : '#fffbf0',
+                background: n.read_at ? 'var(--paper)' : 'var(--field)',
                 display: 'grid',
                 gridTemplateColumns: '1fr auto',
                 gap: '16px',
@@ -197,23 +198,23 @@ export const AdminNotificationsPage: React.FC = () => {
                 {/* Type + unread dot */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                   {!n.read_at && (
-                    <div style={{ width: '8px', height: '8px', background: '#b22222', borderRadius: '50%', flexShrink: 0 }} />
+                    <div style={{ width: '8px', height: '8px', background: 'var(--accent)', borderRadius: '50%', flexShrink: 0 }} />
                   )}
-                  <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#b22222' }}>
+                  <span style={{ ...MONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent)' }}>
                     {TYPE_LABELS[n.type] ?? n.type}
                   </span>
                 </div>
 
                 {/* Payload details */}
-                <div style={{ ...SERIF, fontSize: '14px', color: '#1a1a1a', marginBottom: '6px' }}>
+                <div style={{ ...SERIF, fontSize: '14px', color: 'var(--ink)', marginBottom: '6px' }}>
                   {n.payload?.customer_email && (
                     <span style={{ fontWeight: 600 }}>{n.payload.customer_email}</span>
                   )}
                   {n.payload?.quote_eur && (
-                    <span style={{ color: '#b22222', fontWeight: 700 }}> — €{Number(n.payload.quote_eur).toFixed(2)}</span>
+                    <span style={{ color: 'var(--accent)', fontWeight: 700 }}> — €{Number(n.payload.quote_eur).toFixed(2)}</span>
                   )}
                   {n.payload?.payment_status && (
-                    <span style={{ ...MONO, fontSize: '11px', color: '#666', marginLeft: '8px' }}>({n.payload.payment_status})</span>
+                    <span style={{ ...MONO, fontSize: '11px', color: 'var(--muted)', marginLeft: '8px' }}>({n.payload.payment_status})</span>
                   )}
                 </div>
 
@@ -221,7 +222,7 @@ export const AdminNotificationsPage: React.FC = () => {
                 {n.order_id && (
                   <Link
                     to={`/admin/orders/${n.order_id}`}
-                    style={{ ...MONO, fontSize: '10px', color: '#b22222', textDecoration: 'underline' }}
+                    style={{ ...MONO, fontSize: '10px', color: 'var(--accent)', textDecoration: 'underline' }}
                   >
                     Tilaus #{n.order_id.slice(0, 8).toUpperCase()} →
                   </Link>
@@ -229,7 +230,7 @@ export const AdminNotificationsPage: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end', minWidth: '120px' }}>
-                <div style={{ ...MONO, fontSize: '10px', color: '#999', whiteSpace: 'nowrap' }}>
+                <div style={{ ...MONO, fontSize: '10px', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
                   {new Date(n.created_at).toLocaleString('fi')}
                 </div>
                 {!n.read_at && (
@@ -238,7 +239,7 @@ export const AdminNotificationsPage: React.FC = () => {
                     style={{
                       ...MONO, fontSize: '10px', letterSpacing: '0.10em', textTransform: 'uppercase',
                       padding: '4px 10px', minHeight: '32px',
-                      border: '1px solid #1a1a1a', background: '#f4e4bc', color: '#1a1a1a',
+                      border: '1px solid var(--ink)', background: 'var(--paper)', color: 'var(--ink)',
                       cursor: 'pointer', whiteSpace: 'nowrap',
                     }}
                   >
@@ -246,7 +247,7 @@ export const AdminNotificationsPage: React.FC = () => {
                   </button>
                 )}
                 {n.read_at && (
-                  <span style={{ ...MONO, fontSize: '10px', color: '#aaa' }}>Luettu</span>
+                  <span style={{ ...MONO, fontSize: '10px', color: 'var(--ink-soft)' }}>Luettu</span>
                 )}
               </div>
             </div>
