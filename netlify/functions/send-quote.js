@@ -52,6 +52,7 @@ function buildBrandedCustomerEmail({ quoteId, customerName, customerEmail, quote
                   <img src="${LOGO_URL}" alt="DTF Studio Helsinki" style="max-width:120px; height:auto; display:block;" />
                 </td>
                 <td align="right" style="vertical-align:middle;">
+                  <!-- Wordmark only — redundant header-kicker <p> removed in iter-1 (aa500c90); locality signals retained in footer -->
                   <p style="margin:0; font-family:'IBM Plex Mono','Courier New',monospace; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:#e8d8b0;">DTF STUDIO HELSINKI</p>
                 </td>
               </tr>
