@@ -1,0 +1,324 @@
+{
+  "data": [
+    {
+      "id": "abdcc171-3c6d-4c4c-b95a-c0e37284a59e",
+      "created_at": "2026-05-22 21:22:31.449011+00",
+      "last_event": "delivery_delayed",
+      "subject": "[Admin] Uusi tarjouspyynt\u00f6 #OS \u2014 oversize@example.com",
+      "to": [
+        "REDACTED@example.com"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "a305ee25-6f24-410a-8bbf-99c22acde44b",
+      "created_at": "2026-05-22 21:22:31.108056+00",
+      "last_event": "delivery_delayed",
+      "subject": "DTF Studio Helsinki \u2014 Tarjous #OS",
+      "to": [
+        "REDACTED@example.com"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "afd077e2-04a4-4190-ba42-17b711f26cae",
+      "created_at": "2026-05-22 21:21:03.139304+00",
+      "last_event": "delivered",
+      "subject": "[Admin] Uusi tarjouspyynt\u00f6 #DUPE-1779484858 \u2014 xavier.andre+criticb-dupe@alpha-performance.com",
+      "to": [
+        "REDACTED@dtfstudio.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "b52c168e-d342-4c80-802d-98df01d5f388",
+      "created_at": "2026-05-22 21:21:02.982947+00",
+      "last_event": "delivered",
+      "subject": "DTF Studio Helsinki \u2014 Tarjous #DUPE-1779484858",
+      "to": [
+        "REDACTED@alpha-performance.com"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "d219494d-5719-4962-81c6-b1c40b61c28b",
+      "created_at": "2026-05-22 21:20:59.250567+00",
+      "last_event": "delivered",
+      "subject": "[Admin] Uusi tarjouspyynt\u00f6 #DUPE-1779484858 \u2014 xavier.andre+criticb-dupe@alpha-performance.com",
+      "to": [
+        "REDACTED@dtfstudio.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "68520424-2f68-43d7-abd0-e34fb51bdb81",
+      "created_at": "2026-05-22 21:20:59.073818+00",
+      "last_event": "delivered",
+      "subject": "DTF Studio Helsinki \u2014 Tarjous #DUPE-1779484858",
+      "to": [
+        "REDACTED@alpha-performance.com"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "087b3483-450d-4c75-99a0-2ec905bc3cf9",
+      "created_at": "2026-05-22 21:20:37.221472+00",
+      "last_event": "delivered",
+      "subject": "[Admin] Uusi tarjouspyynt\u00f6 #SMOKE-1779484835 \u2014 xavier.andre+criticb-smoke@alpha-performance.com",
+      "to": [
+        "REDACTED@dtfstudio.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "9721ecab-8e21-45ee-a5e7-a3761903833f",
+      "created_at": "2026-05-22 21:20:36.240407+00",
+      "last_event": "delivered",
+      "subject": "Critic-B smoke test",
+      "to": [
+        "REDACTED@alpha-performance.com"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "052a0a82-cfaf-407d-bcb1-f071630e8441",
+      "created_at": "2026-05-22 15:30:09.211215+00",
+      "last_event": "delivered",
+      "subject": "[Admin] Uusi tarjouspyynt\u00f6 #R3 \u2014 xavier.andre+roundtrip3@alpha-performance.com",
+      "to": [
+        "REDACTED@dtfstudio.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "e6d3b837-49d3-4694-a4d9-6aaa0e2b43f1",
+      "created_at": "2026-05-22 15:30:08.726577+00",
+      "last_event": "delivered",
+      "subject": "R3",
+      "to": [
+        "REDACTED@alpha-performance.com"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "fa965ac9-9bfc-40c9-8390-1658ed00a847",
+      "created_at": "2026-05-22 15:27:25.641768+00",
+      "last_event": "delivered",
+      "subject": "[Admin] Uusi tarjouspyynt\u00f6 #R2 \u2014 xavier.andre+roundtrip2@alpha-performance.com",
+      "to": [
+        "REDACTED@dtfstudio.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "fbdc83c3-bf7e-46f0-91d9-7688c879caa2",
+      "created_at": "2026-05-22 15:27:25.489826+00",
+      "last_event": "delivered",
+      "subject": "R2",
+      "to": [
+        "REDACTED@alpha-performance.com"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "4842473c-f800-49d1-87c5-23f7a7a8c497",
+      "created_at": "2026-05-22 15:26:41.433613+00",
+      "last_event": "delivered",
+      "subject": "[Admin] Uusi tarjouspyynt\u00f6 #ROUNDTRIP-TEST \u2014 xavier.andre+roundtrip@alpha-performance.com",
+      "to": [
+        "REDACTED@dtfstudio.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "a47ff7fd-8598-40c7-b5de-30428a95b9f1",
+      "created_at": "2026-05-22 15:26:40.962195+00",
+      "last_event": "delivered",
+      "subject": "DTF Studio Helsinki \u2014 Roundtrip smoke",
+      "to": [
+        "REDACTED@alpha-performance.com"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "3fcce4a6-1e93-4ba5-815a-eb5395563751",
+      "created_at": "2026-05-22 15:13:23.334214+00",
+      "last_event": "bounced",
+      "subject": "DTF Studio Helsinki \u2014 Tarjous #BRANDV-iter2",
+      "to": [
+        "REDACTED@dtfstudio.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "d5ec63af-c3ed-409f-bde2-6790ac12c5f2",
+      "created_at": "2026-05-22 14:30:54.998855+00",
+      "last_event": "bounced",
+      "subject": "DTF Studio Helsinki \u2014 Tarjous #DIRECTTEST-MPH0NN4B",
+      "to": [
+        "REDACTED@dtfstudio.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "39cf4afb-7692-446d-9f1b-252e38b9c7f3",
+      "created_at": "2026-05-22 14:27:55.335424+00",
+      "last_event": "delivery_delayed",
+      "subject": "DTF Studio Helsinki \u2014 Tarjous #E2ETEST-1779460073620",
+      "to": [
+        "REDACTED@dtfstudio-test.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "2929eb51-d5e5-44c1-a80e-5a6f7da66417",
+      "created_at": "2026-05-22 14:27:42.30925+00",
+      "last_event": "delivery_delayed",
+      "subject": "DTF Studio Helsinki \u2014 Tarjous #SAMPLE-EVID2",
+      "to": [
+        "REDACTED@dtfstudio-test.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "e3cf4d93-2a9e-4bec-8ffa-44a4f7a6a153",
+      "created_at": "2026-05-22 14:27:20.465232+00",
+      "last_event": "delivery_delayed",
+      "subject": "DTF Studio Helsinki \u2014 Tarjous #SAMPLE-EVIDENCE",
+      "to": [
+        "REDACTED@dtfstudio-test.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "c56d8bf2-943d-442e-a33b-54dc51c4a11e",
+      "created_at": "2026-05-22 14:26:48.98808+00",
+      "last_event": "delivery_delayed",
+      "subject": "DTF Studio Helsinki \u2014 Tarjous #SMOKE-1779460006",
+      "to": [
+        "REDACTED@dtfstudio-test.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "68452d73-92c1-48a7-95e7-077cb3194634",
+      "created_at": "2026-05-22 14:09:53.485472+00",
+      "last_event": "delivered",
+      "subject": "[Admin] Uusi tarjouspyynt\u00f6 #OPUS-IT3-001 \u2014 opus-critic-iter3@dtfstudio.test",
+      "to": [
+        "REDACTED@dtfstudio.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "a433954c-914f-428d-84b4-8ca3a7e43229",
+      "created_at": "2026-05-22 14:09:52.840897+00",
+      "last_event": "delivery_delayed",
+      "subject": "Iter3 critic probe",
+      "to": [
+        "REDACTED@dtfstudio.test"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "31d29078-294b-4f09-b27e-077df16fe2f8",
+      "created_at": "2026-05-22 14:05:19.039394+00",
+      "last_event": "delivery_delayed",
+      "subject": "E2E Test \u2014 Trello Flow Verification",
+      "to": [
+        "REDACTED@dtfstudio-test.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "0aaf051b-ff7d-47cf-8287-04c58cbc51a2",
+      "created_at": "2026-05-22 14:04:47.564538+00",
+      "last_event": "delivery_delayed",
+      "subject": "E2E Test \u2014 Trello Flow Verification",
+      "to": [
+        "REDACTED@dtfstudio-test.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "f3a3a11f-f061-4824-8dbf-b8b140ad34f2",
+      "created_at": "2026-05-22 14:03:38.675585+00",
+      "last_event": "suppressed",
+      "subject": "test",
+      "to": [
+        "REDACTED@test.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "52a5e155-6a53-4193-a1cf-b5195947dac2",
+      "created_at": "2026-05-22 13:55:04.438902+00",
+      "last_event": "delivered",
+      "subject": "[Admin] Uusi tarjouspyynt\u00f6 #DTF-MPGZEIP9 \u2014 opus-verifier@dtfstudio.test",
+      "to": [
+        "REDACTED@dtfstudio.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "dd03b67b-f020-4b20-984f-e9537d6513de",
+      "created_at": "2026-05-22 13:55:04.199429+00",
+      "last_event": "delivery_delayed",
+      "subject": "DTF Studio Helsinki \u2014 Tarjous #DTF-MPGZEIP9",
+      "to": [
+        "REDACTED@dtfstudio.test"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "6cf7cadd-4132-4fba-a99d-bf341ed29c1b",
+      "created_at": "2026-05-22 13:51:39.515552+00",
+      "last_event": "delivered",
+      "subject": "Resend dtfstudio.fi verified",
+      "to": [
+        "REDACTED@alpha-performance.com"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "b53de3cf-19f0-4cef-bc79-c59ae54e7be8",
+      "created_at": "2026-05-22 13:48:12.834716+00",
+      "last_event": "delivered",
+      "subject": "[Admin] Uusi tarjouspyynt\u00f6 #DTF-MPGYYSXS \u2014 xavier@repthea.com",
+      "to": [
+        "REDACTED@dtfstudio.fi"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "83c13717-cdfb-433b-9dc7-13520537f057",
+      "created_at": "2026-05-22 13:48:12.693023+00",
+      "last_event": "delivered",
+      "subject": "DTF Studio Helsinki \u2014 Tarjous #DTF-MPGYYSXS",
+      "to": [
+        "REDACTED@repthea.com"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "9a438bf8-67de-4b51-b6fa-7bc27f80eff6",
+      "created_at": "2026-05-22 13:45:23.002635+00",
+      "last_event": "delivered",
+      "subject": "Resend domain verified \u2014 smoke test",
+      "to": [
+        "REDACTED@alpha-performance.com"
+      ],
+      "from": "DTF Studio Helsinki <hello@dtfstudio.fi>"
+    },
+    {
+      "id": "91642684-ce12-46d9-9dae-7155cafec85c",
+      "created_at": "2025-11-27 09:47:29.606379+00",
+      "last_event": "delivered",
+      "subject": "Hello World",
+      "to": [
+        "REDACTED@alpha-performance.com"
+      ],
+      "from": "Resend <onboarding@resend.dev>"
+    }
+  ]
+}
