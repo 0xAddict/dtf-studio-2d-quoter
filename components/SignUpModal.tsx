@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+// tokens.css owned by epic 02-admin-branding — this component is a read-only consumer
+// of --color-* aliases (set up in index.html :root from the canonical token values).
 
 interface SignUpModalProps {
   isOpen: boolean;
@@ -8,15 +10,6 @@ interface SignUpModalProps {
   onSwitchToSignIn: () => void;
   onSuccess: () => void;
 }
-
-const PAPER = '#f4e4bc';
-const PAPER_2 = '#e8d8b0';
-const FIELD = '#fbf2d6';
-const INK = '#1a1a1a';
-const INK_SOFT = '#44423d';
-const CRIMSON = '#b22222';
-const SERIF = "'Source Serif 4','Source Serif Pro',Georgia,serif";
-const MONO = "'IBM Plex Mono','Courier New',monospace";
 
 export const SignUpModal: React.FC<SignUpModalProps> = ({
   isOpen,
@@ -94,36 +87,36 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Password strength
+  // Password strength — uses token-safe color expressions (no hardcoded hex for tokens)
   const getPasswordStrength = () => {
     const p = formData.password;
-    if (p.length === 0) return { strength: 0, label: '', color: PAPER_2 };
-    if (p.length < 8) return { strength: 1, label: 'Heikko', color: CRIMSON };
-    if (p.length < 12) return { strength: 2, label: 'Kohtalainen', color: '#d4a017' };
-    if (p.length < 16) return { strength: 3, label: 'Hyvä', color: '#2d5a4f' };
-    return { strength: 4, label: 'Vahva', color: '#1a5a3f' };
+    if (p.length === 0) return { strength: 0, label: '', colorVar: 'var(--color-paper-2)' };
+    if (p.length < 8)  return { strength: 1, label: 'Heikko',     colorVar: 'var(--color-accent)' };
+    if (p.length < 12) return { strength: 2, label: 'Kohtalainen', colorVar: '#d4a017' };
+    if (p.length < 16) return { strength: 3, label: 'Hyvä',       colorVar: '#2d5a4f' };
+    return               { strength: 4, label: 'Vahva',      colorVar: '#1a5a3f' };
   };
   const passwordStrength = getPasswordStrength();
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '10px 12px',
-    background: FIELD,
-    border: `2px solid ${INK}`,
+    background: 'var(--color-field)',
+    border: '2px solid var(--color-ink)',
     borderRadius: 0,
-    fontFamily: SERIF,
+    fontFamily: 'var(--color-serif)',
     fontSize: '15px',
-    color: INK,
+    color: 'var(--color-ink)',
     outline: 'none',
   };
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    fontFamily: MONO,
+    fontFamily: 'var(--color-mono)',
     fontSize: '11px',
     fontWeight: 600,
     letterSpacing: '0.12em',
     textTransform: 'uppercase',
-    color: INK,
+    color: 'var(--color-ink)',
     marginBottom: '6px',
   };
 
@@ -149,10 +142,10 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
         style={{
           width: '100%',
           maxWidth: '480px',
-          background: PAPER,
-          border: `2px solid ${INK}`,
+          background: 'var(--color-paper)',
+          border: '2px solid var(--color-ink)',
           borderRadius: 0,
-          boxShadow: `8px 8px 0 ${INK}`,
+          boxShadow: '8px 8px 0 var(--color-ink)',
           maxHeight: '90vh',
           overflowY: 'auto',
         }}
@@ -164,32 +157,33 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
             alignItems: 'flex-start',
             justifyContent: 'space-between',
             padding: '20px 24px 16px',
-            borderBottom: `2px solid ${CRIMSON}`,
+            borderBottom: '2px solid var(--color-accent)',
           }}
         >
           <div>
             <p
               style={{
                 margin: 0,
-                fontFamily: MONO,
+                fontFamily: 'var(--color-mono)',
                 fontSize: '11px',
                 fontWeight: 600,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                color: INK,
+                color: 'var(--color-ink)',
                 opacity: 0.7,
               }}
             >
               DTF STUDIO HELSINKI
             </p>
+            {/* Vahvista tilaus — branded Finnish for account creation */}
             <h2
               id="signup-modal-title"
               style={{
                 margin: '4px 0 0',
-                fontFamily: SERIF,
+                fontFamily: 'var(--color-serif)',
                 fontSize: '24px',
                 fontWeight: 600,
-                color: INK,
+                color: 'var(--color-ink)',
               }}
             >
               Rekisteröidy
@@ -207,11 +201,11 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
               justifyContent: 'center',
               background: 'transparent',
               border: 'none',
-              color: INK,
+              color: 'var(--color-ink)',
               cursor: 'pointer',
               opacity: isSubmitting ? 0.4 : 1,
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = PAPER_2)}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-paper-2)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <X style={{ width: '20px', height: '20px' }} />
@@ -223,7 +217,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
           {/* Name */}
           <div style={{ marginBottom: '16px' }}>
             <label htmlFor="name" style={labelStyle}>
-              Nimi <span style={{ color: CRIMSON }}>*</span>
+              Nimi <span style={{ color: 'var(--color-accent)' }}>*</span>
             </label>
             <input
               type="text"
@@ -235,7 +229,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
               required
               disabled={isSubmitting}
               style={inputStyle}
-              onFocus={e => (e.currentTarget.style.outline = `2px solid ${CRIMSON}`)}
+              onFocus={e => (e.currentTarget.style.outline = '2px solid var(--color-accent)')}
               onBlur={e => (e.currentTarget.style.outline = 'none')}
             />
           </div>
@@ -243,7 +237,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
           {/* Email */}
           <div style={{ marginBottom: '16px' }}>
             <label htmlFor="email" style={labelStyle}>
-              Sähköposti <span style={{ color: CRIMSON }}>*</span>
+              Sähköposti <span style={{ color: 'var(--color-accent)' }}>*</span>
             </label>
             <input
               type="email"
@@ -255,7 +249,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
               required
               disabled={isSubmitting}
               style={inputStyle}
-              onFocus={e => (e.currentTarget.style.outline = `2px solid ${CRIMSON}`)}
+              onFocus={e => (e.currentTarget.style.outline = '2px solid var(--color-accent)')}
               onBlur={e => (e.currentTarget.style.outline = 'none')}
             />
           </div>
@@ -263,7 +257,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
           {/* Password */}
           <div style={{ marginBottom: '16px' }}>
             <label htmlFor="password" style={labelStyle}>
-              Salasana <span style={{ color: CRIMSON }}>*</span>
+              Salasana <span style={{ color: 'var(--color-accent)' }}>*</span>
             </label>
             <input
               type="password"
@@ -276,7 +270,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
               minLength={8}
               disabled={isSubmitting}
               style={inputStyle}
-              onFocus={e => (e.currentTarget.style.outline = `2px solid ${CRIMSON}`)}
+              onFocus={e => (e.currentTarget.style.outline = '2px solid var(--color-accent)')}
               onBlur={e => (e.currentTarget.style.outline = 'none')}
             />
             {formData.password && (
@@ -288,7 +282,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
                       style={{
                         height: '3px',
                         flex: 1,
-                        background: level <= passwordStrength.strength ? passwordStrength.color : PAPER_2,
+                        background: level <= passwordStrength.strength ? passwordStrength.colorVar : 'var(--color-paper-2)',
                       }}
                     />
                   ))}
@@ -297,11 +291,11 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
                   <p
                     style={{
                       margin: 0,
-                      fontFamily: MONO,
+                      fontFamily: 'var(--color-mono)',
                       fontSize: '10px',
                       letterSpacing: '0.08em',
                       textTransform: 'uppercase',
-                      color: INK_SOFT,
+                      color: 'var(--color-ink-soft)',
                     }}
                   >
                     Vahvuus: {passwordStrength.label}
@@ -311,10 +305,10 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
             )}
           </div>
 
-          {/* Confirm Password */}
+          {/* Confirm Password — Vahvista salasana */}
           <div style={{ marginBottom: '16px' }}>
             <label htmlFor="confirmPassword" style={labelStyle}>
-              Vahvista salasana <span style={{ color: CRIMSON }}>*</span>
+              Vahvista salasana <span style={{ color: 'var(--color-accent)' }}>*</span>
             </label>
             <input
               type="password"
@@ -326,7 +320,7 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
               required
               disabled={isSubmitting}
               style={inputStyle}
-              onFocus={e => (e.currentTarget.style.outline = `2px solid ${CRIMSON}`)}
+              onFocus={e => (e.currentTarget.style.outline = '2px solid var(--color-accent)')}
               onBlur={e => (e.currentTarget.style.outline = 'none')}
             />
           </div>
@@ -340,13 +334,13 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
                 alignItems: 'flex-start',
                 gap: '8px',
                 padding: '10px 12px',
-                background: PAPER_2,
-                borderLeft: `3px solid ${CRIMSON}`,
+                background: 'var(--color-paper-2)',
+                borderLeft: '3px solid var(--color-accent)',
                 marginBottom: '16px',
               }}
             >
-              <AlertCircle style={{ width: '18px', height: '18px', color: CRIMSON, flexShrink: 0, marginTop: '1px' }} />
-              <p style={{ margin: 0, fontFamily: MONO, fontSize: '12px', color: INK, lineHeight: 1.5 }}>{error}</p>
+              <AlertCircle style={{ width: '18px', height: '18px', color: 'var(--color-accent)', flexShrink: 0, marginTop: '1px' }} />
+              <p style={{ margin: 0, fontFamily: 'var(--color-mono)', fontSize: '12px', color: 'var(--color-ink)', lineHeight: 1.5 }}>{error}</p>
             </div>
           )}
 
@@ -362,11 +356,11 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
               gap: '8px',
               minHeight: '48px',
               padding: '12px 18px',
-              background: INK,
-              color: PAPER,
-              border: `2px solid ${INK}`,
+              background: 'var(--color-ink)',
+              color: 'var(--color-paper)',
+              border: '2px solid var(--color-ink)',
               borderRadius: 0,
-              fontFamily: MONO,
+              fontFamily: 'var(--color-mono)',
               fontSize: '13px',
               fontWeight: 600,
               letterSpacing: '0.08em',
@@ -391,9 +385,9 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
               textAlign: 'center',
               marginTop: '16px',
               marginBottom: 0,
-              fontFamily: SERIF,
+              fontFamily: 'var(--color-serif)',
               fontSize: '14px',
-              color: INK_SOFT,
+              color: 'var(--color-ink-soft)',
             }}
           >
             Onko jo tili?{' '}
@@ -404,8 +398,8 @@ export const SignUpModal: React.FC<SignUpModalProps> = ({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: CRIMSON,
-                fontFamily: SERIF,
+                color: 'var(--color-accent)',
+                fontFamily: 'var(--color-serif)',
                 fontSize: '14px',
                 fontWeight: 600,
                 textDecoration: 'underline',

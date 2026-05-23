@@ -11,6 +11,7 @@ import {
   Loader2,
   Image as ImageIcon,
   MessageSquare,
+  Check,
 } from 'lucide-react';
 import {
   getOrder,
@@ -18,10 +19,75 @@ import {
   statusLabel,
   DtfOrder,
 } from '../services/supabase/orders';
+// tokens.css owned by epic 02-admin-branding — this component is a read-only
+// consumer of --color-* aliases (set up in index.html :root from canonical tokens).
 
 // ---------------------------------------------------------------
 // Tilauksen tiedot -sivu — DTF Studio Helsinki asiakasportaali
 // ---------------------------------------------------------------
+
+// ── Status timeline — 4-step order progress tracker ──────────────
+// Steps: Tilaus vastaanotettu → Maksu vahvistettu → Tuotannossa → Lähetetty
+const TIMELINE_STEPS = [
+  { key: 'received',  label: 'Tilaus\nvastaanotettu' },
+  { key: 'paid',      label: 'Maksu\nvahvistettu' },
+  { key: 'production', label: 'Tuotannossa' },
+  { key: 'shipped',  label: 'Lähetetty' },
+] as const;
+
+type TimelineStepKey = typeof TIMELINE_STEPS[number]['key'];
+
+/** Maps order status string to the furthest completed timeline step */
+function statusToTimelineStep(status: string): TimelineStepKey {
+  const s = (status ?? '').toLowerCase();
+  if (s === 'completed' || s === 'done' || s === 'shipped') return 'shipped';
+  if (s === 'processing' || s === 'active' || s === 'in_production') return 'production';
+  if (s === 'paid' || s === 'payment_confirmed') return 'paid';
+  return 'received'; // pending, new, default
+}
+
+const STEP_ORDER: TimelineStepKey[] = ['received', 'paid', 'production', 'shipped'];
+
+interface StatusTimelineProps {
+  status: string;
+}
+
+const StatusTimeline: React.FC<StatusTimelineProps> = ({ status }) => {
+  const activeStep = statusToTimelineStep(status);
+  const activeIdx = STEP_ORDER.indexOf(activeStep);
+
+  return (
+    <div className="status-timeline" aria-label="Tilauksen eteneminen" role="list">
+      {TIMELINE_STEPS.map((step, idx) => {
+        const isDone = idx < activeIdx;
+        const isActive = idx === activeIdx;
+        const stepClass = [
+          'status-timeline__step',
+          isDone ? 'status-timeline__step--done' : '',
+          isActive ? 'status-timeline__step--active' : '',
+        ].filter(Boolean).join(' ');
+
+        return (
+          <div key={step.key} className={stepClass} role="listitem" aria-current={isActive ? 'step' : undefined}>
+            <div className="status-timeline__dot">
+              {isDone && (
+                <Check
+                  style={{ width: '12px', height: '12px', color: 'var(--color-paper)', strokeWidth: 3 }}
+                />
+              )}
+              {isActive && (
+                <div
+                  style={{ width: '8px', height: '8px', background: 'var(--color-accent)' }}
+                />
+              )}
+            </div>
+            <span className="status-timeline__label">{step.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString('fi-FI', {
@@ -129,7 +195,7 @@ export const OrderDetailPage: React.FC = () => {
         {/* Loading */}
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-            <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--crimson)' }} />
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--color-accent)' }} />
           </div>
         )}
 
@@ -149,6 +215,14 @@ export const OrderDetailPage: React.FC = () => {
 
         {order && !loading && (
           <>
+            {/* Status timeline — Tilaus vastaanotettu → Maksu vahvistettu → Tuotannossa → Lähetetty */}
+            <div className="brand-card" style={{ padding: '16px 20px 12px' }}>
+              <p className="kicker" style={{ marginBottom: '4px', color: 'var(--color-accent)' }}>
+                TILAUKSEN ETENEMINEN
+              </p>
+              <StatusTimeline status={order.status} />
+            </div>
+
             {/* Summary card */}
             <div className="brand-card" style={{ padding: '20px 24px' }}>
               <p className="kicker kicker--crimson" style={{ marginBottom: '4px' }}>YHTEENVETO</p>
@@ -253,11 +327,11 @@ export const OrderDetailPage: React.FC = () => {
                         transition: 'border-color 0.1s, background 0.1s',
                       }}
                       onMouseEnter={e => {
-                        (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--crimson)';
+                        (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--color-accent)';
                         (e.currentTarget as HTMLAnchorElement).style.background = 'var(--field)';
                       }}
                       onMouseLeave={e => {
-                        (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--ink)';
+                        (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--color-ink)';
                         (e.currentTarget as HTMLAnchorElement).style.background = 'var(--paper)';
                       }}
                     >
@@ -325,7 +399,7 @@ const InfoItem: React.FC<{
       fontFamily: mono ? 'var(--mono)' : 'var(--serif)',
       fontSize: '0.9rem',
       fontWeight: 600,
-      color: highlight ? 'var(--crimson)' : 'var(--ink)',
+      color: highlight ? 'var(--color-accent)' : 'var(--ink)',
     }}>
       {value}
     </p>

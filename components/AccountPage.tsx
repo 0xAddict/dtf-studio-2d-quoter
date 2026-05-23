@@ -15,6 +15,8 @@ import {
   statusLabel,
   DtfOrder,
 } from '../services/supabase/orders';
+// tokens.css owned by epic 02-admin-branding — this component is a read-only
+// consumer of --color-* aliases (set up in index.html :root from canonical tokens).
 
 // ---------------------------------------------------------------
 // Tilaukset-sivu — DTF Studio Helsinki asiakasportaali
@@ -134,7 +136,7 @@ export const AccountPage: React.FC = () => {
         {/* Loading */}
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-            <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--crimson)' }} />
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--color-accent)' }} />
           </div>
         )}
 
@@ -273,7 +275,7 @@ export const AccountPage: React.FC = () => {
                               fontSize: '11px',
                               textTransform: 'uppercase',
                               letterSpacing: '0.08em',
-                              color: 'var(--crimson)',
+                              color: 'var(--color-accent)',
                               textDecoration: 'none',
                             }}
                           >
@@ -295,7 +297,7 @@ export const AccountPage: React.FC = () => {
                             fontSize: '11px',
                             textTransform: 'uppercase',
                             letterSpacing: '0.08em',
-                            color: 'var(--crimson)',
+                            color: 'var(--color-accent)',
                             textDecoration: 'none',
                           }}
                         >

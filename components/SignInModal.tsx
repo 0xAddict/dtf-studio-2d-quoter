@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+// tokens.css owned by epic 02-admin-branding — this component is a read-only consumer
+// of --color-* aliases (set up in index.html :root from the canonical token values).
 
 interface SignInModalProps {
   isOpen: boolean;
@@ -8,15 +10,6 @@ interface SignInModalProps {
   onSwitchToSignUp: () => void;
   onSuccess: () => void;
 }
-
-const PAPER = '#f4e4bc';
-const PAPER_2 = '#e8d8b0';
-const FIELD = '#fbf2d6';
-const INK = '#1a1a1a';
-const INK_SOFT = '#44423d';
-const CRIMSON = '#b22222';
-const SERIF = "'Source Serif 4','Source Serif Pro',Georgia,serif";
-const MONO = "'IBM Plex Mono','Courier New',monospace";
 
 export const SignInModal: React.FC<SignInModalProps> = ({
   isOpen,
@@ -105,10 +98,10 @@ export const SignInModal: React.FC<SignInModalProps> = ({
         style={{
           width: '100%',
           maxWidth: '480px',
-          background: PAPER,
-          border: `2px solid ${INK}`,
+          background: 'var(--color-paper)',
+          border: '2px solid var(--color-ink)',
           borderRadius: 0,
-          boxShadow: `8px 8px 0 ${INK}`,
+          boxShadow: '8px 8px 0 var(--color-ink)',
         }}
       >
         {/* Header */}
@@ -118,32 +111,33 @@ export const SignInModal: React.FC<SignInModalProps> = ({
             alignItems: 'flex-start',
             justifyContent: 'space-between',
             padding: '20px 24px 16px',
-            borderBottom: `2px solid ${CRIMSON}`,
+            borderBottom: '2px solid var(--color-accent)',
           }}
         >
           <div>
             <p
               style={{
                 margin: 0,
-                fontFamily: MONO,
+                fontFamily: 'var(--color-mono)',
                 fontSize: '11px',
                 fontWeight: 600,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                color: INK,
+                color: 'var(--color-ink)',
                 opacity: 0.7,
               }}
             >
               DTF STUDIO HELSINKI
             </p>
+            {/* Branded Finnish label — Kirjaudu */}
             <h2
               id="signin-modal-title"
               style={{
                 margin: '4px 0 0',
-                fontFamily: SERIF,
+                fontFamily: 'var(--color-serif)',
                 fontSize: '24px',
                 fontWeight: 600,
-                color: INK,
+                color: 'var(--color-ink)',
               }}
             >
               Kirjaudu sisään
@@ -161,11 +155,11 @@ export const SignInModal: React.FC<SignInModalProps> = ({
               justifyContent: 'center',
               background: 'transparent',
               border: 'none',
-              color: INK,
+              color: 'var(--color-ink)',
               cursor: 'pointer',
               opacity: isSubmitting ? 0.4 : 1,
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = PAPER_2)}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-paper-2)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <X style={{ width: '20px', height: '20px' }} />
@@ -180,16 +174,16 @@ export const SignInModal: React.FC<SignInModalProps> = ({
               htmlFor="email"
               style={{
                 display: 'block',
-                fontFamily: MONO,
+                fontFamily: 'var(--color-mono)',
                 fontSize: '11px',
                 fontWeight: 600,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                color: INK,
+                color: 'var(--color-ink)',
                 marginBottom: '6px',
               }}
             >
-              Sähköposti <span style={{ color: CRIMSON }}>*</span>
+              Sähköposti <span style={{ color: 'var(--color-accent)' }}>*</span>
             </label>
             <input
               type="email"
@@ -204,15 +198,15 @@ export const SignInModal: React.FC<SignInModalProps> = ({
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: FIELD,
-                border: `2px solid ${INK}`,
+                background: 'var(--color-field)',
+                border: '2px solid var(--color-ink)',
                 borderRadius: 0,
-                fontFamily: SERIF,
+                fontFamily: 'var(--color-serif)',
                 fontSize: '15px',
-                color: INK,
+                color: 'var(--color-ink)',
                 outline: 'none',
               }}
-              onFocus={e => (e.currentTarget.style.outline = `2px solid ${CRIMSON}`)}
+              onFocus={e => (e.currentTarget.style.outline = '2px solid var(--color-accent)')}
               onBlur={e => (e.currentTarget.style.outline = 'none')}
             />
           </div>
@@ -223,16 +217,16 @@ export const SignInModal: React.FC<SignInModalProps> = ({
               htmlFor="password"
               style={{
                 display: 'block',
-                fontFamily: MONO,
+                fontFamily: 'var(--color-mono)',
                 fontSize: '11px',
                 fontWeight: 600,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                color: INK,
+                color: 'var(--color-ink)',
                 marginBottom: '6px',
               }}
             >
-              Salasana <span style={{ color: CRIMSON }}>*</span>
+              Salasana <span style={{ color: 'var(--color-accent)' }}>*</span>
             </label>
             <input
               type="password"
@@ -246,15 +240,15 @@ export const SignInModal: React.FC<SignInModalProps> = ({
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: FIELD,
-                border: `2px solid ${INK}`,
+                background: 'var(--color-field)',
+                border: '2px solid var(--color-ink)',
                 borderRadius: 0,
-                fontFamily: SERIF,
+                fontFamily: 'var(--color-serif)',
                 fontSize: '15px',
-                color: INK,
+                color: 'var(--color-ink)',
                 outline: 'none',
               }}
-              onFocus={e => (e.currentTarget.style.outline = `2px solid ${CRIMSON}`)}
+              onFocus={e => (e.currentTarget.style.outline = '2px solid var(--color-accent)')}
               onBlur={e => (e.currentTarget.style.outline = 'none')}
             />
           </div>
@@ -268,17 +262,17 @@ export const SignInModal: React.FC<SignInModalProps> = ({
                 alignItems: 'flex-start',
                 gap: '8px',
                 padding: '10px 12px',
-                background: PAPER_2,
-                borderLeft: `3px solid ${CRIMSON}`,
+                background: 'var(--color-paper-2)',
+                borderLeft: '3px solid var(--color-accent)',
                 marginBottom: '16px',
               }}
             >
-              <AlertCircle style={{ width: '18px', height: '18px', color: CRIMSON, flexShrink: 0, marginTop: '1px' }} />
-              <p style={{ margin: 0, fontFamily: MONO, fontSize: '12px', color: INK, lineHeight: 1.5 }}>{error}</p>
+              <AlertCircle style={{ width: '18px', height: '18px', color: 'var(--color-accent)', flexShrink: 0, marginTop: '1px' }} />
+              <p style={{ margin: 0, fontFamily: 'var(--color-mono)', fontSize: '12px', color: 'var(--color-ink)', lineHeight: 1.5 }}>{error}</p>
             </div>
           )}
 
-          {/* Submit */}
+          {/* Submit — primary CTA: Kirjaudu */}
           <button
             type="submit"
             disabled={isSubmitting}
@@ -290,11 +284,11 @@ export const SignInModal: React.FC<SignInModalProps> = ({
               gap: '8px',
               minHeight: '48px',
               padding: '12px 18px',
-              background: INK,
-              color: PAPER,
-              border: `2px solid ${INK}`,
+              background: 'var(--color-ink)',
+              color: 'var(--color-paper)',
+              border: '2px solid var(--color-ink)',
               borderRadius: 0,
-              fontFamily: MONO,
+              fontFamily: 'var(--color-mono)',
               fontSize: '13px',
               fontWeight: 600,
               letterSpacing: '0.08em',
@@ -309,7 +303,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({
                 LADATAAN…
               </>
             ) : (
-              <>KIRJAUDU SISÄÄN</>
+              <>KIRJAUDU</>
             )}
           </button>
 
@@ -319,9 +313,9 @@ export const SignInModal: React.FC<SignInModalProps> = ({
               textAlign: 'center',
               marginTop: '16px',
               marginBottom: 0,
-              fontFamily: SERIF,
+              fontFamily: 'var(--color-serif)',
               fontSize: '14px',
-              color: INK_SOFT,
+              color: 'var(--color-ink-soft)',
             }}
           >
             Ei vielä tiliä?{' '}
@@ -332,8 +326,8 @@ export const SignInModal: React.FC<SignInModalProps> = ({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: CRIMSON,
-                fontFamily: SERIF,
+                color: 'var(--color-accent)',
+                fontFamily: 'var(--color-serif)',
                 fontSize: '14px',
                 fontWeight: 600,
                 textDecoration: 'underline',
