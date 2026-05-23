@@ -19,6 +19,36 @@ const MATERIAALIT = [
 
 const ADMIN_EMAIL = 'hello@dtfstudio.fi';
 
+// ── Error classes for accurate Finnish toast messages ──────────────────────────
+class PdfGenError extends Error {
+  constructor(msg?: string) { super(msg ?? 'PDF lataus epäonnistui'); this.name = 'PdfGenError'; }
+}
+class EmailSendError extends Error {
+  constructor(msg?: string) { super(msg ?? 'Sähköpostin lähetys epäonnistui. Tarkista internetyhteys.'); this.name = 'EmailSendError'; }
+}
+class ServerError extends Error {
+  constructor(msg?: string) { super(msg ?? 'Palvelin palautti virheen. Yritä myöhemmin uudelleen.'); this.name = 'ServerError'; }
+}
+
+/**
+ * Converts an ArrayBuffer to a base64 string using FileReader.readAsDataURL.
+ * Avoids the synchronous spread-into-btoa pattern (stack overflow on Uint8Arrays
+ * larger than ~500 KB — RangeError: Maximum call stack size exceeded).
+ */
+function bufferToBase64(buf: ArrayBuffer): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip the data-URL prefix: "data:application/pdf;base64,"
+      const commaIdx = result.indexOf(',');
+      resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result);
+    };
+    reader.onerror = () => reject(new PdfGenError('PDF base64-muunnos epäonnistui'));
+    reader.readAsDataURL(new Blob([buf]));
+  });
+}
+
 interface QuoteState {
   quoteId: string;
   gangSheet: GangSheetResult;
@@ -127,9 +157,20 @@ export default function DTFQuoter() {
     setSending(true);
     setError(null);
 
+    // Phase 1: PDF → base64  (isolated so we can give an accurate toast on failure)
+    let pdfBase64: string;
+    try {
+      pdfBase64 = await bufferToBase64(quote.pdfBytes.buffer as ArrayBuffer);
+    } catch (err) {
+      const msg = err instanceof PdfGenError ? err.message : 'PDF lataus epäonnistui';
+      setError(msg);
+      setSending(false);
+      return;
+    }
+
+    // Phase 2: Build payload and send
     try {
       const subject = `DTF Studio Helsinki — Tarjous #${quote.quoteId}`;
-      const pdfBase64 = btoa(String.fromCharCode(...quote.pdfBytes));
       const htmlBody = buildEmailHtml(quote, { customerName, customerEmail, leveys, korkeus, quantity, materiaali, notes });
 
       let customerId: string | null = null;
@@ -141,48 +182,59 @@ export default function DTFQuoter() {
       }
       const filesPayload = files.map((f) => ({ name: f.name, size: f.size, type: f.type }));
 
-      const resp = await fetch('/.netlify/functions/send-quote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: isAdminMode && adminAssignEmail ? adminAssignEmail : customerEmail,
-          subject,
-          html: htmlBody,
-          pdfBase64,
-          quoteId: quote.quoteId,
-          adminEmail: ADMIN_EMAIL,
-          customerName: customerName || null,
-          customerId,
-          quoteEur: quote.gangSheet.totalEur,
-          sheetCount: quote.gangSheet.sheets,
-          material: materiaali,
-          sizeCm: { width: leveys, height: korkeus, quantity },
-          files: filesPayload,
-          gangSheetUrl: null,
-          notes: notes || null,
-          // Admin-only fields
-          ...(isAdminMode ? {
-            createdByAdmin: true,
-            adminId: customerId,
-            internalNotes: adminInternalNotes || null,
-            discountAmountCents: adminDiscountCents || 0,
-            assignToEmail: adminAssignEmail || null,
-          } : {}),
-        }),
-      });
+      let resp: Response;
+      try {
+        resp = await fetch('/.netlify/functions/send-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: isAdminMode && adminAssignEmail ? adminAssignEmail : customerEmail,
+            subject,
+            html: htmlBody,
+            pdfBase64,
+            quoteId: quote.quoteId,
+            adminEmail: ADMIN_EMAIL,
+            customerName: customerName || null,
+            customerId,
+            quoteEur: quote.gangSheet.totalEur,
+            sheetCount: quote.gangSheet.sheets,
+            material: materiaali,
+            sizeCm: { width: leveys, height: korkeus, quantity },
+            files: filesPayload,
+            gangSheetUrl: null,
+            notes: notes || null,
+            // Admin-only fields
+            ...(isAdminMode ? {
+              createdByAdmin: true,
+              adminId: customerId,
+              internalNotes: adminInternalNotes || null,
+              discountAmountCents: adminDiscountCents || 0,
+              assignToEmail: adminAssignEmail || null,
+            } : {}),
+          }),
+        });
+      } catch {
+        throw new EmailSendError();
+      }
 
-      if (resp.ok) {
-        const responseData = await resp.json().catch(() => ({}));
-        setEmailSent(true);
-        if (responseData.orderId) {
-          setDbOrderId(responseData.orderId);
-        }
-      } else {
-        const txt = await resp.text();
-        setError(`Sähköpostivirhe: ${txt}`);
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        throw new ServerError(txt ? `Palvelin palautti virheen: ${txt}` : undefined);
+      }
+
+      const responseData = await resp.json().catch(() => ({}));
+      setEmailSent(true);
+      if (responseData.orderId) {
+        setDbOrderId(responseData.orderId);
       }
     } catch (err) {
-      setError('Sähköpostin lähetys epäonnistui. Lataa PDF manuaalisesti.');
+      if (err instanceof EmailSendError) {
+        setError(err.message);
+      } else if (err instanceof ServerError) {
+        setError(err.message);
+      } else {
+        setError('Sähköpostin lähetys epäonnistui. Tarkista internetyhteys.');
+      }
     } finally {
       setSending(false);
     }
