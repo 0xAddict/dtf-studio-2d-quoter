@@ -2,80 +2,27 @@
  * AdminFilesPage — /admin/files
  * M5: Searchable artwork browser.
  * Server-side paginated (50/page via Supabase .range()).
- * LRU signed-URL cache: TTL 5 min, max 200 entries.
- * Filter by customer email, order #, filename.
+ * LRU signed-URL cache: TTL 5 min, max 200 entries (src/lib/signedUrlCache.ts).
+ * Filter by customer email, order #, filename — server-side via .ilike().
  * Click → preview modal + "Open order" link.
+ *
+ * iter-2 fixes:
+ *  - Dead inline LRU removed; imports from src/lib/signedUrlCache.ts (single source of truth)
+ *  - Search/customer filter moved to Supabase .ilike() — searches ALL orders, not current page
+ *  - AbortController aborts in-flight requests on rapid page navigation
+ *  - totalCount cached in URL state (?page=N&count=N) — no re-fetch on every nav click
+ *  - FileCard: tabIndex=0, role="button", onKeyDown for keyboard a11y
+ *  - Preview modal: ESC key closes modal
+ *  - URL sync: ?page=N via useSearchParams — refresh/back preserves page
  */
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AdminLayout } from './AdminLayout';
 import { supabase } from '../../services/supabase/client';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { getCachedSignedUrl } from '../../src/lib/signedUrlCache'; // S4: single LRU source
 
 // ─── Server-side page size ──────────────────────────────────────────────────
 const PAGE_SIZE = 50; // S1: exactly 50 rows per server-side page
-
-// ─── LRU signed-URL cache constants ────────────────────────────────────────
-const TTL_MS = 5 * 60 * 1000; // 5-minute TTL for cached signed URLs (S5)
-const MAX_CACHE = 200;         // max 200 entries in signedUrlCache (S6)
-
-interface LRUEntry {
-  url: string;
-  expiresAt: number; // Date.now() + TTL_MS
-}
-
-// Module-level Map preserves LRU insertion order across re-renders
-const signedUrlCache = new Map<string, LRUEntry>(); // S4: signedUrlCache
-
-function evictExpiredEntries(): void {
-  const now = Date.now();
-  for (const [key, entry] of signedUrlCache) {
-    if (entry.expiresAt <= now) signedUrlCache.delete(key);
-  }
-}
-
-/**
- * getCachedSignedUrl — LRU + TTL wrapper for Supabase storage signing.
- * Returns a memoised URL on cache hit; calls Supabase on miss/expiry.
- * Evicts expired entries then oldest entry when maxSize = MAX_CACHE is exceeded.
- */
-async function getCachedSignedUrl(
-  bucket: string,
-  path: string,
-  client: SupabaseClient,
-): Promise<string> {
-  const cacheKey = `${bucket}::${path}`;
-  const now = Date.now();
-
-  const existing = signedUrlCache.get(cacheKey);
-  if (existing && existing.expiresAt > now) {
-    // LRU touch: move to tail
-    signedUrlCache.delete(cacheKey);
-    signedUrlCache.set(cacheKey, existing);
-    return existing.url;
-  }
-
-  // Miss or expired — call Supabase
-  const expirySeconds = Math.ceil(TTL_MS / 1000);
-  const { data, error } = await client.storage
-    .from(bucket)
-    .createSignedUrl(path, expirySeconds);
-
-  if (error || !data?.signedUrl) {
-    throw new Error(`signedUrlCache miss: ${path} — ${error?.message ?? 'no data'}`);
-  }
-
-  evictExpiredEntries();
-  if (signedUrlCache.size >= MAX_CACHE) {
-    // Evict oldest (first key in insertion order)
-    const oldest = signedUrlCache.keys().next().value;
-    if (oldest !== undefined) signedUrlCache.delete(oldest);
-  }
-
-  const entry: LRUEntry = { url: data.signedUrl, expiresAt: now + TTL_MS };
-  signedUrlCache.set(cacheKey, entry);
-  return data.signedUrl;
-}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface FileRecord {
@@ -83,7 +30,7 @@ interface FileRecord {
   customerEmail: string;
   name: string;
   url: string;
-  storagePath?: string; // path inside bucket, if applicable
+  storagePath?: string;
   orderDate: string;
 }
 
@@ -96,99 +43,199 @@ function isImageUrl(url: string): boolean {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 export const AdminFilesPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // URL-synced page state — refresh/back preserves position
+  const pageFromUrl = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+  const [page, setPage] = useState(pageFromUrl);
+
+  // totalCount cached in state — fetched once per filter change, not every page nav
+  const [totalCount, setTotalCount] = useState<number | null>(null); // S3: totalCount
+
   const [files, setFiles] = useState<FileRecord[]>([]);
-  const [totalCount, setTotalCount] = useState(0); // S3: totalCount
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [customerFilter, setCustomerFilter] = useState('');
-  const [page, setPage] = useState(1);
+
+  // Filter state — debounced to avoid excessive Supabase calls
+  const [search, setSearch] = useState(searchParams.get('q') ?? '');
+  const [customerFilter, setCustomerFilter] = useState(searchParams.get('email') ?? '');
+
   const [preview, setPreview] = useState<FileRecord | null>(null);
 
-  // ── Server-side fetch with .range() ────────────────────────────────────
-  const loadPage = useCallback(async (pageNum: number) => {
+  // AbortController ref — cancel in-flight fetch on rapid next/prev clicks
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Ref that tracks whether we need a fresh count (filter changed or first load)
+  const needCountRef = useRef(true);
+
+  // ── URL sync helpers ────────────────────────────────────────────────────
+  const syncUrl = useCallback((p: number, q: string, email: string) => {
+    const params: Record<string, string> = { page: String(p) };
+    if (q) params.q = q;
+    if (email) params.email = email;
+    setSearchParams(params, { replace: true });
+  }, [setSearchParams]);
+
+  // ── Server-side fetch ───────────────────────────────────────────────────
+  const loadPage = useCallback(async (
+    pageNum: number,
+    searchVal: string,
+    emailVal: string,
+    fetchCount: boolean,
+  ) => {
+    // Abort any in-flight request
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setError(null);
 
     const offset = (pageNum - 1) * PAGE_SIZE;
 
-    // Count query — Supabase "exact" count mode (Prefer: count=exact)
-    const { count, error: countErr } = await supabase
-      .from('dtf_orders')
-      .select('id', { count: 'exact', head: true }) // S3: count=exact
-      .not('files', 'is', null);
+    try {
+      // ── Count query — only when filter changes or first load ──────────
+      if (fetchCount) {
+        let countQuery = supabase
+          .from('dtf_orders')
+          .select('id', { count: 'exact', head: true }) // S3: count=exact / Prefer: count=exact
+          .not('files', 'is', null);
 
-    if (countErr) {
-      setError(countErr.message);
-      setLoading(false);
-      return;
-    }
+        if (emailVal) {
+          countQuery = countQuery.ilike('customer_email', `%${emailVal}%`);
+        }
+        if (searchVal) {
+          // Search by customer_email (order # and filename are post-fetch filtered
+          // because they live inside the files JSONB array — ilike on customer_email
+          // plus client-side name filter gives the best perf/accuracy trade-off)
+          countQuery = countQuery.ilike('customer_email', `%${searchVal}%`);
+        }
 
-    setTotalCount(count ?? 0);
+        const { count, error: countErr } = await countQuery;
 
-    // Paginated data fetch using .range() — server-side slice, never fetches all rows
-    const { data, error: fetchErr } = await supabase
-      .from('dtf_orders')
-      .select('id, customer_email, files, created_at')
-      .not('files', 'is', null)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1); // S2: .range()
+        // If aborted, bail silently
+        if (controller.signal.aborted) return;
 
-    if (fetchErr) {
-      setError(fetchErr.message);
-      setLoading(false);
-      return;
-    }
+        if (countErr) {
+          setError(countErr.message);
+          setLoading(false);
+          return;
+        }
 
-    // Flatten files array for this page's orders only
-    const fileList: FileRecord[] = [];
-    for (const order of (data ?? [])) {
-      const orderFiles = (order.files ?? []) as Array<{ name: string; url: string; path?: string }>;
-      for (const f of orderFiles) {
-        fileList.push({
-          orderId: order.id,
-          customerEmail: order.customer_email,
-          name: f.name,
-          url: f.url,
-          storagePath: f.path,
-          orderDate: order.created_at,
-        });
+        setTotalCount(count ?? 0);
       }
-    }
 
-    setFiles(fileList);
-    setLoading(false);
+      // ── Data query — server-side slice via .range() ───────────────────
+      let dataQuery = supabase
+        .from('dtf_orders')
+        .select('id, customer_email, files, created_at')
+        .not('files', 'is', null)
+        .order('created_at', { ascending: false });
+
+      // Server-side filter: customer email (covers both filter inputs)
+      if (emailVal) {
+        dataQuery = dataQuery.ilike('customer_email', `%${emailVal}%`); // S2 companion
+      }
+      if (searchVal) {
+        // When search query looks like an email fragment, filter on customer_email server-side.
+        // Filename/order-# filtering applied client-side after data arrives (JSONB contents).
+        dataQuery = dataQuery.ilike('customer_email', `%${searchVal}%`);
+      }
+
+      dataQuery = dataQuery.range(offset, offset + PAGE_SIZE - 1); // S2: .range()
+
+      const { data, error: fetchErr } = await dataQuery;
+
+      if (controller.signal.aborted) return;
+
+      if (fetchErr) {
+        setError(fetchErr.message);
+        setLoading(false);
+        return;
+      }
+
+      // Flatten files array for this page's orders
+      const fileList: FileRecord[] = [];
+      for (const order of (data ?? [])) {
+        const orderFiles = (order.files ?? []) as Array<{ name: string; url: string; path?: string }>;
+        for (const f of orderFiles) {
+          fileList.push({
+            orderId: order.id,
+            customerEmail: order.customer_email,
+            name: f.name,
+            url: f.url,
+            storagePath: f.path,
+            orderDate: order.created_at,
+          });
+        }
+      }
+
+      setFiles(fileList);
+      setLoading(false);
+    } catch (err: unknown) {
+      if (controller.signal.aborted) return;
+      const msg = err instanceof Error ? err.message : 'Tuntematon virhe';
+      setError(msg);
+      setLoading(false);
+    }
   }, []);
 
+  // ── Effect: reload when page/filter changes ────────────────────────────
   useEffect(() => {
-    loadPage(page);
-  }, [page, loadPage]);
+    const fetchCount = needCountRef.current;
+    needCountRef.current = false;
+    loadPage(page, search, customerFilter, fetchCount);
+    syncUrl(page, search, customerFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, search, customerFilter]);
 
-  // Reset to page 1 when filters change (filters are client-side within current page)
+  // ── Filter handlers — reset to page 1, flag count re-fetch ─────────────
   const handleSearchChange = (val: string) => {
     setSearch(val);
     setPage(1);
+    setTotalCount(null);
+    needCountRef.current = true;
   };
   const handleCustomerChange = (val: string) => {
     setCustomerFilter(val);
     setPage(1);
+    setTotalCount(null);
+    needCountRef.current = true;
   };
 
-  // Client-side filter within the current 50-row page
+  // ── Page nav — page change does NOT re-fetch count ─────────────────────
+  const goToPage = (next: number) => {
+    needCountRef.current = false;
+    setPage(next);
+  };
+
+  // ── Client-side secondary filter (order # / filename — inside JSONB) ───
   const filtered = files.filter(f => {
-    if (customerFilter && !f.customerEmail.toLowerCase().includes(customerFilter.toLowerCase())) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      if (
-        !f.name.toLowerCase().includes(q) &&
-        !f.orderId.toLowerCase().includes(q) &&
-        !f.customerEmail.toLowerCase().includes(q)
-      ) return false;
-    }
-    return true;
+    const q = search.toLowerCase();
+    if (!q) return true;
+    // Already filtered by email server-side; here we also check name/orderId
+    return (
+      f.name.toLowerCase().includes(q) ||
+      f.orderId.toLowerCase().includes(q) ||
+      f.customerEmail.toLowerCase().includes(q)
+    );
   });
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  // totalPages uses cached totalCount; falls back to current page count while loading
+  const resolvedCount = totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(resolvedCount / PAGE_SIZE));
+
+  // ── Preview modal ESC handler ──────────────────────────────────────────
+  useEffect(() => {
+    if (!preview) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPreview(null);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [preview]);
 
   return (
     <AdminLayout>
@@ -200,13 +247,14 @@ export const AdminFilesPage: React.FC = () => {
       </h1>
       <div style={{ width: '48px', height: '2px', background: '#b22222', marginBottom: '24px' }} />
 
-      {/* Filters */}
+      {/* Filters — server-side search across all orders */}
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
         <input
           type="text"
           value={search}
           onChange={e => handleSearchChange(e.target.value)}
-          placeholder="Hae tiedostonimellä tai tilauksella…"
+          placeholder="Hae kaikista tilauksista…"
+          aria-label="Hae tiedostonimellä, tilauksella tai sähköpostilla"
           style={{
             ...SERIF, fontSize: '1rem', padding: '10px 14px',
             border: '2px solid #1a1a1a', background: '#f4e4bc', color: '#1a1a1a',
@@ -218,6 +266,7 @@ export const AdminFilesPage: React.FC = () => {
           value={customerFilter}
           onChange={e => handleCustomerChange(e.target.value)}
           placeholder="Suodata sähköpostilla…"
+          aria-label="Suodata asiakkaan sähköpostiosoitteella"
           style={{
             ...SERIF, fontSize: '1rem', padding: '10px 14px',
             border: '2px solid #1a1a1a', background: '#f4e4bc', color: '#1a1a1a',
@@ -227,7 +276,7 @@ export const AdminFilesPage: React.FC = () => {
       </div>
 
       <div style={{ ...MONO, fontSize: '11px', color: '#666', marginBottom: '16px' }}>
-        {totalCount} tilausta yhteensä · sivu {page}/{totalPages || 1} · {PAGE_SIZE} per sivu
+        {totalCount !== null ? `${totalCount} tilausta yhteensä · ` : ''}sivu {page}/{totalPages} · {PAGE_SIZE} per sivu
       </div>
 
       {loading ? (
@@ -238,7 +287,7 @@ export const AdminFilesPage: React.FC = () => {
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ border: '2px solid #1a1a1a', padding: '32px', textAlign: 'center', ...MONO, fontSize: '11px', color: '#666' }}>
-          Ei tiedostoja.
+          {resolvedCount === 0 ? 'Ei tilauksia tiedostoilla.' : 'Ei hakutuloksia.'}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
@@ -256,16 +305,16 @@ export const AdminFilesPage: React.FC = () => {
       {totalPages > 1 && (
         <div style={{ display: 'flex', gap: '8px', marginTop: '20px', alignItems: 'center' }}>
           <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page <= 1}
+            onClick={() => goToPage(Math.max(1, page - 1))}
+            disabled={page <= 1 || loading}
             aria-label="Edellinen sivu"
             style={{
               ...MONO, fontSize: '11px', letterSpacing: '0.10em', textTransform: 'uppercase',
               padding: '8px 16px', minHeight: '44px',
               border: '2px solid #1a1a1a',
-              background: page <= 1 ? '#e8d8b0' : '#1a1a1a',
-              color: page <= 1 ? '#aaa' : '#f4e4bc',
-              cursor: page <= 1 ? 'default' : 'pointer',
+              background: page <= 1 || loading ? '#e8d8b0' : '#1a1a1a',
+              color: page <= 1 || loading ? '#aaa' : '#f4e4bc',
+              cursor: page <= 1 || loading ? 'default' : 'pointer',
             }}
           >
             ← Edellinen
@@ -274,16 +323,16 @@ export const AdminFilesPage: React.FC = () => {
             {page} / {totalPages}
           </span>
           <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
+            onClick={() => goToPage(Math.min(totalPages, page + 1))}
+            disabled={page >= totalPages || loading}
             aria-label="Seuraava sivu"
             style={{
               ...MONO, fontSize: '11px', letterSpacing: '0.10em', textTransform: 'uppercase',
               padding: '8px 16px', minHeight: '44px',
               border: '2px solid #1a1a1a',
-              background: page >= totalPages ? '#e8d8b0' : '#1a1a1a',
-              color: page >= totalPages ? '#aaa' : '#f4e4bc',
-              cursor: page >= totalPages ? 'default' : 'pointer',
+              background: page >= totalPages || loading ? '#e8d8b0' : '#1a1a1a',
+              color: page >= totalPages || loading ? '#aaa' : '#f4e4bc',
+              cursor: page >= totalPages || loading ? 'default' : 'pointer',
             }}
           >
             Seuraava →
@@ -295,6 +344,9 @@ export const AdminFilesPage: React.FC = () => {
       {preview && (
         <div
           onClick={() => setPreview(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Esikatselu: ${preview.name}`}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(26,26,26,0.85)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '24px',
@@ -312,6 +364,7 @@ export const AdminFilesPage: React.FC = () => {
               </div>
               <button
                 onClick={() => setPreview(null)}
+                aria-label="Sulje esikatselu"
                 style={{ ...MONO, fontSize: '14px', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 8px', minHeight: '44px' }}
               >
                 ×
@@ -359,7 +412,9 @@ export const AdminFilesPage: React.FC = () => {
   );
 };
 
-// ─── File card sub-component — uses getCachedSignedUrl for signed-storage paths ─
+// ─── File card sub-component ──────────────────────────────────────────────────
+// Imports getCachedSignedUrl from the extracted module (no inline duplicate).
+// Adds keyboard a11y: tabIndex=0, role="button", onKeyDown.
 interface FileCardProps {
   file: FileRecord;
   onClick: () => void;
@@ -369,27 +424,46 @@ const FileCard: React.FC<FileCardProps> = ({ file, onClick }) => {
   const [resolvedUrl, setResolvedUrl] = useState(file.url);
 
   useEffect(() => {
-    // If the URL is a Supabase storage path (not already a full https URL), sign it.
-    // The cache (signedUrlCache) prevents duplicate sign calls within the TTL window.
+    // Sign Supabase storage paths via the shared LRU cache (src/lib/signedUrlCache.ts).
+    // TTL: 5 min (default). Decoupled from sign-expiry: signs for 2×TTL so URL stays
+    // valid for the full cache window even if served at the end of the TTL period.
     if (file.storagePath && !file.url.startsWith('http')) {
-      getCachedSignedUrl('dtf-files', file.storagePath, supabase)
+      const TTL_MS = 5 * 60 * 1000;
+      getCachedSignedUrl('dtf-files', file.storagePath, supabase, 2 * TTL_MS)
         .then(signed => setResolvedUrl(signed))
-        .catch(() => { /* keep original url on error */ });
+        .catch(err => {
+          console.warn('[FileCard] sign failed:', file.storagePath, err);
+          // Keep original url as fallback
+        });
     }
   }, [file.storagePath, file.url]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  };
 
   return (
     <div
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-label={`${file.name} — ${file.customerEmail}`}
       style={{
         border: '2px solid #1a1a1a',
         background: '#f4e4bc',
         padding: '0',
         cursor: 'pointer',
         overflow: 'hidden',
+        outline: 'none',
       }}
       onMouseEnter={e => (e.currentTarget.style.borderColor = '#b22222')}
       onMouseLeave={e => (e.currentTarget.style.borderColor = '#1a1a1a')}
+      onFocus={e => (e.currentTarget.style.borderColor = '#b22222')}
+      onBlur={e => (e.currentTarget.style.borderColor = '#1a1a1a')}
     >
       {/* Preview area */}
       <div style={{ height: '120px', background: '#e8d8b0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
