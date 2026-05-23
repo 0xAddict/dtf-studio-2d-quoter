@@ -270,10 +270,10 @@ export const AdminOrdersPage: React.FC = () => {
 
       {/* Table */}
       {loading ? (
-        <div style={{ ...MONO, fontSize: '11px', padding: '24px 0', color: '#666' }}>Ladataan…</div>
+        <div style={{ ...MONO, fontSize: '11px', padding: '24px 0', color: '#666' }}>Haetaan tilauksia…</div>
       ) : error ? (
         <div style={{ border: '1px solid #b22222', padding: '16px', background: '#fff0f0', ...MONO, fontSize: '11px', color: '#b22222' }}>
-          Virhe: {error}
+          Tilausten haku epäonnistui — {error}
         </div>
       ) : orders.length === 0 ? (
         <div style={{ border: '2px solid #1a1a1a', padding: '32px', background: '#e8d8b0', textAlign: 'center', ...MONO, fontSize: '11px', color: '#666' }}>

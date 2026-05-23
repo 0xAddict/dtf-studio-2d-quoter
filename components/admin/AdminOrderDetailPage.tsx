@@ -118,9 +118,9 @@ export const AdminOrderDetailPage: React.FC = () => {
     const result = await adminSetRequiresPayment(id, newValue);
     if (result.ok) {
       setOrder(prev => prev ? { ...prev, requires_payment: newValue } : prev);
-      setOverrideMsg(`Asetettu: ${newValue ? 'Maksu vaaditaan' : 'Laskutus (ei maksua)'}`);
+      setOverrideMsg(newValue ? 'Maksu vaaditaan' : 'Laskutus (ei maksua)');
     } else {
-      setOverrideMsg(`Virhe: ${result.error}`);
+      setOverrideMsg(`Hups — maksutilan muutos epäonnistui: ${result.error}`);
     }
     setOverrideLoading(false);
   };
@@ -128,7 +128,7 @@ export const AdminOrderDetailPage: React.FC = () => {
   if (loading) {
     return (
       <AdminLayout>
-        <div style={{ ...MONO, fontSize: '11px', padding: '32px 0', color: '#666' }}>Ladataan…</div>
+        <div style={{ ...MONO, fontSize: '11px', padding: '32px 0', color: '#666' }}>Haetaan tilausta…</div>
       </AdminLayout>
     );
   }
@@ -137,7 +137,7 @@ export const AdminOrderDetailPage: React.FC = () => {
     return (
       <AdminLayout>
         <div style={{ border: '1px solid #b22222', padding: '16px', background: '#fff0f0', ...MONO, fontSize: '11px', color: '#b22222' }}>
-          Tilausta ei löydy: {id}
+          Tilausta ei löydy — tarkista linkki ja yritä uudelleen
         </div>
         <Link to="/admin/orders" style={{ ...MONO, fontSize: '11px', color: '#b22222', textDecoration: 'underline', display: 'block', marginTop: '16px' }}>
           ← Takaisin tilauksiin
@@ -290,7 +290,7 @@ export const AdminOrderDetailPage: React.FC = () => {
             <div>
               {lineItems.length === 0 ? (
                 <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px', border: '1px solid #e8d8b0', textAlign: 'center' }}>
-                  Ei tiedostoja tallennettu.
+                  Ei tiedostoja tässä tilauksessa
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
@@ -323,7 +323,7 @@ export const AdminOrderDetailPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {history.length === 0 ? (
                 <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px', border: '1px solid #e8d8b0', textAlign: 'center' }}>
-                  Ei tilahistoriaa.
+                  Ei vielä tilahistoriaa
                 </div>
               ) : (
                 history.map(row => (
@@ -383,7 +383,7 @@ export const AdminOrderDetailPage: React.FC = () => {
                     opacity: savingNote || !noteBody.trim() ? 0.5 : 1,
                   }}
                 >
-                  {savingNote ? 'Tallennetaan…' : 'Tallenna'}
+                  {savingNote ? 'Tallennetaan…' : 'Lisää muistiinpano'}
                 </button>
               </div>
             </div>

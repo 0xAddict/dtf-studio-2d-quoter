@@ -171,12 +171,12 @@ export const AdminNotificationsPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px 0' }}>Ladataan…</div>
+        <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px 0' }}>Haetaan ilmoituksia…</div>
       ) : error ? (
-        <div style={{ border: '1px solid #b22222', padding: '16px', background: '#fff0f0', ...MONO, fontSize: '11px', color: '#b22222' }}>Virhe: {error}</div>
+        <div style={{ border: '1px solid #b22222', padding: '16px', background: '#fff0f0', ...MONO, fontSize: '11px', color: '#b22222' }}>Ilmoitusten haku epäonnistui — {error}</div>
       ) : filtered.length === 0 ? (
         <div style={{ border: '2px solid #1a1a1a', padding: '32px', textAlign: 'center', ...MONO, fontSize: '11px', color: '#666' }}>
-          Ei ilmoituksia.
+          Ei ilmoituksia valituilla suodattimilla
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

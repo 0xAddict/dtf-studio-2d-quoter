@@ -83,11 +83,11 @@ export const AdminNewQuotePage: React.FC = () => {
     e.preventDefault();
     setError(null);
 
-    if (!customerEmail.trim()) return setError('Sähköpostiosoite vaaditaan');
+    if (!customerEmail.trim()) return setError('Lisää asiakkaan sähköposti');
     const priceNum = parseFloat(quoteEur);
-    if (!priceNum || priceNum <= 0) return setError('Hinta vaaditaan (> 0)');
+    if (!priceNum || priceNum <= 0) return setError('Anna hinta (yli 0 €)');
     const sheetsNum = parseInt(sheetCount);
-    if (!sheetsNum || sheetsNum < 1) return setError('Arkkeja pitää olla vähintään 1');
+    if (!sheetsNum || sheetsNum < 1) return setError('Arkkeja pitää olla vähintään yksi');
     if (!adminId) return setError('Admin-istunto ei löydy — kirjaudu uudelleen');
 
     setSaving(true);
@@ -122,7 +122,7 @@ export const AdminNewQuotePage: React.FC = () => {
       .single();
 
     if (insertErr) {
-      setError(`Tallentaminen epäonnistui: ${insertErr.message}`);
+      setError(`Tarjouksen tallennus epäonnistui — ${insertErr.message}`);
       setSaving(false);
       return;
     }
@@ -142,7 +142,7 @@ export const AdminNewQuotePage: React.FC = () => {
 
         <div style={{ border: '2px solid #1a1a1a', padding: '24px', background: '#e8d8b0', marginBottom: '24px' }}>
           <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '11px', color: '#1a1a1a' }}>
-            Tarjous tallennettu onnistuneesti.
+            Tarjous luotu ja lähetetty jonoon.
           </div>
           <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '11px', color: '#b22222', marginTop: '8px' }}>
             ID: {success.orderId}

@@ -151,7 +151,7 @@ export const AdminHomePage: React.FC = () => {
 
       {/* Stats grid */}
       {loading ? (
-        <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px 0' }}>Ladataan…</div>
+        <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px 0' }}>Haetaan tietoja…</div>
       ) : stats && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px', marginBottom: '40px' }}>
@@ -160,7 +160,7 @@ export const AdminHomePage: React.FC = () => {
             <StatCard label="Tuotannossa" value={stats.inProduction} href="/admin/orders?status=in_production" />
             <StatCard label="Odottaa maksua" value={stats.awaitingPayment} href="/admin/orders?payment=invoice_pending" />
             <StatCard label="Peruutettuja (30pv)" value={stats.cancelledThisMonth} href="/admin/orders?status=cancelled" />
-            <StatCard label="Keskim. tilausarvo (30pv)" value={`€${stats.avgOrderValue.toFixed(0)}`} href="/admin/orders?payment=paid" unit="/ tilaus" />
+            <StatCard label="Tilausarvo keskimäärin (30 pv)" value={`€${stats.avgOrderValue.toFixed(0)}`} href="/admin/orders?payment=paid" unit="/ tilaus" />
           </div>
 
           {/* Recent activity */}
@@ -171,7 +171,7 @@ export const AdminHomePage: React.FC = () => {
 
             {notifications.length === 0 ? (
               <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '16px', border: '1px solid #e8d8b0', background: '#f4e4bc' }}>
-                Ei tapahtumia.
+                Ei vielä tapahtumia
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

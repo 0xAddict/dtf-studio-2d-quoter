@@ -130,14 +130,14 @@ export const AdminFilesPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px 0' }}>Ladataan…</div>
+        <div style={{ ...MONO, fontSize: '11px', color: '#666', padding: '24px 0' }}>Haetaan tiedostoja…</div>
       ) : error ? (
         <div style={{ border: '1px solid #b22222', padding: '16px', background: '#fff0f0', ...MONO, fontSize: '11px', color: '#b22222' }}>
-          Virhe: {error}
+          Tiedostojen haku epäonnistui — {error}
         </div>
       ) : paginated.length === 0 ? (
         <div style={{ border: '2px solid #1a1a1a', padding: '32px', textAlign: 'center', ...MONO, fontSize: '11px', color: '#666' }}>
-          Ei tiedostoja.
+          Ei tiedostoja hakuehdoilla
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
