@@ -53,7 +53,6 @@ function buildBrandedCustomerEmail({ quoteId, customerName, customerEmail, quote
                 </td>
                 <td align="right" style="vertical-align:middle;">
                   <p style="margin:0; font-family:'IBM Plex Mono','Courier New',monospace; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:#e8d8b0;">DTF STUDIO HELSINKI</p>
-                  <p style="margin:2px 0 0; font-family:'IBM Plex Mono','Courier New',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:#b22222;">KONALA · HELSINKI</p>
                 </td>
               </tr>
             </table>
